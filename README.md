@@ -71,7 +71,7 @@ agento shows up in three places. The mock-ups below use the plugin's real string
 flowchart TD
     A["A task starts at a clean point<br/>first prompt · after /clear or compaction · cold cache"] --> B{"System 1"}
     B -->|built in| R["rules-v1<br/>keywords, prompt length"]
-    B -->|if installed| S["trained student via agento-brain<br/>local daemon, ~35 ms on CPU"]
+    B -->|if installed| S["trained student via agento-brain<br/>local daemon, ~6 ms on a Mac"]
     R --> V["verdict: model × effort, with confidence"]
     S --> V
     V --> H["Hint above the prompt, or autopilot<br/>per task · never mid-task · never above your choice"]
@@ -148,7 +148,7 @@ Optional: **train your own System 1** on your history — dataset → judge on y
 
 - **66%** of spend was **cache reads**; cache hit ratio 99.2%.
 - An **Opus judge** reading finished tasks said **303 of 560 (54%)** Opus/Fable tasks would have been fine on Sonnet or Haiku. That is the judge's opinion, not a replay — and against the author's hand labels the same judge **under-routes 41%** of the time (n = 34).
-- **First training run (`opus-v1`).** From the prompt alone the student cannot pick the model safely (no threshold keeps under-routing ≤ 5%), so it never acts on its own for the tier. Its plan-first (92%) and delegate-explore (76%) heads are usable. Next: decide after the first steps, when trajectory signals exist.
+- **First training run (`opus-v1`).** From the prompt alone the student cannot pick the model safely (no threshold keeps under-routing ≤ 5%), so it never acts on its own for the tier. Its plan-first (92%) and delegate-explore (76%) heads are used by the plugin: plan-first brings up the Opus planning hint, explore-first tells the agent to start with `agento-scout` when orchestrator mode is on. Next: decide after the first steps, when trajectory signals exist.
 
 All charts with their caveats: [Benchmarks](https://regksemx.github.io/agento/benchmarks.html) (data: [`site/data/`](site/data/); chart: `node scripts/bench-svg.ts > docs/assets/bench.svg`). A public benchmark of cost per resolved task is on the [roadmap](#roadmap).
 
@@ -205,8 +205,8 @@ Nothing: Apache-2.0. The rules and the local student make no API calls. Judging 
 - [x] Research and design
 - [x] `agento audit` — spend, cache misses, TTL, light tasks on expensive models, subagents, dead context, setup
 - [x] Plugin MVP — ledger, status line, subagent routing, loop guard, hints, plan → code handoff, `/agento` pane, autopilot at clean points
-- [x] Training pipeline — dataset from your history, L1 judge (any OpenAI-compatible server), replays, public TwinRouterBench labels, [Laya](https://github.com/NandhaKishorM/laya) teacher → multilingual-e5-small student (35 ms on CPU), `agento-brain` daemon
-- [x] First training run (`opus-v1`): plan-first and delegate-explore heads usable; the model choice stays a hint
+- [x] Training pipeline — dataset from your history, L1 judge (any OpenAI-compatible server), replays, public TwinRouterBench labels, [Laya](https://github.com/NandhaKishorM/laya) teacher → multilingual-e5-small student (8.1 ms at 128 tokens on the training box CPU; the installed daemon answers in ~6 ms on an Apple-silicon Mac), `agento-brain` daemon
+- [x] First training run (`opus-v1`): plan-first and delegate-explore heads in use; the model choice stays with the rules
 - [ ] Decide after the first steps of a task, when trajectory signals exist
 - [ ] Trained System 1 shipped by default instead of rules ([runbook](docs/runbook-gpu.md))
 - [ ] Public benchmark: cost per resolved task vs always-Opus, opusplan, rule routers
@@ -223,7 +223,7 @@ npm run build && node cli/dist/agento.mjs audit
 claude plugin validate plugin && claude plugin test plugin
 ```
 
-The website is static and lives in [`site/`](site/) (no build step); `.github/workflows/pages.yml` publishes it to GitHub Pages. Preview it with `python3 -m http.server -d site`.
+The website is static and lives in [`site/`](site/) (no build step; the figures are regenerated from `site/data/` with `node scripts/site-figures.ts`); `.github/workflows/pages.yml` publishes it to GitHub Pages. Preview it with `python3 -m http.server -d site`.
 
 ## License
 

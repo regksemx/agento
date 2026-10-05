@@ -1,284 +1,411 @@
 <!doctype html>
-<!-- The GitHub owner is not decided yet: replace every "regksemx" (escaped as regksemx) once the repo is published. -->
-<html lang="en">
+<html lang="en" data-alt="ru/benchmarks.html">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>agento · benchmarks</title>
-<meta name="description" content="Where one Claude Code user's money went, what a judge thinks could have been cheaper, how the judges compare, and how fast the local student model is. Every chart with its caveats.">
-<link rel="alternate" hreflang="en" href="benchmarks.html">
-<link rel="alternate" hreflang="ru" href="ru/benchmarks.html">
-<link rel="alternate" hreflang="x-default" href="benchmarks.html">
+<title>agento benchmarks</title>
+<meta name="description" content="The author's own month of Claude Code in numbers, how far an LLM judge can be trusted to route, and how the first trained classifier did. With caveats.">
+<link rel="canonical" href="https://regksemx.github.io/agento/benchmarks.html">
+<link rel="alternate" hreflang="en" href="https://regksemx.github.io/agento/benchmarks.html">
+<link rel="alternate" hreflang="ru" href="https://regksemx.github.io/agento/ru/benchmarks.html">
+<link rel="alternate" hreflang="x-default" href="https://regksemx.github.io/agento/benchmarks.html">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#181715" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css">
-<script src="boot.js"></script>
-<script src="app.js" defer></script>
-<script src="charts.js" defer></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<script>(function(){var m=/[?&]lang=(en|ru)\b/.exec(location.search),h=document.documentElement;if(m&&m[1]!==h.lang)location.replace(h.getAttribute('data-alt')+location.hash)})()</script>
 </head>
 <body>
-<a class="skip" href="#main">Skip to content</a>
+<div class="page">
 
-<header class="nav">
-  <div class="wrap">
-    <a class="brand" href="./" aria-label="agento home"><span class="d">◆</span> agento</a>
-    <nav class="nav-links" aria-label="Main">
-      <a href="how-it-works.html">How it works</a>
-      <a href="benchmarks.html" aria-current="page">Benchmarks</a>
-      <a class="opt" href="./#privacy">Privacy</a>
-      <a class="opt" href="./#faq">FAQ</a>
-    </nav>
-    <div class="nav-tools">
-      <a class="tool" href="ru/benchmarks.html" hreflang="ru" lang="ru" data-set-lang="ru" aria-label="Русская версия">RU</a>
-      <button class="tool theme-toggle" type="button" data-theme-toggle>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      </button>
-      <a class="tool gh" href="https://github.com/regksemx/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
-    </div>
+<header>
+  <div class="mast">
+    <a class="name" href="./">agento</a>
+    <nav aria-label="Site"><a href="how-it-works.html">How it works</a><a href="benchmarks.html" aria-current="page">Benchmarks</a><a href="https://github.com/regksemx/agento">GitHub</a><a href="ru/benchmarks.html" lang="ru" hreflang="ru">По-русски</a></nav>
   </div>
-  <nav class="subnav" aria-label="Pages">
-    <a href="./">Home</a>
-    <a href="how-it-works.html">How it works</a>
-    <a href="benchmarks.html" aria-current="page">Benchmarks</a>
-    <a href="./#faq">FAQ</a>
-  </nav>
+  <div class="dateline"><span>A plugin and a CLI for Claude Code. Open source, Apache-2.0.</span><span>Alpha, October 2026</span></div>
 </header>
 
-<main id="main">
-
-<div class="page-head">
-  <div class="wrap">
-    <p class="eyebrow">Benchmarks</p>
-    <h1>The numbers, with their caveats.</h1>
-    <div class="intro">
-      <p>Two kinds of numbers live here. <strong>One user's month:</strong> the author's own <span data-bind="days">30</span> days of Claude Code, aggregated (<span data-bind="sessions">408</span> sessions, <span data-bind="requests">71,511</span> requests; no project names, no prompts). <strong>The parts agento is built from:</strong> how far the judges can be trusted and how fast the local student model is.</p>
-      <p>None of it is a measured saving, and none of it generalises to you. The public benchmark (cost per resolved task against always-Opus, <code>opusplan</code> and rule routers) is on the roadmap. Run <code>npx agento-cc audit</code> to see your own version of the first half.</p>
-    </div>
-    <p class="caveat" data-note="note">Aggregates from the author's own 30 days of Claude Code use (one subscription user, API-equivalent prices). Not a benchmark across users.</p>
-    <nav class="toc" aria-label="On this page">
-      <a href="#bill">Where the bill goes</a>
-      <a href="#spend">Spend</a>
-      <a href="#cache">Cache</a>
-      <a href="#switch">Model switch</a>
-      <a href="#judge">Ran vs needed</a>
-      <a href="#judges">Judges compared</a>
-      <a href="#student">Student</a>
-      <a href="#training">Training run</a>
-    </nav>
-  </div>
+<main>
+<div class="row intro">
+  <h1 class="sub">The numbers, with their caveats.</h1>
+  <p class="lede">Two kinds of numbers live here. My own 30 days of Claude Code, aggregated: 408 sessions, 71,511 requests, no prompts and no project names. And the parts agento is built from: how far an LLM judge can be trusted to pick a model, and how the first trained classifier did.</p>
+  <p style="margin-top:1em">None of it is a measured saving, and none of it says anything about your month. <code>npx agento-cc audit</code> prints your own version of the first half. A public benchmark, cost per resolved task against always-Opus, <code>opusplan</code> and rule routers, is not done yet.</p>
 </div>
 
-<section id="bill" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">01</span> Where the bill goes</p>
-    <div class="panel">
-      <div class="headline"><span class="big"><span data-bind="cacheReadPct">66%</span></span><span class="what">of the author's <span data-bind="total">$8,175</span> (API-equivalent, <span data-bind="days">30</span> days) was <strong>cache reads</strong>: the long context being re-read on every step.</span></div>
-      <div class="chart" id="ch-buckets" data-chart="buckets"></div>
-      <p class="caveat" data-for="ch-buckets">On a subscription nothing is charged per token; these are list prices applied to the tokens, the real constraint is the weekly limit. Cache hit ratio: <span data-bind="hitRatio">99.2%</span>. Prices as of <span data-bind="pricesAsOf">2026-10-05</span>.</p>
-    </div>
-    <div class="grid g2" style="margin-top:16px">
-      <div class="panel">
-        <h3>Spend by model family</h3>
-        <p class="sub">Almost all of it on Opus. The question agento asks is how much of that needed Opus.</p>
-        <div class="chart" id="ch-family" data-chart="family"></div>
-      </div>
-      <div class="panel">
-        <h3>Spend by effort</h3>
-        <p class="sub">Thinking is billed as output; effort on the 5.5 models can change without losing the cache.</p>
-        <div class="chart" id="ch-effort" data-chart="effort"></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="spend" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">02</span> Spend over time, main thread vs subagents</p>
-    <div class="grid g2">
-      <div class="panel">
-        <h3>By week</h3>
-        <p class="sub">On a subscription, the heaviest week is what hits the limit.</p>
-        <div class="chart" id="ch-weeks" data-chart="weeks"></div>
-        <p class="caveat" data-for="ch-weeks">The first and last weeks (grey) are partial: the window is 30 days.</p>
-      </div>
-      <div class="panel">
-        <h3>Main thread and subagents</h3>
-        <p class="sub">Subagents have their own cache, so their model is free to choose. Here they were <span data-bind="subPct">12%</span> of spend.</p>
-        <div class="chart" id="ch-mainsub" data-chart="mainsub"></div>
-        <h3 style="margin-top:22px">Subagents by type</h3>
-        <p class="sub">Amount and number of calls.</p>
-        <div class="chart" id="ch-subtypes" data-chart="subtypes"></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="cache" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">03</span> Cache misses</p>
-    <div class="panel">
-      <div class="headline"><span class="big"><span data-bind="lossUsd">$301</span></span><span class="what">estimated cost of cache misses, <span data-bind="ttlUsd">$222</span> of it from <span data-bind="ttlEvents">83</span> pauses that outlived the cache (TTL).</span></div>
-      <div class="grid g2">
-        <div><h3>By cost</h3><div class="chart" id="ch-lossusd" data-chart="lossUsd"></div></div>
-        <div><h3>By number of events</h3><div class="chart" id="ch-lossev" data-chart="lossEvents"></div></div>
-      </div>
-      <p class="caveat">Miss costs are the audit's estimates. “Unclear cause” means the transcript did not show why the cache was rewritten.</p>
-    </div>
-    <div class="panel" style="margin-top:16px">
-      <h3>Gaps between requests</h3>
-      <p class="sub">Most requests follow within a minute. Every gap longer than the cache TTL pays for a full rewrite of the context: on an API key the default TTL is 5 minutes, on a subscription 1 hour.</p>
-      <div class="chart" id="ch-gaps" data-chart="gaps"></div>
-    </div>
-  </div>
-</section>
-
-<section id="switch" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">04</span> Why agento never switches mid-task</p>
-    <div class="panel">
-      <h3>Steps until a mid-task model switch pays off</h3>
-      <p class="sub">Switching rewrites the whole cached prefix for the new model (the penalty). It pays off only after enough cheaper steps. Opus 5.5 and Sonnet 5.5 read the cache at the same price, so the gain per step is small. Simulated at two cached-prefix sizes.</p>
-      <div class="chart" id="ch-switch" data-chart="switch"></div>
-      <p class="caveat" data-for="ch-switch">Assumes the cheaper model does the task in as many steps as the original, which it often does not. That is why the model is picked at a clean point, where there is no cache to lose, and why work inside a task moves to subagents instead. <a href="how-it-works.html#economics">The worked example →</a></p>
-    </div>
-  </div>
-</section>
-
-<section id="judge" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">05</span> What ran vs what was needed</p>
-    <div class="panel">
-      <div class="headline"><span class="big"><span data-bind="cheaperPct">54%</span></span><span class="what">of the author's Opus/Fable tasks (<span data-bind="cheaperTasks">303</span> of <span data-bind="expTasks">560</span>) would have been fine on Sonnet or Haiku, <strong>according to an Opus judge</strong>.</span></div>
-      <p class="callout"><strong>Judge opinion on finished tasks, not a replay.</strong> Opus read each finished task (prompt, diff, a compressed trajectory) and named the cheapest model it thinks would have done as well. Nobody re-ran these tasks on Sonnet or Haiku. The next section shows how often such a judge is wrong.</p>
-      <div class="grid g2" style="margin-top:18px">
-        <div><h3>By tier, <span data-bind="judgeTasks">576</span> tasks</h3><div class="chart" id="ch-tiers" data-chart="judgeTiers"></div></div>
-        <div><h3>Ran on × needed</h3><p class="sub">Cells left of the diagonal: the judge thinks a cheaper model was enough.</p><div class="chart" id="ch-matrix" data-chart="judgeMatrix"></div></div>
-      </div>
-      <p class="caveat" data-note="opusJudge.note">Claude Opus as a judge of finished tasks (opinion, not a replay). Effort and the two flags omitted here.</p>
-    </div>
-  </div>
-</section>
-
-<section id="judges" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">06</span> Judges compared</p>
-    <div class="two-col">
-      <div>
-        <h2 style="font-size:1.5rem">Under-routing is the number that matters.</h2>
-        <p>A router can be wrong in two directions. <strong>Over-routing</strong>, picking a more expensive model than needed, only loses savings: you pay what you paid before. <strong>Under-routing</strong>, picking a cheaper model than needed, costs quality: a broken change, a retry, a long debugging loop that eats more than the saving.</p>
-        <p>So accuracy alone is misleading. A trained model ships only if its under-routing on held-out tasks is at most 5% at the chosen confidence threshold. The judges below are far from that, which is why their labels are calibrated against hand labels and replays before training, and never used as-is.</p>
-      </div>
-      <div class="panel">
-        <div class="chart" id="ch-judges" data-chart="judges"></div>
-        <p class="caveat" data-note="judges.note">under = judge picked a cheaper model than the reference (quality risk); over = more expensive (missed savings).</p>
-        <p class="caveat">“Opus and Qwen” compares the two judges with each other on the same tasks; neither is ground truth. The author's labels are hand labels of his own past tasks (<span data-bind="opusHumanN">34</span> for Opus).</p>
-        <p class="caveat">* <span data-note="judges.publicSweQwen.note">TwinRouterBench SWE-bench step prefixes; reference labels there are weak (degradation_search_done)</span>.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div data-training>
-<section id="student" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">07</span> The student model</p>
-    <div class="grid g2">
-      <div class="panel">
-        <h3>Latency per candidate encoder</h3>
-        <p class="sub">p50 in ms, sequence length 256, 4 CPU threads, ONNX Runtime. The plugin asks once per task start; the bar for the student was ≤ 60 ms with a multilingual tokenizer.</p>
-        <div class="chart" id="ch-latency" data-chart="latency"></div>
-        <p class="caveat" data-for="ch-latency">Apple M5, random-init weights: latency and size only, nothing about accuracy. The Ettin models are English-only. Details: <a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">training/BENCHMARK.md</a>.</p>
-      </div>
-      <div class="panel t-ready">
-        <h3>The student in run <span data-tbind="run">opus-v1</span></h3>
-        <p class="sub">The trained model as exported and checked by the pipeline.</p>
-        <dl class="spec">
-          <div><dt>model</dt><dd><span data-tbind="model">multilingual-e5-small</span><small><span data-tbind="params">118M</span> params</small></dd></div>
-          <div><dt>size</dt><dd data-tbind="size">279 MB</dd></div>
-          <div><dt>p50, seq 128</dt><dd data-tbind="p50_128">8.1 ms</dd></div>
-          <div><dt>p50, seq 256</dt><dd data-tbind="p50_256">17.6 ms</dd></div>
-          <div><dt>ONNX vs PyTorch agreement</dt><dd data-tbind="parity">1.00</dd></div>
-          <div><dt>int8 version</dt><dd><small style="margin:0;font-size:0.82rem" data-tnote="student.int8">discarded (agreement 0.888 &lt; 0.98)</small></dd></div>
-        </dl>
-        <p class="caveat">Latency here was measured by the training run on its own machine; the candidate chart was measured separately on an Apple M5 with 4 threads, so the two are not comparable one-to-one.</p>
-      </div>
-      <div class="panel t-pending">
-        <h3>Training run</h3>
-        <p class="sub">No training run published yet: <code>data/training.json</code> is missing. Until a model passes its gate, the plugin decides with rules.</p>
-        <p class="caveat">How a run is made and gated: <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">GPU runbook</a> (in Russian).</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="training" class="tight t-ready">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">08</span> First training run</p>
-    <h2 style="font-size:1.5rem;max-width:36em">The student learned something useful, and something it must not do alone.</h2>
-    <div class="verdict">
-      <p class="lbl">◆ verdict <span class="badge"><span data-tbind="run">opus-v1</span> · <span data-tbind="date">2026-10-05</span></span></p>
-      <blockquote data-tnote="verdict">From the prompt alone the student cannot pick the model safely (no threshold keeps under-routing &lt;= 5%), so it never acts on its own for the tier. Its plan-first (92%) and delegate-explore (76%) heads are usable. Next: decide after the first steps, when trajectory signals exist.</blockquote>
-      <ul class="chips">
-        <li class="no"><b>tier</b>: hints only, never on its own</li>
-        <li class="ok"><b>plan_first</b>: 92% · usable</li>
-        <li class="ok"><b>delegate_explore</b>: 76% · usable</li>
-        <li class="next"><b>next</b>: decide after the first steps</li>
-      </ul>
-    </div>
-    <div class="grid g2" style="margin-top:16px">
-      <div class="panel">
-        <h3>Test accuracy per head</h3>
-        <p class="sub">Four questions the student answers at a task start. Hover for macro-F1 and calibration (ECE).</p>
-        <div class="chart" id="ch-heads" data-train-chart="heads"></div>
-      </div>
-      <div class="panel">
-        <h3>Picking the model: student vs simple policies</h3>
-        <p class="sub">Accuracy and under-routing of the tier choice on the same 87 test tasks. The line marks the 5% under-routing a model must stay under to act.</p>
-        <div class="chart" id="ch-policies" data-train-chart="policies"></div>
-        <p class="caveat" data-for="ch-policies">L0 sees the finished trajectory, so it is not something you can run at a task start: it shows how much the first steps of a task could tell. “Always opus” never under-routes and overpays on 64% of tasks.</p>
-      </div>
-    </div>
-    <p class="caveat">The labels are the Opus judge's opinions (L1), the same judge that under-routes 41% against hand labels above: the student learned the judge, not the ground truth. That is one more reason the tier head only ever hints.</p>
-    <p class="caveat"><span data-tnote="labels">Claude Opus as judge of finished tasks (L1), 576 of the author's tasks; time split train 407 / calibration 87 / test 87</span>. <span data-tnote="teacher">Laya multilingual (mmBERT 322M), RLCD, 6 epochs, 236 s on one RTX PRO 4000</span>.</p>
-    <p class="caveat">How a run is made and gated: <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">GPU runbook</a> (in Russian).</p>
-  </div>
-</section>
+<section class="row" id="spend">
+  <h2>Where my month went</h2>
+  <p>$8,175 at API list prices over 30 days, two thirds of it cache reads: the long context read again on every step.<sup class="n">1</sup> The cache hit ratio was 99.2%, so this is not a cache that fails. It is a cache that works and is read very often.</p>
+  <p class="note"><span class="n">1</span>API-equivalent. I am on a subscription, which charges nothing per token; the real constraint is the weekly limit. Prices as of 2026-10-05.</p>
+  <figure>
+<!-- fig:buckets -->
+<svg class="stack" viewBox="0 0 400 28" preserveAspectRatio="none" role="img" aria-label="Stacked bar: cache reads 66%, cache writes 19%, output 15%"><rect x="0" y="0" width="262.37" height="28" class="f1"/><rect x="263.87" y="0" width="76.13" height="28" class="f2"/><rect x="341.49" y="0" width="58.47" height="28" class="f3"/></svg>
+<table class="key">
+<tr><td><i class="f1"></i>cache reads</td><td class="r">$5,403</td><td class="r">66%</td></tr>
+<tr><td><i class="f2"></i>cache writes</td><td class="r">$1,568</td><td class="r">19%</td></tr>
+<tr><td><i class="f3"></i>output</td><td class="r">$1,204</td><td class="r">15%</td></tr>
+<tr><td><i class="f0"></i>uncached input</td><td class="r">$0.82</td><td class="r">0%</td></tr>
+</table>
+<!-- /fig:buckets -->
+    <figcaption><b>Figure 1.</b> Spend by kind of token. Uncached input is $0.82, too small to draw.</figcaption>
+  </figure>
+  <figure>
+<!-- fig:family -->
+<div class="bars" role="img" aria-label="Spend by model family">
+<div class="bar"><span class="l">opus-5.5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f1"/></svg><span class="v">$4,456</span></div>
+<div class="bar"><span class="l">opus-5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="75.89" height="10" class="f1"/></svg><span class="v">$3,382</span></div>
+<div class="bar"><span class="l">fable-5.1</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.43" height="10" class="f1"/></svg><span class="v">$197</span></div>
+<div class="bar"><span class="l">opus-4.x</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="1.57" height="10" class="f1"/></svg><span class="v">$70</span></div>
+<div class="bar"><span class="l">sonnet-5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.81" height="10" class="f1"/></svg><span class="v">$36</span></div>
+<div class="bar"><span class="l">sonnet-5.5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.76" height="10" class="f1"/></svg><span class="v">$34</span></div>
+<div class="bar"><span class="l">haiku-4.5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0" height="10" class="f1"/></svg><span class="v">$0.20</span></div>
 </div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Family</th><th class="r">Spend</th><th class="r">Share</th></tr></thead>
+<tbody>
+<tr><td>opus-5.5</td><td class="r">$4455.80</td><td class="r">55%</td></tr>
+<tr><td>opus-5</td><td class="r">$3381.55</td><td class="r">41%</td></tr>
+<tr><td>fable-5.1</td><td class="r">$197.41</td><td class="r">2%</td></tr>
+<tr><td>opus-4.x</td><td class="r">$69.88</td><td class="r">1%</td></tr>
+<tr><td>sonnet-5</td><td class="r">$36.30</td><td class="r">0%</td></tr>
+<tr><td>sonnet-5.5</td><td class="r">$34.03</td><td class="r">0%</td></tr>
+<tr><td>haiku-4.5</td><td class="r">$0.20</td><td class="r">0%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:family -->
+    <figcaption><b>Figure 2.</b> Spend by model family. Almost all of it on Opus, which is the question agento asks: how much of that needed Opus.</figcaption>
+  </figure>
+  <figure>
+<!-- fig:effort -->
+<div class="bars" role="img" aria-label="Spend by effort">
+<div class="bar"><span class="l">high</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f1"/></svg><span class="v">$5,310</span></div>
+<div class="bar"><span class="l">xhigh</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="28.84" height="10" class="f1"/></svg><span class="v">$1,531</span></div>
+<div class="bar"><span class="l">medium</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="19.72" height="10" class="f1"/></svg><span class="v">$1,047</span></div>
+<div class="bar"><span class="l">max</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.54" height="10" class="f1"/></svg><span class="v">$241</span></div>
+<div class="bar"><span class="l">low</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.86" height="10" class="f1"/></svg><span class="v">$46</span></div>
+<div class="bar"><span class="l">unknown</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0" height="10" class="f1"/></svg><span class="v">$0.20</span></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>effort</th><th class="r">Spend</th><th class="r">Share</th></tr></thead>
+<tbody>
+<tr><td>high</td><td class="r">$5309.67</td><td class="r">65%</td></tr>
+<tr><td>xhigh</td><td class="r">$1531.43</td><td class="r">19%</td></tr>
+<tr><td>medium</td><td class="r">$1047.23</td><td class="r">13%</td></tr>
+<tr><td>max</td><td class="r">$240.96</td><td class="r">3%</td></tr>
+<tr><td>low</td><td class="r">$45.67</td><td class="r">1%</td></tr>
+<tr><td>unknown</td><td class="r">$0.20</td><td class="r">0%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:effort -->
+    <figcaption><b>Figure 3.</b> Spend by effort level. Thinking is billed as output, and on the 5.5 models effort can change between messages without losing the cache.</figcaption>
+  </figure>
+</section>
 
+<section class="row" id="time">
+  <h2>Week by week, and who spent it</h2>
+  <p>On a subscription the heaviest week is what runs into the limit, not the monthly total.</p>
+  <figure>
+<!-- fig:weeks -->
+<div class="cols" role="img" aria-label="Spend by week">
+<div class="col"><span class="v">$105</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:6.71px"><rect width="10" height="10" class="f3"/></svg></div>
+<div class="col"><span class="v">$1,593</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:102.15px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$1,465</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:93.91px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$2,001</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:128.3px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$2,807</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:180px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$204</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:13.07px"><rect width="10" height="10" class="f3"/></svg></div>
+</div>
+<div class="cols-l" aria-hidden="true"><span>Aug 31</span><span>Sep 7</span><span>Sep 14</span><span>Sep 21</span><span>Sep 28</span><span>Oct 5</span></div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Week of</th><th class="r">Spend</th></tr></thead>
+<tbody>
+<tr><td>2026-08-31 (partial)</td><td class="r">$104.81</td></tr>
+<tr><td>2026-09-07</td><td class="r">$1593.32</td></tr>
+<tr><td>2026-09-14</td><td class="r">$1464.66</td></tr>
+<tr><td>2026-09-21</td><td class="r">$2001.08</td></tr>
+<tr><td>2026-09-28</td><td class="r">$2807.40</td></tr>
+<tr><td>2026-10-05 (partial)</td><td class="r">$203.88</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:weeks -->
+    <figcaption><b>Figure 4.</b> Spend by week, weeks starting on Monday. The first and last weeks, drawn faint, are partial: the window is 30 days.</figcaption>
+  </figure>
+  <p>Subagents were 12% of the spend. Their model is the one choice that is always free to make, because each subagent starts with its own cache.<sup class="n">2</sup></p>
+  <p class="note"><span class="n">2</span>“Explore” is Claude Code’s built-in read-only subagent. The audit suggests Haiku for it.</p>
+  <figure>
+<!-- fig:subagents -->
+<svg class="stack" viewBox="0 0 400 28" preserveAspectRatio="none" role="img" aria-label="Main thread 88%, subagents 12%"><rect x="0" y="0" width="349.21" height="28" class="f1"/><rect x="350.71" y="0" width="49.29" height="28" class="f2"/></svg>
+<table class="key">
+<tr><td><i class="f1"></i>main thread</td><td class="r">$7,164</td><td class="r">88%</td></tr>
+<tr><td><i class="f2"></i>subagents</td><td class="r">$1,011</td><td class="r">12%</td></tr>
+</table>
+<div class="sub-h">Subagents by type</div>
+<div class="bars wide-l" role="img" aria-label="Subagent spend by type">
+<div class="bar"><span class="l">general-purpose</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f2"/></svg><span class="v">$731</span></div>
+<div class="bar"><span class="l">workflow-subagent</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="19.89" height="10" class="f2"/></svg><span class="v">$145</span></div>
+<div class="bar"><span class="l">fork</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="9.68" height="10" class="f2"/></svg><span class="v">$71</span></div>
+<div class="bar"><span class="l">Explore</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="8.68" height="10" class="f2"/></svg><span class="v">$64</span></div>
+<div class="bar"><span class="l">claude-code-guide</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.02" height="10" class="f2"/></svg><span class="v">$0.14</span></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Subagent type</th><th class="r">Spend</th><th class="r">Calls</th></tr></thead>
+<tbody>
+<tr><td>general-purpose</td><td class="r">$731.31</td><td class="r">11,082</td></tr>
+<tr><td>workflow-subagent</td><td class="r">$145.44</td><td class="r">2,511</td></tr>
+<tr><td>fork</td><td class="r">$70.77</td><td class="r">836</td></tr>
+<tr><td>Explore</td><td class="r">$63.50</td><td class="r">1,309</td></tr>
+<tr><td>claude-code-guide</td><td class="r">$0.14</td><td class="r">9</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:subagents -->
+    <figcaption><b>Figure 5.</b> Main thread against subagents, then subagent spend by type. The call counts are in the data table.</figcaption>
+  </figure>
+</section>
+
+<section class="row" id="cache">
+  <h2>Where the cache was lost</h2>
+  <p>Rewriting the cache cost an estimated $301 over the month, and $222 of that came from 83 pauses longer than the cache lives. A model switch caused only four rewrites, because I rarely switched.<sup class="n">3</sup></p>
+  <p class="note"><span class="n">3</span>These are the audit’s estimates. “Cause not visible” means the transcript did not show why the cache was written again.</p>
+  <figure>
+<!-- fig:losses -->
+<div class="bars wide-l" role="img" aria-label="Cost of cache misses by cause">
+<div class="bar"><span class="l">pause outlived the cache</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f1"/></svg><span class="v">$222</span></div>
+<div class="bar"><span class="l">cause not visible</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="22.45" height="10" class="f2"/></svg><span class="v">$50</span></div>
+<div class="bar"><span class="l">compaction</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="9.11" height="10" class="f2"/></svg><span class="v">$20</span></div>
+<div class="bar"><span class="l">model switch</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="3.9" height="10" class="f2"/></svg><span class="v">$8.67</span></div>
+<div class="bar"><span class="l">effort change</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.19" height="10" class="f2"/></svg><span class="v">$0.43</span></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Cause</th><th class="r">Events</th><th class="r">Estimated cost</th></tr></thead>
+<tbody>
+<tr><td>pause outlived the cache</td><td class="r">83</td><td class="r">$222.07</td></tr>
+<tr><td>cause not visible</td><td class="r">102</td><td class="r">$49.86</td></tr>
+<tr><td>compaction</td><td class="r">64</td><td class="r">$20.23</td></tr>
+<tr><td>model switch</td><td class="r">4</td><td class="r">$8.67</td></tr>
+<tr><td>effort change</td><td class="r">1</td><td class="r">$0.43</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:losses -->
+    <figcaption><b>Figure 6.</b> Estimated cost of cache rewrites, by cause.</figcaption>
+  </figure>
+  <figure>
+<!-- fig:gaps -->
+<div class="bars wide-l" role="img" aria-label="Gaps between requests">
+<div class="bar"><span class="l">under 1 min</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f3"/></svg><span class="v">50,235</span></div>
+<div class="bar"><span class="l">1 to 5 min</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="7.82" height="10" class="f3"/></svg><span class="v">3,930</span></div>
+<div class="bar"><span class="l">5 to 15 min</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="1.63" height="10" class="f1"/></svg><span class="v">820</span></div>
+<div class="bar"><span class="l">15 to 60 min</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.6" height="10" class="f1"/></svg><span class="v">299</span></div>
+<div class="bar"><span class="l">over an hour</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.19" height="10" class="f1"/></svg><span class="v">96</span></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Gap</th><th class="r">Requests</th><th class="r">Share</th></tr></thead>
+<tbody>
+<tr><td>under 1 min</td><td class="r">50,235</td><td class="r">90.7%</td></tr>
+<tr><td>1 to 5 min</td><td class="r">3,930</td><td class="r">7.1%</td></tr>
+<tr><td>5 to 15 min</td><td class="r">820</td><td class="r">1.5%</td></tr>
+<tr><td>15 to 60 min</td><td class="r">299</td><td class="r">0.5%</td></tr>
+<tr><td>over an hour</td><td class="r">96</td><td class="r">0.2%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:gaps -->
+    <figcaption><b>Figure 7.</b> Gaps between consecutive requests. Most follow within a minute. Every gap longer than the cache lifetime pays for a full rewrite: 5 minutes or 1 hour, whichever the request asked for. The strong bars are the gaps that can outlive a 5-minute cache.</figcaption>
+  </figure>
+</section>
+
+<section class="row" id="switch">
+  <h2>What a mid-task switch would have cost</h2>
+  <p>The audit replays my own steps as if the model had been switched in the middle: the penalty is the whole cached prefix written again for the new model, and the gain is the cheaper price of each later step.</p>
+  <figure>
+<!-- fig:breakeven -->
+<div class="bars grouped" role="img" aria-label="Steps until a mid-task model switch pays off">
+<div class="grp"><div class="gl">opus-5.5 → sonnet-5.5</div>
+<div class="bar"><span class="l">prefix 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="45.51" height="10" class="f1"/></svg><span class="v">76 steps</span></div>
+<div class="bar"><span class="l">prefix 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f2"/></svg><span class="v">167 steps</span></div></div>
+<div class="grp"><div class="gl">opus-5.5 → haiku-4.5</div>
+<div class="bar"><span class="l">prefix 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.79" height="10" class="f1"/></svg><span class="v">8 steps</span></div>
+<div class="bar"><span class="l">prefix 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="5.39" height="10" class="f2"/></svg><span class="v">9 steps</span></div></div>
+<div class="grp"><div class="gl">fable-5.1 → opus-5.5</div>
+<div class="bar"><span class="l">prefix 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="20.36" height="10" class="f1"/></svg><span class="v">34 steps</span></div>
+<div class="bar"><span class="l">prefix 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="31.14" height="10" class="f2"/></svg><span class="v">52 steps</span></div></div>
+<div class="grp"><div class="gl">opus-5 → sonnet-5.5</div>
+<div class="bar"><span class="l">prefix 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="3.59" height="10" class="f1"/></svg><span class="v">6 steps</span></div>
+<div class="bar"><span class="l">prefix 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.19" height="10" class="f2"/></svg><span class="v">7 steps</span></div></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Switch</th><th class="r">Prefix</th><th class="r">Penalty</th><th class="r">Gain per step</th><th class="r">Break-even</th></tr></thead>
+<tbody>
+<tr><td>opus-5.5 → sonnet-5.5</td><td class="r">259k</td><td class="r">$0.60</td><td class="r">$0.0078</td><td class="r">76 steps</td></tr>
+<tr><td>opus-5.5 → haiku-4.5</td><td class="r">259k</td><td class="r">$0.27</td><td class="r">$0.0376</td><td class="r">8 steps</td></tr>
+<tr><td>fable-5.1 → opus-5.5</td><td class="r">259k</td><td class="r">$1.23</td><td class="r">$0.0365</td><td class="r">34 steps</td></tr>
+<tr><td>opus-5 → sonnet-5.5</td><td class="r">259k</td><td class="r">$0.52</td><td class="r">$0.0894</td><td class="r">6 steps</td></tr>
+<tr><td>opus-5.5 → sonnet-5.5</td><td class="r">569k</td><td class="r">$1.31</td><td class="r">$0.0078</td><td class="r">167 steps</td></tr>
+<tr><td>opus-5.5 → haiku-4.5</td><td class="r">569k</td><td class="r">$0.60</td><td class="r">$0.0686</td><td class="r">9 steps</td></tr>
+<tr><td>fable-5.1 → opus-5.5</td><td class="r">569k</td><td class="r">$2.70</td><td class="r">$0.0520</td><td class="r">52 steps</td></tr>
+<tr><td>opus-5 → sonnet-5.5</td><td class="r">569k</td><td class="r">$1.14</td><td class="r">$0.1824</td><td class="r">7 steps</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:breakeven -->
+    <figcaption><b>Figure 8.</b> Steps until a mid-task switch pays off, at two cached-prefix sizes from my sessions. Opus 5.5 and Sonnet 5.5 read the cache at the same price, so that pair gains little per step and needs 76 to 167 steps.</figcaption>
+  </figure>
+  <p>The replay assumes the cheaper model finishes in as many steps as the original, which it often does not.<sup class="n">4</sup> That is why the model is picked at a clean point, where there is no cache to lose, and why work inside a task goes to subagents.</p>
+  <p class="note"><span class="n">4</span>The worked example with list prices is on <a href="how-it-works.html#cache">How it works</a>.</p>
+</section>
+
+<section class="row" id="judge">
+  <h2>What ran, and what a judge says was needed</h2>
+  <p>Claude Opus read 576 of my finished tasks (the prompt, the diff and a compressed trajectory) and named the cheapest model it thinks would have done as well. Of the 560 that ran on Opus or Fable, it said 303, or 54%, would have been fine on Sonnet or Haiku.<sup class="n">5</sup></p>
+  <p class="note"><span class="n">5</span>A judge’s opinion of a finished task, not a replay. Nobody re-ran these tasks on a cheaper model.</p>
+  <figure>
+<!-- fig:matrix -->
+<table class="matrix">
+<thead><tr><th>Ran on ↓ · needed →</th><th class="r">haiku</th><th class="r">sonnet</th><th class="r">opus</th><th class="r">total</th></tr></thead>
+<tbody>
+<tr><th scope="row">opus</th><td class="r q1 cheap">37</td><td class="r q4 cheap">243</td><td class="r q4">251</td><td class="r">531</td></tr>
+<tr><th scope="row">fable</th><td class="r q1 cheap">10</td><td class="r q1 cheap">13</td><td class="r q1">6</td><td class="r">29</td></tr>
+<tr><th scope="row">sonnet</th><td class="r q1">5</td><td class="r q1">9</td><td class="r q1">2</td><td class="r">16</td></tr>
+</tbody>
+</table>
+<!-- /fig:matrix -->
+    <figcaption><b>Figure 9.</b> Ran on, by what the judge says was needed. Stronger cells hold more tasks. The bold cells add up to the 303 Opus and Fable tasks the judge thinks Sonnet or Haiku could have done.</figcaption>
+  </figure>
+</section>
+
+<section class="row" id="judges">
+  <h2>How far a judge can be trusted</h2>
+  <p>A router can be wrong in two directions. Picking a model that is more expensive than needed only loses the saving: you pay what you paid before. Picking one that is too cheap costs quality: a broken change, a retry, a debugging loop that eats more than the saving. So the number that matters is how often a judge picks too cheap.</p>
+  <figure>
+<!-- fig:judges -->
+<p class="legend"><span><i class="f1"></i>too cheap</span><span><i class="f3"></i>agreed</span><span><i class="f2"></i>too expensive</span></p>
+<div class="bars wide-l" role="img" aria-label="How often each judge picks too cheap a model">
+<div class="bar"><span class="l">Opus vs my hand labels <span class="n">n = 34</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="41.2" height="10" class="f1"/><rect x="41.2" width="50" height="10" class="f3"/><rect x="91.2" width="8.8" height="10" class="f2"/></svg><span class="v">41%</span></div>
+<div class="bar"><span class="l">Qwen vs my hand labels <span class="n">n = 19</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="52.6" height="10" class="f1"/><rect x="52.6" width="42.1" height="10" class="f3"/><rect x="94.7" width="5.3" height="10" class="f2"/></svg><span class="v">53%</span></div>
+<div class="bar"><span class="l">Opus vs Qwen <span class="n">n = 197</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="22.8" height="10" class="f1"/><rect x="22.8" width="71.1" height="10" class="f3"/><rect x="93.9" width="6.1" height="10" class="f2"/></svg><span class="v">23%</span></div>
+<div class="bar"><span class="l">Qwen on SWE-bench steps <span class="n">n = 51</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="57" height="10" class="f1"/><rect x="57" width="39" height="10" class="f3"/><rect x="96" width="4" height="10" class="f2"/></svg><span class="v">57%</span></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Comparison</th><th class="r">n</th><th class="r">Agreed</th><th class="r">Too cheap</th><th class="r">Too expensive</th></tr></thead>
+<tbody>
+<tr><td>Opus vs my hand labels</td><td class="r">34</td><td class="r">50%</td><td class="r">41%</td><td class="r">9%</td></tr>
+<tr><td>Qwen vs my hand labels</td><td class="r">19</td><td class="r">42%</td><td class="r">53%</td><td class="r">5%</td></tr>
+<tr><td>Opus vs Qwen</td><td class="r">197</td><td class="r">71%</td><td class="r">23%</td><td class="r">6%</td></tr>
+<tr><td>Qwen on SWE-bench steps</td><td class="r">51</td><td class="r">39%</td><td class="r">57%</td><td class="r">4%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:judges -->
+    <figcaption><b>Figure 10.</b> Each judge against a reference. The number on the right is the too-cheap share. “Opus vs Qwen” compares two judges on the same tasks; neither is ground truth.<sup class="n">6</sup></figcaption>
+  </figure>
+  <p class="note"><span class="n">6</span>The hand labels are mine, on my own past tasks: 34 for Opus, 19 for Qwen. The SWE-bench row uses step prefixes from TwinRouterBench, whose reference labels are weak.</p>
+  <p>Against my own labels, the Opus judge picks too cheap 41% of the time. That is why judge labels are checked against hand labels and replays before anything is trained on them, and why none of these numbers is a promise.</p>
+</section>
+
+<section class="row" id="training">
+  <h2>The first training run</h2>
+  <p>Run <code>opus-v1</code> distilled the Opus judge’s labels into a student small enough to answer on a laptop: <code>multilingual-e5-small</code>, taught by a larger multilingual teacher.<sup class="n">7</sup> The student answers four questions at a clean point. Two of the answers are good enough and are in use; the model choice is not.</p>
+  <p class="note"><span class="n">7</span>Teacher: Laya multilingual (mmBERT, 322M), 6 epochs, 236 s on one RTX PRO 4000. 576 tasks split by time: 407 train, 87 calibration, 87 test.</p>
+  <figure>
+<!-- fig:heads -->
+<div class="bars wide-l" role="img" aria-label="Student head accuracy on held-out tasks">
+<div class="bar"><span class="l">tier</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="49.4" height="10" class="f3"/></svg><span class="v">49%</span></div>
+<div class="bar"><span class="l">effort</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="71.3" height="10" class="f3"/></svg><span class="v">71%</span></div>
+<div class="bar"><span class="l">plan_first</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="92" height="10" class="f1"/></svg><span class="v">92%</span></div>
+<div class="bar"><span class="l">delegate_explore</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="75.9" height="10" class="f1"/></svg><span class="v">76%</span></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Head</th><th class="r">Accuracy</th><th class="r">macro-F1</th><th class="r">ECE</th><th>In the plugin</th></tr></thead>
+<tbody>
+<tr><td>tier</td><td class="r">49%</td><td class="r">0.42</td><td class="r">0.075</td><td>never acts</td></tr>
+<tr><td>effort</td><td class="r">71%</td><td class="r">0.36</td><td class="r">0.109</td><td>not used</td></tr>
+<tr><td>plan_first</td><td class="r">92%</td><td class="r">0.85</td><td class="r">0.078</td><td>in use</td></tr>
+<tr><td>delegate_explore</td><td class="r">76%</td><td class="r">0.71</td><td class="r">0.094</td><td>in use</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:heads -->
+    <figcaption><b>Figure 11.</b> Test accuracy of each head on 87 held-out tasks. <code>plan_first</code> brings up the hint to plan on Opus; <code>delegate_explore</code> tells the agent to start with <code>agento-scout</code> when orchestrator mode is on. The tier head never decides, and the effort head is not used.</figcaption>
+  </figure>
+  <p>To pick the model on its own, the student has to stay under 5% too-cheap picks on held-out tasks at some confidence threshold. No threshold got there.<sup class="n">8</sup></p>
+  <p class="note"><span class="n">8</span>The labels are the Opus judge’s opinions, the same judge that picks too cheap 41% of the time against my labels. The student learned the judge, not the truth.</p>
+  <figure>
+<!-- fig:policies -->
+<div class="bars grouped" role="img" aria-label="Accuracy and too-cheap rate of each policy">
+<div class="grp"><div class="gl">trained student, every task</div>
+<div class="bar"><span class="l">accuracy</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="49.4" height="10" class="f3"/></svg><span class="v">49%</span></div>
+<div class="bar"><span class="l">too cheap</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="43.7" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">44%</span></div></div>
+<div class="grp"><div class="gl">always Sonnet</div>
+<div class="bar"><span class="l">accuracy</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="58.6" height="10" class="f3"/></svg><span class="v">59%</span></div>
+<div class="bar"><span class="l">too cheap</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="35.6" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">36%</span></div></div>
+<div class="grp"><div class="gl">built-in rules (shipped)</div>
+<div class="bar"><span class="l">accuracy</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="63.2" height="10" class="f3"/></svg><span class="v">63%</span></div>
+<div class="bar"><span class="l">too cheap</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="31" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">31%</span></div></div>
+<div class="grp"><div class="gl">L0, sees the finished trajectory</div>
+<div class="bar"><span class="l">accuracy</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="74.7" height="10" class="f3"/></svg><span class="v">75%</span></div>
+<div class="bar"><span class="l">too cheap</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.6" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">4.6%</span></div></div>
+<div class="grp"><div class="gl">always Opus</div>
+<div class="bar"><span class="l">accuracy</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="35.6" height="10" class="f3"/></svg><span class="v">36%</span></div>
+<div class="bar"><span class="l">too cheap</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">0%</span></div></div>
+</div>
+<details class="data"><summary>Data table</summary>
+<table>
+<thead><tr><th>Policy</th><th class="r">Accuracy</th><th class="r">Too cheap</th><th class="r">Too expensive</th></tr></thead>
+<tbody>
+<tr><td>trained student, every task</td><td class="r">49%</td><td class="r">43.7%</td><td class="r">6.9%</td></tr>
+<tr><td>always Sonnet</td><td class="r">59%</td><td class="r">35.6%</td><td class="r">5.7%</td></tr>
+<tr><td>built-in rules (shipped)</td><td class="r">63%</td><td class="r">31.0%</td><td class="r">5.7%</td></tr>
+<tr><td>L0, sees the finished trajectory</td><td class="r">75%</td><td class="r">4.6%</td><td class="r">20.7%</td></tr>
+<tr><td>always Opus</td><td class="r">36%</td><td class="r">0.0%</td><td class="r">64.4%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:policies -->
+    <figcaption><b>Figure 12.</b> Choosing the model on the same 87 test tasks. The red line is the 5% gate. “Always Opus” never picks too cheap and overpays on 64% of tasks.</figcaption>
+  </figure>
+  <p>L0 is the interesting row. It is a simple heuristic that looks at the finished trajectory, so it cannot run at the start of a task, but it agrees with the labels 75% of the time with 4.6% too-cheap picks. The first steps of a task say more than the prompt. That is the next experiment: decide after the first few steps, when those signals exist.</p>
+  <h3>The student as shipped</h3>
+<!-- fig:student -->
+<table class="spec">
+<tbody>
+<tr><td>Model</td><td class="r">multilingual-e5-small</td></tr>
+<tr><td>Parameters</td><td class="r">118M</td></tr>
+<tr><td>Size</td><td class="r">279 MB</td></tr>
+<tr><td>p50, length 128, training box CPU</td><td class="r">8.1 ms</td></tr>
+<tr><td>p50, length 256, training box CPU</td><td class="r">17.6 ms</td></tr>
+<tr><td>p50 of the installed daemon, Apple-silicon Mac</td><td class="r">≈ 6 ms</td></tr>
+<tr><td>ONNX vs PyTorch agreement</td><td class="r">1.00</td></tr>
+<tr><td>int8 version</td><td class="r">discarded (agreement 0.888 &lt; 0.98)</td></tr>
+</tbody>
+</table>
+<!-- /fig:student -->
+  <p style="margin-top:1em">How a run is made and gated: <a href="https://github.com/regksemx/agento/blob/main/training/README.md">training/README.md</a> and the GPU runbook, in Russian, <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">docs/runbook-gpu.md</a>. Latency of the other candidate encoders: <a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">training/BENCHMARK.md</a>.</p>
+</section>
 </main>
 
-<footer>
-  <div class="wrap">
-    <div>
-      <p class="brand"><span class="d" style="color:var(--accent)">◆</span>&nbsp;agento</p>
-      <p>Open source under Apache-2.0. An independent project, not affiliated with or endorsed by Anthropic.</p>
-      <p>Data: <code>data/bench.json</code>, generated <span data-bind="generated">2026-10-05</span>.</p>
-    </div>
-    <div>
-      <h4>Site</h4>
-      <ul>
-        <li><a href="./">Home</a></li>
-        <li><a href="how-it-works.html">How it works</a></li>
-        <li><a href="data/bench.json">Raw data (JSON)</a></li>
-        <li><a href="ru/benchmarks.html" hreflang="ru" lang="ru" data-set-lang="ru">Русская версия</a></li>
-      </ul>
-    </div>
-    <div>
-      <h4>Repository</h4>
-      <ul>
-        <li><a href="https://github.com/regksemx/agento">GitHub</a></li>
-        <li><a href="https://arxiv.org/abs/2607.12161">Token Reduction Is Not Cost Reduction (arXiv)</a></li>
-        <li><a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">Student benchmark</a></li>
-        <li><a href="https://github.com/regksemx/agento/blob/main/LICENSE">License</a></li>
-      </ul>
-    </div>
+<footer class="colophon">
+  <div>
+    <p>Data: <a href="data/bench.json">data/bench.json</a> and <a href="data/training.json">data/training.json</a>, generated 2026-10-05. The figures are drawn from them by <code>scripts/site-figures.ts</code>.</p>
+    <p>Apache-2.0. An independent project, not affiliated with Anthropic.</p>
   </div>
+  <div><p><a href="https://github.com/regksemx/agento">GitHub</a> · <a href="./">Home</a> · <a href="how-it-works.html">How it works</a></p></div>
 </footer>
+</div>
 </body>
 </html>

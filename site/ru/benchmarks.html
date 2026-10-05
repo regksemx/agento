@@ -1,284 +1,411 @@
 <!doctype html>
-<!-- Владелец репозитория на GitHub ещё не выбран: замените все "regksemx" (в HTML это regksemx) после публикации. -->
-<html lang="ru">
+<html lang="ru" data-alt="../benchmarks.html">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>agento · бенчмарки</title>
-<meta name="description" content="Куда ушли деньги одного пользователя Claude Code, что судья считает возможным сделать дешевле, насколько можно доверять судьям и как быстр локальный ученик. Каждый график — с оговорками.">
-<link rel="alternate" hreflang="en" href="../benchmarks.html">
-<link rel="alternate" hreflang="ru" href="benchmarks.html">
-<link rel="alternate" hreflang="x-default" href="../benchmarks.html">
+<title>Бенчмарки agento</title>
+<meta name="description" content="Мой собственный месяц в Claude Code в цифрах, насколько LLM-судье можно доверить выбор модели и как показала себя первая обученная модель. С оговорками.">
+<link rel="canonical" href="https://regksemx.github.io/agento/ru/benchmarks.html">
+<link rel="alternate" hreflang="en" href="https://regksemx.github.io/agento/benchmarks.html">
+<link rel="alternate" hreflang="ru" href="https://regksemx.github.io/agento/ru/benchmarks.html">
+<link rel="alternate" hreflang="x-default" href="https://regksemx.github.io/agento/benchmarks.html">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#181715" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="../styles.css">
-<script src="../boot.js"></script>
-<script src="../app.js" defer></script>
-<script src="../charts.js" defer></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../style.css">
+<script>(function(){var m=/[?&]lang=(en|ru)\b/.exec(location.search),h=document.documentElement;if(m&&m[1]!==h.lang)location.replace(h.getAttribute('data-alt')+location.hash)})()</script>
 </head>
 <body>
-<a class="skip" href="#main">К содержанию</a>
+<div class="page">
 
-<header class="nav">
-  <div class="wrap">
-    <a class="brand" href="./" aria-label="agento, главная"><span class="d">◆</span> agento</a>
-    <nav class="nav-links" aria-label="Основное меню">
-      <a href="how-it-works.html">Как работает</a>
-      <a href="benchmarks.html" aria-current="page">Бенчмарки</a>
-      <a class="opt" href="./#privacy">Приватность</a>
-      <a class="opt" href="./#faq">Вопросы</a>
-    </nav>
-    <div class="nav-tools">
-      <a class="tool" href="../benchmarks.html" hreflang="en" lang="en" data-set-lang="en" aria-label="English version">EN</a>
-      <button class="tool theme-toggle" type="button" data-theme-toggle>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      </button>
-      <a class="tool gh" href="https://github.com/regksemx/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
-    </div>
+<header>
+  <div class="mast">
+    <a class="name" href="./">agento</a>
+    <nav aria-label="Сайт"><a href="how-it-works.html">Как это работает</a><a href="benchmarks.html" aria-current="page">Бенчмарки</a><a href="https://github.com/regksemx/agento">GitHub</a><a href="../benchmarks.html" lang="en" hreflang="en">In English</a></nav>
   </div>
-  <nav class="subnav" aria-label="Страницы">
-    <a href="./">Главная</a>
-    <a href="how-it-works.html">Как работает</a>
-    <a href="benchmarks.html" aria-current="page">Бенчмарки</a>
-    <a href="./#faq">Вопросы</a>
-  </nav>
+  <div class="dateline"><span>Плагин и CLI для Claude Code. Открытый код, Apache-2.0.</span><span>Альфа, октябрь 2026</span></div>
 </header>
 
-<main id="main">
-
-<div class="page-head">
-  <div class="wrap">
-    <p class="eyebrow">Бенчмарки</p>
-    <h1>Цифры — вместе с оговорками.</h1>
-    <div class="intro">
-      <p>Здесь цифры двух видов. <strong>Месяц одного пользователя:</strong> собственные <span data-bind="days">30</span> дней автора в Claude Code в агрегатах (<span data-bind="sessions">408</span> сессий, <span data-bind="requests">71 511</span> запросов; без названий проектов и без промптов). <strong>Детали, из которых собран agento:</strong> насколько можно доверять судьям и как быстро работает локальный ученик.</p>
-      <p>Ничего из этого не измеренная экономия, и на вас это не переносится. Открытый бенчмарк — стоимость решённой задачи против always-Opus, <code>opusplan</code> и роутеров на правилах — в дорожной карте. Свою версию первой половины покажет <code>npx agento-cc audit</code>.</p>
-    </div>
-    <p class="caveat">Агрегаты за 30 дней работы автора в Claude Code (один пользователь на подписке, цены в API-эквиваленте). Это не бенчмарк по многим пользователям.</p>
-    <nav class="toc" aria-label="На этой странице">
-      <a href="#bill">Куда уходит счёт</a>
-      <a href="#spend">Расход</a>
-      <a href="#cache">Кэш</a>
-      <a href="#switch">Смена модели</a>
-      <a href="#judge">Шла на / нужно</a>
-      <a href="#judges">Сравнение судей</a>
-      <a href="#student">Ученик</a>
-      <a href="#training">Обучение</a>
-    </nav>
-  </div>
+<main>
+<div class="row intro">
+  <h1 class="sub">Цифры, и к ним оговорки.</h1>
+  <p class="lede">Здесь цифры двух видов. Мои собственные 30 дней в Claude Code в агрегатах: 408 сессий, 71&nbsp;511 запросов, без промптов и названий проектов. И то, из чего собран agento: насколько LLM-судье можно доверить выбор модели и как показал себя первый обученный классификатор.</p>
+  <p style="margin-top:1em">Ничто из этого не измеренная экономия, и о вашем месяце эти цифры ничего не говорят. Свою версию первой половины покажет <code>npx agento-cc audit</code>. Открытого бенчмарка, то есть стоимости решённой задачи в сравнении с «всегда Opus», <code>opusplan</code> и роутерами на правилах, пока нет.</p>
 </div>
 
-<section id="bill" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">01</span> Куда уходит счёт</p>
-    <div class="panel">
-      <div class="headline"><span class="big"><span data-bind="cacheReadPct">66%</span></span><span class="what">из <span data-bind="total">$8 175</span> автора (API-эквивалент, <span data-bind="days">30</span> дней) — <strong>чтение из кэша</strong>: длинный контекст, который перечитывается на каждом шаге.</span></div>
-      <div class="chart" id="ch-buckets" data-chart="buckets"></div>
-      <p class="caveat" data-for="ch-buckets">На подписке за токены не платят: это цены прайса, применённые к токенам, а настоящее ограничение — недельный лимит. Кэш hit: <span data-bind="hitRatio">99.2%</span>. Цены на <span data-bind="pricesAsOf">2026-10-05</span>.</p>
-    </div>
-    <div class="grid g2" style="margin-top:16px">
-      <div class="panel">
-        <h3>Расход по семействам моделей</h3>
-        <p class="sub">Почти всё — на Opus. Вопрос agento в том, сколько из этого действительно требовало Opus.</p>
-        <div class="chart" id="ch-family" data-chart="family"></div>
-      </div>
-      <div class="panel">
-        <h3>Расход по effort</h3>
-        <p class="sub">Thinking оплачивается как output; на моделях 5.5 effort меняется без потери кэша.</p>
-        <div class="chart" id="ch-effort" data-chart="effort"></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="spend" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">02</span> Расход по времени, основной поток и субагенты</p>
-    <div class="grid g2">
-      <div class="panel">
-        <h3>По неделям</h3>
-        <p class="sub">На подписке в лимит упирается самая тяжёлая неделя.</p>
-        <div class="chart" id="ch-weeks" data-chart="weeks"></div>
-        <p class="caveat" data-for="ch-weeks">Первая и последняя недели (серые) неполные: окно — 30 дней.</p>
-      </div>
-      <div class="panel">
-        <h3>Основной поток и субагенты</h3>
-        <p class="sub">У субагентов свой кэш, поэтому их модель выбирается свободно. Здесь на них пришлось <span data-bind="subPct">12%</span> расхода.</p>
-        <div class="chart" id="ch-mainsub" data-chart="mainsub"></div>
-        <h3 style="margin-top:22px">Субагенты по типам</h3>
-        <p class="sub">Сумма и число вызовов.</p>
-        <div class="chart" id="ch-subtypes" data-chart="subtypes"></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="cache" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">03</span> Промахи кэша</p>
-    <div class="panel">
-      <div class="headline"><span class="big"><span data-bind="lossUsd">$301</span></span><span class="what">— оценка потерь от промахов кэша; <span data-bind="ttlUsd">$222</span> из них — <span data-bind="ttlEvents">83</span> паузы, которые пережили кэш (истёк TTL).</span></div>
-      <div class="grid g2">
-        <div><h3>По сумме</h3><div class="chart" id="ch-lossusd" data-chart="lossUsd"></div></div>
-        <div><h3>По числу случаев</h3><div class="chart" id="ch-lossev" data-chart="lossEvents"></div></div>
-      </div>
-      <p class="caveat">Стоимость промахов — оценка аудита. «Причина неясна» значит, что по транскрипту не видно, почему кэш записался заново.</p>
-    </div>
-    <div class="panel" style="margin-top:16px">
-      <h3>Паузы между запросами</h3>
-      <p class="sub">Большинство запросов идёт в пределах минуты. Каждая пауза дольше TTL кэша оплачивается полной перезаписью контекста: на API-ключе TTL по умолчанию 5 минут, на подписке — 1 час.</p>
-      <div class="chart" id="ch-gaps" data-chart="gaps"></div>
-    </div>
-  </div>
-</section>
-
-<section id="switch" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">04</span> Почему agento не меняет модель посреди задачи</p>
-    <div class="panel">
-      <h3>Через сколько шагов окупится смена модели посреди задачи</h3>
-      <p class="sub">Смена модели переписывает весь закэшированный префикс в кэш новой модели (это штраф). Окупается она только после достаточного числа дешёвых шагов. Opus 5.5 и Sonnet 5.5 читают кэш по одной цене, так что выигрыш за шаг маленький. Расчёт для двух размеров префикса.</p>
-      <div class="chart" id="ch-switch" data-chart="switch"></div>
-      <p class="caveat" data-for="ch-switch">Предполагается, что дешёвая модель решит задачу за столько же шагов, что часто не так. Поэтому модель выбирается в чистой точке, где терять нечего, а работа внутри задачи уходит субагентам. <a href="how-it-works.html#economics">Разбор примера →</a></p>
-    </div>
-  </div>
-</section>
-
-<section id="judge" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">05</span> На чём шла задача и что было нужно</p>
-    <div class="panel">
-      <div class="headline"><span class="big"><span data-bind="cheaperPct">54%</span></span><span class="what">задач автора на Opus/Fable (<span data-bind="cheaperTasks">303</span> из <span data-bind="expTasks">560</span>) справились бы на Sonnet или Haiku — <strong>по мнению судьи Opus</strong>.</span></div>
-      <p class="callout"><strong>Это мнение судьи по законченным задачам, а не повторный прогон.</strong> Opus читал каждую законченную задачу (промпт, дифф, сжатую траекторию) и называл самую дешёвую модель, которая, по его мнению, справилась бы не хуже. На Sonnet или Haiku эти задачи никто не перезапускал. Насколько часто такой судья ошибается — в следующем разделе.</p>
-      <div class="grid g2" style="margin-top:18px">
-        <div><h3>По тирам, <span data-bind="judgeTasks">576</span> задач</h3><div class="chart" id="ch-tiers" data-chart="judgeTiers"></div></div>
-        <div><h3>Шла на × нужно</h3><p class="sub">Левее диагонали: судья считает, что хватило бы модели дешевле.</p><div class="chart" id="ch-matrix" data-chart="judgeMatrix"></div></div>
-      </div>
-      <p class="caveat">Claude Opus как судья законченных задач (мнение, не повторный прогон). Effort и два флага здесь не показаны.</p>
-    </div>
-  </div>
-</section>
-
-<section id="judges" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">06</span> Сравнение судей</p>
-    <div class="two-col">
-      <div>
-        <h2 style="font-size:1.5rem">Главная цифра — недооценка.</h2>
-        <p>Роутер ошибается в две стороны. <strong>Переоценка</strong> — выбрать модель дороже нужной — стоит только упущенной экономии: вы платите столько же, сколько раньше. <strong>Недооценка</strong> — выбрать модель дешевле нужной — стоит качества: сломанная правка, повтор, долгая отладка, которая съедает больше, чем сэкономлено.</p>
-        <p>Поэтому одна точность обманчива. Обученная модель ставится, только если на отложенных задачах недооценивает не чаще чем в 5% случаев при выбранном пороге уверенности. Судьям ниже до этого далеко, поэтому их метки перед обучением калибруются по ручной разметке и повторным прогонам и как есть не используются.</p>
-      </div>
-      <div class="panel">
-        <div class="chart" id="ch-judges" data-chart="judges"></div>
-        <p class="caveat">Недооценка — судья выбрал модель дешевле эталона (риск качества); переоценка — дороже (упущенная экономия).</p>
-        <p class="caveat">«Opus и Qwen» сравнивает двух судей между собой на одних и тех же задачах; ни один из них не эталон. Метки автора — ручная разметка его собственных прошлых задач (<span data-bind="opusHumanN">34</span> для Opus).</p>
-        <p class="caveat">* Префиксы шагов SWE-bench из TwinRouterBench; эталонные метки там слабые (degradation_search_done).</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div data-training>
-<section id="student" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">07</span> Ученик</p>
-    <div class="grid g2">
-      <div class="panel">
-        <h3>Задержка кандидатов-энкодеров</h3>
-        <p class="sub">p50 в мс, длина последовательности 256, 4 потока CPU, ONNX Runtime. Плагин спрашивает модель один раз на старте задачи; требование к ученику — не больше 60 мс и многоязычный токенизатор.</p>
-        <div class="chart" id="ch-latency" data-chart="latency"></div>
-        <p class="caveat" data-for="ch-latency">Apple M5, случайные веса: только задержка и размер, о точности здесь ничего. Модели Ettin только английские. Подробно: <a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">training/BENCHMARK.md</a>.</p>
-      </div>
-      <div class="panel t-ready">
-        <h3>Ученик из прогона <span data-tbind="run">opus-v1</span></h3>
-        <p class="sub">Обученная модель в том виде, в котором её экспортировал и проверил конвейер.</p>
-        <dl class="spec">
-          <div><dt>модель</dt><dd><span data-tbind="model">multilingual-e5-small</span><small><span data-tbind="params">118M</span> параметров</small></dd></div>
-          <div><dt>размер</dt><dd data-tbind="size">279 МБ</dd></div>
-          <div><dt>p50, длина 128</dt><dd data-tbind="p50_128">8.1 мс</dd></div>
-          <div><dt>p50, длина 256</dt><dd data-tbind="p50_256">17.6 мс</dd></div>
-          <div><dt>согласие ONNX и PyTorch</dt><dd data-tbind="parity">1.00</dd></div>
-          <div><dt>версия int8</dt><dd><small style="margin:0;font-size:0.82rem" data-tnote="student.int8">отброшена (согласие 0.888 &lt; 0.98)</small></dd></div>
-        </dl>
-        <p class="caveat">Здесь задержку мерил сам прогон обучения на своей машине; график кандидатов снят отдельно на Apple M5 с 4 потоками, поэтому напрямую их не сравнить.</p>
-      </div>
-      <div class="panel t-pending">
-        <h3>Обучение</h3>
-        <p class="sub">Результатов обучения пока нет: файла <code>data/training.json</code> нет. Пока модель не прошла проверку, плагин решает по правилам.</p>
-        <p class="caveat">Как делается и проверяется прогон: <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">инструкция для GPU</a>.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="training" class="tight t-ready">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">08</span> Первый прогон обучения</p>
-    <h2 style="font-size:1.5rem;max-width:36em">Ученик выучил кое-что полезное — и кое-что, что ему нельзя делать одному.</h2>
-    <div class="verdict">
-      <p class="lbl">◆ вердикт <span class="badge"><span data-tbind="run">opus-v1</span> · <span data-tbind="date">2026-10-05</span></span></p>
-      <blockquote data-tnote="verdict">По одному промпту ученик не может безопасно выбрать модель (ни один порог не удерживает недооценку в пределах 5%), поэтому выбор тира он сам никогда не применяет. Головы plan_first (92%) и delegate_explore (76%) пригодны к делу. Дальше — решать после первых шагов, когда появятся сигналы траектории.</blockquote>
-      <ul class="chips">
-        <li class="no"><b>tier</b>: только подсказки, сам не решает</li>
-        <li class="ok"><b>plan_first</b>: 92% · пригодна</li>
-        <li class="ok"><b>delegate_explore</b>: 76% · пригодна</li>
-        <li class="next"><b>дальше</b>: решать после первых шагов</li>
-      </ul>
-    </div>
-    <div class="grid g2" style="margin-top:16px">
-      <div class="panel">
-        <h3>Точность на тесте по головам</h3>
-        <p class="sub">Четыре вопроса, на которые ученик отвечает на старте задачи. При наведении — macro-F1 и калибровка (ECE).</p>
-        <div class="chart" id="ch-heads" data-train-chart="heads"></div>
-      </div>
-      <div class="panel">
-        <h3>Выбор модели: ученик против простых политик</h3>
-        <p class="sub">Точность и недооценка выбора тира на тех же 87 тестовых задачах. Линия — граница 5% недооценки, ниже которой модели можно действовать самой.</p>
-        <div class="chart" id="ch-policies" data-train-chart="policies"></div>
-        <p class="caveat" data-for="ch-policies">L0 видит законченную траекторию, поэтому на старте задачи её не запустить: она показывает, сколько могли бы рассказать первые шаги задачи. «Всегда opus» никогда не недооценивает, но переплачивает на 64% задач.</p>
-      </div>
-    </div>
-    <p class="caveat">Метки — мнение судьи Opus (L1), того самого, который выше недооценивает в 41% случаев против ручной разметки: ученик выучил судью, а не истину. Это ещё одна причина, по которой голова tier только подсказывает.</p>
-    <p class="caveat"><span data-tnote="labels">Claude Opus как судья законченных задач (L1), 576 задач автора; разбиение по времени: обучение 407 / калибровка 87 / тест 87</span>. <span data-tnote="teacher">Laya multilingual (mmBERT 322M), RLCD, 6 эпох, 236 с на одной RTX PRO 4000</span>.</p>
-    <p class="caveat">Как делается и проверяется прогон: <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">инструкция для GPU</a>.</p>
-  </div>
-</section>
+<section class="row" id="spend">
+  <h2>Куда ушёл мой месяц</h2>
+  <p>$8&nbsp;175 по прайсу API за 30 дней, и две трети из них пришлись на чтение из кэша: длинный контекст перечитывался на каждом шаге.<sup class="n">1</sup> Попаданий в кэш 99,2%, так что кэш не промахивается. Он работает исправно, просто читают его очень часто.</p>
+  <p class="note"><span class="n">1</span>В API-эквиваленте. У меня подписка, за токены по ней ничего не списывается; настоящее ограничение здесь недельный лимит. Цены на 2026-10-05.</p>
+  <figure>
+<!-- fig:buckets -->
+<svg class="stack" viewBox="0 0 400 28" preserveAspectRatio="none" role="img" aria-label="Полоса с накоплением: чтение кэша 66%, запись в кэш 19%, вывод 15%"><rect x="0" y="0" width="262.37" height="28" class="f1"/><rect x="263.87" y="0" width="76.13" height="28" class="f2"/><rect x="341.49" y="0" width="58.47" height="28" class="f3"/></svg>
+<table class="key">
+<tr><td><i class="f1"></i>чтение кэша</td><td class="r">$5 403</td><td class="r">66%</td></tr>
+<tr><td><i class="f2"></i>запись в кэш</td><td class="r">$1 568</td><td class="r">19%</td></tr>
+<tr><td><i class="f3"></i>вывод (output)</td><td class="r">$1 204</td><td class="r">15%</td></tr>
+<tr><td><i class="f0"></i>ввод без кэша</td><td class="r">$0,82</td><td class="r">0%</td></tr>
+</table>
+<!-- /fig:buckets -->
+    <figcaption><b>Рисунок 1.</b> Расход по видам токенов. Ввод без кэша стоил $0,82, это слишком мало, чтобы нарисовать.</figcaption>
+  </figure>
+  <figure>
+<!-- fig:family -->
+<div class="bars" role="img" aria-label="Расход по семействам моделей">
+<div class="bar"><span class="l">opus-5.5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f1"/></svg><span class="v">$4 456</span></div>
+<div class="bar"><span class="l">opus-5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="75.89" height="10" class="f1"/></svg><span class="v">$3 382</span></div>
+<div class="bar"><span class="l">fable-5.1</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.43" height="10" class="f1"/></svg><span class="v">$197</span></div>
+<div class="bar"><span class="l">opus-4.x</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="1.57" height="10" class="f1"/></svg><span class="v">$70</span></div>
+<div class="bar"><span class="l">sonnet-5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.81" height="10" class="f1"/></svg><span class="v">$36</span></div>
+<div class="bar"><span class="l">sonnet-5.5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.76" height="10" class="f1"/></svg><span class="v">$34</span></div>
+<div class="bar"><span class="l">haiku-4.5</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0" height="10" class="f1"/></svg><span class="v">$0,20</span></div>
 </div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Семейство</th><th class="r">Расход</th><th class="r">Доля</th></tr></thead>
+<tbody>
+<tr><td>opus-5.5</td><td class="r">$4455,80</td><td class="r">55%</td></tr>
+<tr><td>opus-5</td><td class="r">$3381,55</td><td class="r">41%</td></tr>
+<tr><td>fable-5.1</td><td class="r">$197,41</td><td class="r">2%</td></tr>
+<tr><td>opus-4.x</td><td class="r">$69,88</td><td class="r">1%</td></tr>
+<tr><td>sonnet-5</td><td class="r">$36,30</td><td class="r">0%</td></tr>
+<tr><td>sonnet-5.5</td><td class="r">$34,03</td><td class="r">0%</td></tr>
+<tr><td>haiku-4.5</td><td class="r">$0,20</td><td class="r">0%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:family -->
+    <figcaption><b>Рисунок 2.</b> Расход по семействам моделей. Почти всё ушло на Opus, и agento задаёт именно этот вопрос: сколько из этого действительно требовало Opus.</figcaption>
+  </figure>
+  <figure>
+<!-- fig:effort -->
+<div class="bars" role="img" aria-label="Расход по уровню effort">
+<div class="bar"><span class="l">high</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f1"/></svg><span class="v">$5 310</span></div>
+<div class="bar"><span class="l">xhigh</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="28.84" height="10" class="f1"/></svg><span class="v">$1 531</span></div>
+<div class="bar"><span class="l">medium</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="19.72" height="10" class="f1"/></svg><span class="v">$1 047</span></div>
+<div class="bar"><span class="l">max</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.54" height="10" class="f1"/></svg><span class="v">$241</span></div>
+<div class="bar"><span class="l">low</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.86" height="10" class="f1"/></svg><span class="v">$46</span></div>
+<div class="bar"><span class="l">не указан</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0" height="10" class="f1"/></svg><span class="v">$0,20</span></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>effort</th><th class="r">Расход</th><th class="r">Доля</th></tr></thead>
+<tbody>
+<tr><td>high</td><td class="r">$5309,67</td><td class="r">65%</td></tr>
+<tr><td>xhigh</td><td class="r">$1531,43</td><td class="r">19%</td></tr>
+<tr><td>medium</td><td class="r">$1047,23</td><td class="r">13%</td></tr>
+<tr><td>max</td><td class="r">$240,96</td><td class="r">3%</td></tr>
+<tr><td>low</td><td class="r">$45,67</td><td class="r">1%</td></tr>
+<tr><td>не указан</td><td class="r">$0,20</td><td class="r">0%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:effort -->
+    <figcaption><b>Рисунок 3.</b> Расход по уровню effort. Thinking оплачивается как вывод, а на моделях 5.5 effort можно менять между сообщениями без потери кэша.</figcaption>
+  </figure>
+</section>
 
+<section class="row" id="time">
+  <h2>По неделям и по исполнителям</h2>
+  <p>На подписке в лимит упирается самая тяжёлая неделя, а не сумма за месяц.</p>
+  <figure>
+<!-- fig:weeks -->
+<div class="cols" role="img" aria-label="Расход по неделям">
+<div class="col"><span class="v">$105</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:6.71px"><rect width="10" height="10" class="f3"/></svg></div>
+<div class="col"><span class="v">$1 593</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:102.15px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$1 465</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:93.91px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$2 001</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:128.3px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$2 807</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:180px"><rect width="10" height="10" class="f1"/></svg></div>
+<div class="col"><span class="v">$204</span><svg viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true" style="height:13.07px"><rect width="10" height="10" class="f3"/></svg></div>
+</div>
+<div class="cols-l" aria-hidden="true"><span>31 авг</span><span>7 сен</span><span>14 сен</span><span>21 сен</span><span>28 сен</span><span>5 окт</span></div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Неделя с</th><th class="r">Расход</th></tr></thead>
+<tbody>
+<tr><td>2026-08-31 (неполная)</td><td class="r">$104,81</td></tr>
+<tr><td>2026-09-07</td><td class="r">$1593,32</td></tr>
+<tr><td>2026-09-14</td><td class="r">$1464,66</td></tr>
+<tr><td>2026-09-21</td><td class="r">$2001,08</td></tr>
+<tr><td>2026-09-28</td><td class="r">$2807,40</td></tr>
+<tr><td>2026-10-05 (неполная)</td><td class="r">$203,88</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:weeks -->
+    <figcaption><b>Рисунок 4.</b> Расход по неделям, неделя начинается с понедельника. Первая и последняя недели нарисованы бледно: они неполные, окно составляет 30 дней.</figcaption>
+  </figure>
+  <p>На субагентов пришлось 12% расхода. Их модель можно выбирать всегда бесплатно, потому что каждый субагент начинает со своего кэша.<sup class="n">2</sup></p>
+  <p class="note"><span class="n">2</span>Explore: встроенный в Claude Code субагент, который только читает. Аудит советует запускать его на Haiku.</p>
+  <figure>
+<!-- fig:subagents -->
+<svg class="stack" viewBox="0 0 400 28" preserveAspectRatio="none" role="img" aria-label="Основной поток 88%, субагенты 12%"><rect x="0" y="0" width="349.21" height="28" class="f1"/><rect x="350.71" y="0" width="49.29" height="28" class="f2"/></svg>
+<table class="key">
+<tr><td><i class="f1"></i>основной поток</td><td class="r">$7 164</td><td class="r">88%</td></tr>
+<tr><td><i class="f2"></i>субагенты</td><td class="r">$1 011</td><td class="r">12%</td></tr>
+</table>
+<div class="sub-h">Субагенты по типу</div>
+<div class="bars wide-l" role="img" aria-label="Расход субагентов по типу">
+<div class="bar"><span class="l">general-purpose</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f2"/></svg><span class="v">$731</span></div>
+<div class="bar"><span class="l">workflow-subagent</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="19.89" height="10" class="f2"/></svg><span class="v">$145</span></div>
+<div class="bar"><span class="l">fork</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="9.68" height="10" class="f2"/></svg><span class="v">$71</span></div>
+<div class="bar"><span class="l">Explore</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="8.68" height="10" class="f2"/></svg><span class="v">$64</span></div>
+<div class="bar"><span class="l">claude-code-guide</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.02" height="10" class="f2"/></svg><span class="v">$0,14</span></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Тип субагента</th><th class="r">Расход</th><th class="r">Вызовов</th></tr></thead>
+<tbody>
+<tr><td>general-purpose</td><td class="r">$731,31</td><td class="r">11 082</td></tr>
+<tr><td>workflow-subagent</td><td class="r">$145,44</td><td class="r">2 511</td></tr>
+<tr><td>fork</td><td class="r">$70,77</td><td class="r">836</td></tr>
+<tr><td>Explore</td><td class="r">$63,50</td><td class="r">1 309</td></tr>
+<tr><td>claude-code-guide</td><td class="r">$0,14</td><td class="r">9</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:subagents -->
+    <figcaption><b>Рисунок 5.</b> Основной поток против субагентов, затем расход субагентов по типам. Число вызовов есть в таблице данных.</figcaption>
+  </figure>
+</section>
+
+<section class="row" id="cache">
+  <h2>Где терялся кэш</h2>
+  <p>Перезапись кэша обошлась за месяц примерно в $301, и $222 из них дали 83 паузы, которые оказались дольше жизни кэша. Смена модели вызвала всего четыре перезаписи, потому что модель я менял редко.<sup class="n">3</sup></p>
+  <p class="note"><span class="n">3</span>Это оценки аудита. «Причина не видна» значит, что по транскрипту нельзя понять, почему кэш записывался заново.</p>
+  <figure>
+<!-- fig:losses -->
+<div class="bars wide-l" role="img" aria-label="Стоимость промахов кэша по причине">
+<div class="bar"><span class="l">пауза дольше жизни кэша</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f1"/></svg><span class="v">$222</span></div>
+<div class="bar"><span class="l">причина не видна</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="22.45" height="10" class="f2"/></svg><span class="v">$50</span></div>
+<div class="bar"><span class="l">сжатие контекста</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="9.11" height="10" class="f2"/></svg><span class="v">$20</span></div>
+<div class="bar"><span class="l">смена модели</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="3.9" height="10" class="f2"/></svg><span class="v">$8,67</span></div>
+<div class="bar"><span class="l">смена effort</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.19" height="10" class="f2"/></svg><span class="v">$0,43</span></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Причина</th><th class="r">Событий</th><th class="r">Оценка стоимости</th></tr></thead>
+<tbody>
+<tr><td>пауза дольше жизни кэша</td><td class="r">83</td><td class="r">$222,07</td></tr>
+<tr><td>причина не видна</td><td class="r">102</td><td class="r">$49,86</td></tr>
+<tr><td>сжатие контекста</td><td class="r">64</td><td class="r">$20,23</td></tr>
+<tr><td>смена модели</td><td class="r">4</td><td class="r">$8,67</td></tr>
+<tr><td>смена effort</td><td class="r">1</td><td class="r">$0,43</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:losses -->
+    <figcaption><b>Рисунок 6.</b> Оценка стоимости перезаписей кэша по причинам.</figcaption>
+  </figure>
+  <figure>
+<!-- fig:gaps -->
+<div class="bars wide-l" role="img" aria-label="Паузы между запросами">
+<div class="bar"><span class="l">меньше минуты</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f3"/></svg><span class="v">50 235</span></div>
+<div class="bar"><span class="l">1–5 мин</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="7.82" height="10" class="f3"/></svg><span class="v">3 930</span></div>
+<div class="bar"><span class="l">5–15 мин</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="1.63" height="10" class="f1"/></svg><span class="v">820</span></div>
+<div class="bar"><span class="l">15–60 мин</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.6" height="10" class="f1"/></svg><span class="v">299</span></div>
+<div class="bar"><span class="l">больше часа</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0.19" height="10" class="f1"/></svg><span class="v">96</span></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Пауза</th><th class="r">Запросов</th><th class="r">Доля</th></tr></thead>
+<tbody>
+<tr><td>меньше минуты</td><td class="r">50 235</td><td class="r">90,7%</td></tr>
+<tr><td>1–5 мин</td><td class="r">3 930</td><td class="r">7,1%</td></tr>
+<tr><td>5–15 мин</td><td class="r">820</td><td class="r">1,5%</td></tr>
+<tr><td>15–60 мин</td><td class="r">299</td><td class="r">0,5%</td></tr>
+<tr><td>больше часа</td><td class="r">96</td><td class="r">0,2%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:gaps -->
+    <figcaption><b>Рисунок 7.</b> Паузы между соседними запросами. Большинство запросов идут в пределах минуты. Каждая пауза дольше жизни кэша оплачивается полной перезаписью: 5 минут или час, смотря как его запросили. Насыщенные полосы показывают паузы, которые могут пережить пятиминутный кэш.</figcaption>
+  </figure>
+</section>
+
+<section class="row" id="switch">
+  <h2>Во что обошлась бы смена модели посреди задачи</h2>
+  <p>Аудит переигрывает мои собственные шаги так, будто модель сменили на середине. В штраф входит весь закэшированный префикс, который приходится записать заново для новой модели, а выигрыш даёт более низкая цена каждого следующего шага.</p>
+  <figure>
+<!-- fig:breakeven -->
+<div class="bars grouped" role="img" aria-label="Через сколько шагов окупится смена модели посреди задачи">
+<div class="grp"><div class="gl">opus-5.5 → sonnet-5.5</div>
+<div class="bar"><span class="l">префикс 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="45.51" height="10" class="f1"/></svg><span class="v">76 шагов</span></div>
+<div class="bar"><span class="l">префикс 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="10" class="f2"/></svg><span class="v">167 шагов</span></div></div>
+<div class="grp"><div class="gl">opus-5.5 → haiku-4.5</div>
+<div class="bar"><span class="l">префикс 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.79" height="10" class="f1"/></svg><span class="v">8 шагов</span></div>
+<div class="bar"><span class="l">префикс 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="5.39" height="10" class="f2"/></svg><span class="v">9 шагов</span></div></div>
+<div class="grp"><div class="gl">fable-5.1 → opus-5.5</div>
+<div class="bar"><span class="l">префикс 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="20.36" height="10" class="f1"/></svg><span class="v">34 шага</span></div>
+<div class="bar"><span class="l">префикс 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="31.14" height="10" class="f2"/></svg><span class="v">52 шага</span></div></div>
+<div class="grp"><div class="gl">opus-5 → sonnet-5.5</div>
+<div class="bar"><span class="l">префикс 259k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="3.59" height="10" class="f1"/></svg><span class="v">6 шагов</span></div>
+<div class="bar"><span class="l">префикс 569k</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.19" height="10" class="f2"/></svg><span class="v">7 шагов</span></div></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Переход</th><th class="r">Префикс</th><th class="r">Штраф</th><th class="r">Экономия за шаг</th><th class="r">Окупится</th></tr></thead>
+<tbody>
+<tr><td>opus-5.5 → sonnet-5.5</td><td class="r">259k</td><td class="r">$0,60</td><td class="r">$0,0078</td><td class="r">76 шагов</td></tr>
+<tr><td>opus-5.5 → haiku-4.5</td><td class="r">259k</td><td class="r">$0,27</td><td class="r">$0,0376</td><td class="r">8 шагов</td></tr>
+<tr><td>fable-5.1 → opus-5.5</td><td class="r">259k</td><td class="r">$1,23</td><td class="r">$0,0365</td><td class="r">34 шага</td></tr>
+<tr><td>opus-5 → sonnet-5.5</td><td class="r">259k</td><td class="r">$0,52</td><td class="r">$0,0894</td><td class="r">6 шагов</td></tr>
+<tr><td>opus-5.5 → sonnet-5.5</td><td class="r">569k</td><td class="r">$1,31</td><td class="r">$0,0078</td><td class="r">167 шагов</td></tr>
+<tr><td>opus-5.5 → haiku-4.5</td><td class="r">569k</td><td class="r">$0,60</td><td class="r">$0,0686</td><td class="r">9 шагов</td></tr>
+<tr><td>fable-5.1 → opus-5.5</td><td class="r">569k</td><td class="r">$2,70</td><td class="r">$0,0520</td><td class="r">52 шага</td></tr>
+<tr><td>opus-5 → sonnet-5.5</td><td class="r">569k</td><td class="r">$1,14</td><td class="r">$0,1824</td><td class="r">7 шагов</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:breakeven -->
+    <figcaption><b>Рисунок 8.</b> Через сколько шагов окупится смена модели посреди задачи, для двух размеров закэшированного префикса из моих сессий. Opus 5.5 и Sonnet 5.5 читают кэш по одной цене, поэтому эта пара выигрывает на шаге мало, и окупаться ей от 76 до 167 шагов.</figcaption>
+  </figure>
+  <p>Расчёт исходит из того, что дешёвая модель справится за столько же шагов, а это часто не так.<sup class="n">4</sup> Поэтому модель выбирается в чистой точке, где кэша терять нечего, а работа внутри задачи уходит субагентам.</p>
+  <p class="note"><span class="n">4</span>Пример с расчётом по прайсу есть на странице <a href="how-it-works.html#cache">«Как это работает»</a>.</p>
+</section>
+
+<section class="row" id="judge">
+  <h2>На чём работало и что, по мнению судьи, было нужно</h2>
+  <p>Claude Opus прочитал 576 моих завершённых задач (промпт, дифф и сжатую траекторию) и назвал самую дешёвую модель, которая, по его мнению, справилась бы не хуже. Из 560 задач, которые шли на Opus или Fable, 303, то есть 54%, по его словам, можно было отдать Sonnet или Haiku.<sup class="n">5</sup></p>
+  <p class="note"><span class="n">5</span>Это мнение судьи о готовой задаче, а не повторный прогон. Никто не перезапускал эти задачи на дешёвой модели.</p>
+  <figure>
+<!-- fig:matrix -->
+<table class="matrix">
+<thead><tr><th>Шла на ↓ · хватило бы →</th><th class="r">haiku</th><th class="r">sonnet</th><th class="r">opus</th><th class="r">всего</th></tr></thead>
+<tbody>
+<tr><th scope="row">opus</th><td class="r q1 cheap">37</td><td class="r q4 cheap">243</td><td class="r q4">251</td><td class="r">531</td></tr>
+<tr><th scope="row">fable</th><td class="r q1 cheap">10</td><td class="r q1 cheap">13</td><td class="r q1">6</td><td class="r">29</td></tr>
+<tr><th scope="row">sonnet</th><td class="r q1">5</td><td class="r q1">9</td><td class="r q1">2</td><td class="r">16</td></tr>
+</tbody>
+</table>
+<!-- /fig:matrix -->
+    <figcaption><b>Рисунок 9.</b> На чём задача шла и что, по мнению судьи, было нужно. Чем насыщеннее ячейка, тем больше в ней задач. Жирные ячейки в сумме дают те 303 задачи на Opus и Fable, с которыми, по мнению судьи, справились бы Sonnet или Haiku.</figcaption>
+  </figure>
+</section>
+
+<section class="row" id="judges">
+  <h2>Насколько можно верить судье</h2>
+  <p>Роутер может ошибиться в две стороны. Если он выберет модель дороже нужной, вы просто не сэкономите и заплатите столько же, сколько раньше. Если дешевле нужной, пострадает качество: сломанная правка, повтор, долгая отладка, которая съест больше, чем удалось сберечь. Поэтому главное число здесь показывает, как часто судья выбирает слишком дёшево.</p>
+  <figure>
+<!-- fig:judges -->
+<p class="legend"><span><i class="f1"></i>слишком дёшево</span><span><i class="f3"></i>совпало</span><span><i class="f2"></i>дороже нужного</span></p>
+<div class="bars wide-l" role="img" aria-label="Насколько судьи ошибаются в сторону дешёвой модели">
+<div class="bar"><span class="l">Opus против моей ручной разметки <span class="n">n = 34</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="41.2" height="10" class="f1"/><rect x="41.2" width="50" height="10" class="f3"/><rect x="91.2" width="8.8" height="10" class="f2"/></svg><span class="v">41%</span></div>
+<div class="bar"><span class="l">Qwen против моей ручной разметки <span class="n">n = 19</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="52.6" height="10" class="f1"/><rect x="52.6" width="42.1" height="10" class="f3"/><rect x="94.7" width="5.3" height="10" class="f2"/></svg><span class="v">53%</span></div>
+<div class="bar"><span class="l">Opus против Qwen <span class="n">n = 197</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="22.8" height="10" class="f1"/><rect x="22.8" width="71.1" height="10" class="f3"/><rect x="93.9" width="6.1" height="10" class="f2"/></svg><span class="v">23%</span></div>
+<div class="bar"><span class="l">Qwen на шагах SWE-bench <span class="n">n = 51</span></span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="57" height="10" class="f1"/><rect x="57" width="39" height="10" class="f3"/><rect x="96" width="4" height="10" class="f2"/></svg><span class="v">57%</span></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Сравнение</th><th class="r">n</th><th class="r">Совпало</th><th class="r">Слишком дёшево</th><th class="r">Дороже нужного</th></tr></thead>
+<tbody>
+<tr><td>Opus против моей ручной разметки</td><td class="r">34</td><td class="r">50%</td><td class="r">41%</td><td class="r">9%</td></tr>
+<tr><td>Qwen против моей ручной разметки</td><td class="r">19</td><td class="r">42%</td><td class="r">53%</td><td class="r">5%</td></tr>
+<tr><td>Opus против Qwen</td><td class="r">197</td><td class="r">71%</td><td class="r">23%</td><td class="r">6%</td></tr>
+<tr><td>Qwen на шагах SWE-bench</td><td class="r">51</td><td class="r">39%</td><td class="r">57%</td><td class="r">4%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:judges -->
+    <figcaption><b>Рисунок 10.</b> Каждый судья в сравнении с эталоном. Число справа показывает долю слишком дешёвых выборов. «Opus против Qwen» сравнивает двух судей на одних и тех же задачах, и ни один из них не эталон.<sup class="n">6</sup></figcaption>
+  </figure>
+  <p class="note"><span class="n">6</span>Ручная разметка моя, на моих же прошлых задачах: 34 задачи для Opus, 19 для Qwen. Строка про SWE-bench построена на префиксах шагов из TwinRouterBench, а эталонные метки там слабые.</p>
+  <p>По сравнению с моей разметкой судья Opus выбирает слишком дёшево в 41% случаев. Поэтому метки судьи сверяются с ручной разметкой и повторными прогонами, прежде чем на них что-то обучать, и поэтому ни одно из этих чисел не обещание.</p>
+</section>
+
+<section class="row" id="training">
+  <h2>Первый прогон обучения</h2>
+  <p>В прогоне <code>opus-v1</code> метки судьи Opus были дистиллированы в ученика, достаточно маленького, чтобы отвечать на ноутбуке: <code>multilingual-e5-small</code>, которого учила более крупная многоязычная модель.<sup class="n">7</sup> Ученик отвечает в чистой точке на четыре вопроса. Два ответа достаточно точны и уже используются, выбор модели к ним не относится.</p>
+  <p class="note"><span class="n">7</span>Учитель: Laya multilingual (mmBERT, 322M), 6 эпох, 236 с на одной RTX PRO 4000. 576 задач разбиты по времени: 407 на обучение, 87 на калибровку, 87 на тест.</p>
+  <figure>
+<!-- fig:heads -->
+<div class="bars wide-l" role="img" aria-label="Точность голов ученика на отложенных задачах">
+<div class="bar"><span class="l">tier</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="49.4" height="10" class="f3"/></svg><span class="v">49%</span></div>
+<div class="bar"><span class="l">effort</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="71.3" height="10" class="f3"/></svg><span class="v">71%</span></div>
+<div class="bar"><span class="l">plan_first</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="92" height="10" class="f1"/></svg><span class="v">92%</span></div>
+<div class="bar"><span class="l">delegate_explore</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="75.9" height="10" class="f1"/></svg><span class="v">76%</span></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Голова</th><th class="r">Точность</th><th class="r">macro-F1</th><th class="r">ECE</th><th>В плагине</th></tr></thead>
+<tbody>
+<tr><td>tier</td><td class="r">49%</td><td class="r">0,42</td><td class="r">0,075</td><td>не действует сам</td></tr>
+<tr><td>effort</td><td class="r">71%</td><td class="r">0,36</td><td class="r">0,109</td><td>не используется</td></tr>
+<tr><td>plan_first</td><td class="r">92%</td><td class="r">0,85</td><td class="r">0,078</td><td>используется</td></tr>
+<tr><td>delegate_explore</td><td class="r">76%</td><td class="r">0,71</td><td class="r">0,094</td><td>используется</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:heads -->
+    <figcaption><b>Рисунок 11.</b> Точность каждой головы на 87 отложенных задачах. <code>plan_first</code> вызывает подсказку спланировать задачу на Opus; <code>delegate_explore</code> подсказывает агенту начать с <code>agento-scout</code>, если включён режим оркестратора. Голова выбора модели сама ничего не решает, голова effort не используется.</figcaption>
+  </figure>
+  <p>Чтобы выбирать модель самостоятельно, ученик должен при каком-то пороге уверенности ошибаться в сторону слишком дешёвой модели меньше чем в 5% отложенных задач. Такого порога не нашлось.<sup class="n">8</sup></p>
+  <p class="note"><span class="n">8</span>Метки здесь взяты у судьи Opus, того самого, который по сравнению с моей разметкой выбирает слишком дёшево в 41% случаев. Ученик выучил судью, а не истину.</p>
+  <figure>
+<!-- fig:policies -->
+<div class="bars grouped" role="img" aria-label="Точность и доля слишком дешёвых выборов у разных политик">
+<div class="grp"><div class="gl">обученный ученик, на каждой задаче</div>
+<div class="bar"><span class="l">точность</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="49.4" height="10" class="f3"/></svg><span class="v">49%</span></div>
+<div class="bar"><span class="l">слишком дёшево</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="43.7" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">44%</span></div></div>
+<div class="grp"><div class="gl">всегда Sonnet</div>
+<div class="bar"><span class="l">точность</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="58.6" height="10" class="f3"/></svg><span class="v">59%</span></div>
+<div class="bar"><span class="l">слишком дёшево</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="35.6" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">36%</span></div></div>
+<div class="grp"><div class="gl">встроенные правила (в плагине)</div>
+<div class="bar"><span class="l">точность</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="63.2" height="10" class="f3"/></svg><span class="v">63%</span></div>
+<div class="bar"><span class="l">слишком дёшево</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="31" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">31%</span></div></div>
+<div class="grp"><div class="gl">L0, видит готовую траекторию</div>
+<div class="bar"><span class="l">точность</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="74.7" height="10" class="f3"/></svg><span class="v">75%</span></div>
+<div class="bar"><span class="l">слишком дёшево</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="4.6" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">4,6%</span></div></div>
+<div class="grp"><div class="gl">всегда Opus</div>
+<div class="bar"><span class="l">точность</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="35.6" height="10" class="f3"/></svg><span class="v">36%</span></div>
+<div class="bar"><span class="l">слишком дёшево</span><svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><rect width="0" height="10" class="f1"/><line x1="5" x2="5" y1="0" y2="10" class="sm" vector-effect="non-scaling-stroke"/></svg><span class="v">0%</span></div></div>
+</div>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Политика</th><th class="r">Точность</th><th class="r">Слишком дёшево</th><th class="r">Дороже нужного</th></tr></thead>
+<tbody>
+<tr><td>обученный ученик, на каждой задаче</td><td class="r">49%</td><td class="r">43,7%</td><td class="r">6,9%</td></tr>
+<tr><td>всегда Sonnet</td><td class="r">59%</td><td class="r">35,6%</td><td class="r">5,7%</td></tr>
+<tr><td>встроенные правила (в плагине)</td><td class="r">63%</td><td class="r">31,0%</td><td class="r">5,7%</td></tr>
+<tr><td>L0, видит готовую траекторию</td><td class="r">75%</td><td class="r">4,6%</td><td class="r">20,7%</td></tr>
+<tr><td>всегда Opus</td><td class="r">36%</td><td class="r">0,0%</td><td class="r">64,4%</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:policies -->
+    <figcaption><b>Рисунок 12.</b> Выбор модели на тех же 87 тестовых задачах. Красная линия отмечает порог в 5%. «Всегда Opus» никогда не выбирает слишком дёшево, зато переплачивает на 64% задач.</figcaption>
+  </figure>
+  <p>Самая интересная строка здесь L0. Это простая эвристика, которая смотрит на готовую траекторию, поэтому в начале задачи её не запустить, но она совпадает с метками в 75% случаев и выбирает слишком дёшево лишь в 4,6%. Первые шаги задачи говорят о ней больше, чем промпт. Отсюда следующий эксперимент: принимать решение после первых нескольких шагов, когда эти сигналы уже есть.</p>
+  <h3>Характеристики ученика</h3>
+<!-- fig:student -->
+<table class="spec">
+<tbody>
+<tr><td>Модель</td><td class="r">multilingual-e5-small</td></tr>
+<tr><td>Параметров</td><td class="r">118 млн</td></tr>
+<tr><td>Размер</td><td class="r">279 МБ</td></tr>
+<tr><td>p50, длина 128, CPU машины обучения</td><td class="r">8,1 мс</td></tr>
+<tr><td>p50, длина 256, CPU машины обучения</td><td class="r">17,6 мс</td></tr>
+<tr><td>p50 установленного демона, Mac на Apple silicon</td><td class="r">≈ 6 мс</td></tr>
+<tr><td>Совпадение ONNX и PyTorch</td><td class="r">1,00</td></tr>
+<tr><td>Версия int8</td><td class="r">отброшена (совпадение 0,888 &lt; 0,98)</td></tr>
+</tbody>
+</table>
+<!-- /fig:student -->
+  <p style="margin-top:1em">Как устроен и как проверяется прогон: <a href="https://github.com/regksemx/agento/blob/main/training/README.md">training/README.md</a> и инструкция по GPU-серверу <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">docs/runbook-gpu.md</a>. Задержки других кандидатов в ученики: <a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">training/BENCHMARK.md</a>.</p>
+</section>
 </main>
 
-<footer>
-  <div class="wrap">
-    <div>
-      <p class="brand"><span class="d" style="color:var(--accent)">◆</span>&nbsp;agento</p>
-      <p>Открытый код под Apache-2.0. Независимый проект, не связан с Anthropic и не одобрен ею.</p>
-      <p>Данные: <code>data/bench.json</code>, собраны <span data-bind="generated">2026-10-05</span>.</p>
-    </div>
-    <div>
-      <h4>Сайт</h4>
-      <ul>
-        <li><a href="./">Главная</a></li>
-        <li><a href="how-it-works.html">Как работает</a></li>
-        <li><a href="../data/bench.json">Исходные данные (JSON)</a></li>
-        <li><a href="../benchmarks.html" hreflang="en" lang="en" data-set-lang="en">English version</a></li>
-      </ul>
-    </div>
-    <div>
-      <h4>Репозиторий</h4>
-      <ul>
-        <li><a href="https://github.com/regksemx/agento">GitHub</a></li>
-        <li><a href="https://arxiv.org/abs/2607.12161">Token Reduction Is Not Cost Reduction (arXiv)</a></li>
-        <li><a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">Бенчмарк ученика</a></li>
-        <li><a href="https://github.com/regksemx/agento/blob/main/LICENSE">Лицензия</a></li>
-      </ul>
-    </div>
+<footer class="colophon">
+  <div>
+    <p>Данные: <a href="../data/bench.json">data/bench.json</a> и <a href="../data/training.json">data/training.json</a>, выгружены 2026-10-05. Рисунки строит по ним <code>scripts/site-figures.ts</code>.</p>
+    <p>Apache-2.0. Независимый проект, не связан с Anthropic.</p>
   </div>
+  <div><p><a href="https://github.com/regksemx/agento">GitHub</a> · <a href="./">Главная</a> · <a href="how-it-works.html">Как это работает</a></p></div>
 </footer>
+</div>
 </body>
 </html>

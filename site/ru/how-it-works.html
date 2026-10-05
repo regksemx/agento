@@ -1,404 +1,183 @@
 <!doctype html>
-<!-- Владелец репозитория на GitHub ещё не выбран: замените все "regksemx" (в HTML это regksemx) после публикации. -->
-<html lang="ru">
+<html lang="ru" data-alt="../how-it-works.html">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>agento · как работает</title>
-<meta name="description" content="Архитектура agento, решение на старте задачи, экономика кэша промптов, семь принципов и сценарии экономии.">
-<link rel="alternate" hreflang="en" href="../how-it-works.html">
-<link rel="alternate" hreflang="ru" href="how-it-works.html">
-<link rel="alternate" hreflang="x-default" href="../how-it-works.html">
+<title>Как устроен agento</title>
+<meta name="description" content="Как agento принимает решения: один выбор модели на задачу в чистой точке, субагенты на дешёвых моделях, план на Opus и код на Sonnet, защита от зацикливания и локальный классификатор.">
+<link rel="canonical" href="https://regksemx.github.io/agento/ru/how-it-works.html">
+<link rel="alternate" hreflang="en" href="https://regksemx.github.io/agento/how-it-works.html">
+<link rel="alternate" hreflang="ru" href="https://regksemx.github.io/agento/ru/how-it-works.html">
+<link rel="alternate" hreflang="x-default" href="https://regksemx.github.io/agento/how-it-works.html">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#181715" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="../styles.css">
-<script src="../boot.js"></script>
-<script src="../app.js" defer></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../style.css">
+<script>(function(){var m=/[?&]lang=(en|ru)\b/.exec(location.search),h=document.documentElement;if(m&&m[1]!==h.lang)location.replace(h.getAttribute('data-alt')+location.hash)})()</script>
 </head>
 <body>
-<a class="skip" href="#main">К содержанию</a>
+<div class="page">
 
-<header class="nav">
-  <div class="wrap">
-    <a class="brand" href="./" aria-label="agento, главная"><span class="d">◆</span> agento</a>
-    <nav class="nav-links" aria-label="Основное меню">
-      <a href="how-it-works.html" aria-current="page">Как работает</a>
-      <a href="benchmarks.html">Бенчмарки</a>
-      <a class="opt" href="./#privacy">Приватность</a>
-      <a class="opt" href="./#faq">Вопросы</a>
-    </nav>
-    <div class="nav-tools">
-      <a class="tool" href="../how-it-works.html" hreflang="en" lang="en" data-set-lang="en" aria-label="English version">EN</a>
-      <button class="tool theme-toggle" type="button" data-theme-toggle>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      </button>
-      <a class="tool gh" href="https://github.com/regksemx/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
-    </div>
+<header>
+  <div class="mast">
+    <a class="name" href="./">agento</a>
+    <nav aria-label="Сайт"><a href="how-it-works.html" aria-current="page">Как это работает</a><a href="benchmarks.html">Бенчмарки</a><a href="https://github.com/regksemx/agento">GitHub</a><a href="../how-it-works.html" lang="en" hreflang="en">In English</a></nav>
   </div>
-  <nav class="subnav" aria-label="Страницы">
-    <a href="./">Главная</a>
-    <a href="how-it-works.html" aria-current="page">Как работает</a>
-    <a href="benchmarks.html">Бенчмарки</a>
-    <a href="./#faq">Вопросы</a>
-  </nav>
+  <div class="dateline"><span>Плагин и CLI для Claude Code. Открытый код, Apache-2.0.</span><span>Альфа, октябрь 2026</span></div>
 </header>
 
-<main id="main">
-
-<div class="page-head">
-  <div class="wrap">
-    <p class="eyebrow">Как работает</p>
-    <h1>Одно решение на задачу — там, где оно бесплатно.</h1>
-    <div class="intro">
-      <p>agento — плагин Claude Code. Его хуки работают внутри Claude Code, видят каждый промпт и каждый запрос к модели и умеют добавить строку статуса, полосу над промптом и панель. Он принимает одно решение на старте задачи, когда смена модели ничего не стоит, а в остальное время не мешает: распределяет субагентов, следит за зацикливанием и считает деньги.</p>
-    </div>
-    <nav class="toc" aria-label="На этой странице">
-      <a href="#architecture">Архитектура</a>
-      <a href="#decision">Решение</a>
-      <a href="#economics">Экономика кэша</a>
-      <a href="#principles">Принципы</a>
-      <a href="#lessons">Уроки</a>
-      <a href="#scenarios">Сценарии</a>
-    </nav>
-  </div>
+<main>
+<div class="row intro">
+  <h1 class="sub">Одно решение на задачу, и там, где оно бесплатно.</h1>
+  <p class="lede">agento — плагин для Claude Code. Его хуки видят каждый промпт и каждый запрос к модели, умеют рисовать строку статуса, один баннер над полем ввода и панель. Модель он выбирает один раз, в начале задачи, а дальше не мешает: распределяет субагентов, следит за зацикливанием и считает деньги.</p>
 </div>
 
-<section id="architecture" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">01</span> Архитектура</p>
-    <figure class="diagram big">
-        <svg class="dg" viewBox="0 0 680 560" role="img" aria-labelledby="arch-t arch-d">
-          <title id="arch-t">Архитектура agento</title>
-          <desc id="arch-d">Claude Code вызывает плагин agento через хуки внутри процесса: prompt.submit, turn.step, agent.spawn, tool.call и ui. Плагин спрашивает необязательный локальный демон agento-brain через unix-сокет, при сбое решают правила, и записывает каждый шаг в учёт. Необязательный цикл обучения готовит модель-ученика, которую обслуживает agento-brain.</desc>
-          <defs>
-            <marker id="arch-ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker>
-            <marker id="arch-ah-acc" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-acc" d="M0,0 L8,4 L0,8 z"/></marker>
-          </defs>
-          <rect class="box" x="20" y="10" width="640" height="50" rx="10"/>
-          <text class="t-head" x="40" y="32">Claude Code ≥ 2.1.287</text>
-          <text class="t-dim" x="40" y="50">ваша сессия: основной поток, субагенты, слэш-команды</text>
-
-          <path class="ln-acc" d="M340 60 V 92" marker-start="url(#arch-ah-acc)" marker-end="url(#arch-ah-acc)"/>
-          <text class="t-dim" x="352" y="81">хуки внутри процесса</text>
-
-          <rect class="box-acc" x="20" y="96" width="640" height="182" rx="12"/>
-          <text class="t-acc" x="40" y="122">◆ плагин agento</text>
-          <text class="t-dim" x="168" y="122">mod на TypeScript · fail-open: при ошибке событие идёт как есть</text>
-
-          <rect class="box-q" x="36" y="140" width="194" height="56" rx="8"/>
-          <text x="50" y="162">prompt.submit</text><text class="t-dim" x="50" y="182">старт задачи → вердикт</text>
-          <rect class="box-q" x="243" y="140" width="194" height="56" rx="8"/>
-          <text x="257" y="162">turn.step</text><text class="t-dim" x="257" y="182">учёт · удержание задачи</text>
-          <rect class="box-q" x="450" y="140" width="194" height="56" rx="8"/>
-          <text x="464" y="162">agent.spawn</text><text class="t-dim" x="464" y="182">модель субагента</text>
-          <rect class="box-q" x="36" y="206" width="297" height="56" rx="8"/>
-          <text x="50" y="228">tool.call</text><text class="t-dim" x="50" y="248">зацикливание · передача плана в код</text>
-          <rect class="box-q" x="347" y="206" width="297" height="56" rx="8"/>
-          <text x="361" y="228">ui</text><text class="t-dim" x="361" y="248">статус · полоса · панель /agento</text>
-
-          <path class="ln" d="M170 278 V 318" marker-end="url(#arch-ah)"/>
-          <text class="t-dim" x="182" y="303">usage каждого шага</text>
-          <path class="ln" d="M510 278 V 318" marker-start="url(#arch-ah)" marker-end="url(#arch-ah)"/>
-          <text class="t-dim" x="522" y="303">unix-сокет</text>
-
-          <rect class="box" x="20" y="320" width="300" height="100" rx="10"/>
-          <text class="t-head" x="36" y="344">учёт (ledger)</text>
-          <text class="t-dim" x="36" y="366">фактический расход по шагам</text>
-          <text class="t-dim" x="36" y="384">экономия — всегда как оценка</text>
-          <text class="t-dim" x="36" y="402">% недельного лимита (подписка)</text>
-
-          <rect class="box" x="360" y="320" width="300" height="100" rx="10"/>
-          <text class="t-head" x="376" y="344">agento-brain <tspan class="t-dim">по желанию</tspan></text>
-          <text class="t-dim" x="376" y="366">локальный демон · POST /v1/route</text>
-          <text class="t-dim" x="376" y="384">ученик ONNX, ~35 мс p50 на CPU</text>
-          <text class="t-dim" x="376" y="402">нет ответа за 400 мс → rules-v1</text>
-
-          <rect class="box-dash" x="20" y="452" width="640" height="96" rx="12"/>
-          <text class="t-dim" x="36" y="474">цикл обучения по желанию · ваш ноутбук + ваш GPU-сервер</text>
-          <rect class="box-q" x="36" y="490" width="108" height="40" rx="8"/><text x="90" y="514" text-anchor="middle" style="font-size:12px">dataset</text>
-          <rect class="box-q" x="161" y="490" width="108" height="40" rx="8"/><text x="215" y="514" text-anchor="middle" style="font-size:12px">судья·метки</text>
-          <rect class="box-q" x="286" y="490" width="108" height="40" rx="8"/><text x="340" y="514" text-anchor="middle" style="font-size:12px">учитель Laya</text>
-          <rect class="box-q" x="411" y="490" width="108" height="40" rx="8"/><text x="465" y="514" text-anchor="middle" style="font-size:12px">ученик e5</text>
-          <rect class="box-q" x="536" y="490" width="108" height="40" rx="8"/><text x="590" y="514" text-anchor="middle" style="font-size:12px">ONNX</text>
-          <path class="ln" d="M144 510 H 159" marker-end="url(#arch-ah)"/>
-          <path class="ln" d="M269 510 H 284" marker-end="url(#arch-ah)"/>
-          <path class="ln" d="M394 510 H 409" marker-end="url(#arch-ah)"/>
-          <path class="ln" d="M519 510 H 534" marker-end="url(#arch-ah)"/>
-          <path class="ln-dash" d="M590 490 V 424" marker-end="url(#arch-ah)"/>
-          <text class="t-dim" x="598" y="446">установка</text>
-        </svg>
-        <figcaption>Всё работает на вашей машине. Цикл обучения необязателен и отправляет только очищенный датасет на ваш собственный GPU-сервер.</figcaption>
-      </figure>
-    <div class="two-col" style="margin-top:32px">
-      
-      <div>
-        <h3>Хуки</h3>
-        <ul class="ticks">
-          <li><strong><code>prompt.submit</code></strong> решает, начинается ли с этого промпта задача, и если да — спрашивает System 1, что ей нужно. Может показать полосу над промптом; ничего не отправляет за вас.</li>
-          <li><strong><code>turn.step</code></strong> вызывается перед каждым запросом к модели. agento только читает usage из ответа, с одним исключением, которое включаете вы: удержание автопилота на задачу — основные запросы этой задачи уходят на выбранной им более дешёвой конфигурации.</li>
-          <li><strong><code>agent.spawn</code></strong> выбирает модель субагента. У субагентов свой кэш, так что этот выбор всегда бесплатен: Haiku для разведки, Sonnet для чётко описанного кода.</li>
-          <li><strong><code>tool.call</code></strong> кормит защиту от зацикливания (тот же падающий тест, правка того же места, серия ошибок) и замечает одобренный план для передачи в код.</li>
-          <li><strong><code>ui</code></strong> рисует строку статуса, одну полосу над промптом за раз и панель <code>/agento</code>.</li>
-        </ul>
-      </div>
-      <div>
-        <h3>System 1</h3>
-        <p>На вопрос «что нужно этой задаче?» отвечает либо встроенный <code>rules-v1</code> (ключевые слова, длина запроса, слова про план), либо небольшая обученная модель в <code>agento-brain</code> — локальном демоне на unix-сокете. Плагин ждёт не больше 400 мс; при любой ошибке или таймауте отвечают правила. Какой классификатор активен, видно в панели.</p>
-      </div>
-    </div>
-  </div>
+<section class="row" id="clean">
+  <h2>Чистые точки</h2>
+  <p>Модель дёшево поменять только тогда, когда нечего терять: тёплого кэша нет. agento считает началом задачи четыре момента: первый промпт новой сессии, первый промпт после <code>/clear</code> или сжатия контекста, промпт после того, как кэш остыл, и задачу, которую вы сами отметили командой <code>/agento new</code>.<sup class="n">1</sup> Внутри задачи вердикт тоже считается, но только для учёта, и ничего по нему не делается.</p>
+  <p class="note"><span class="n">1</span>Кэш живёт 5 минут или час, смотря как его запросили. agento берёт срок из каждого ответа, а не угадывает.</p>
+  <p>По умолчанию вы получаете подсказку с причиной и оценкой и решаете сами. С <code>/agento autopilot clean-points</code> agento применяет выбор сам, но только на эту задачу, только там, где смена бесплатна, и сообщает об этом с кнопкой отмены. В следующей чистой точке решение принимается заново.</p>
+  <p>Effort устроен иначе. На моделях 5.5 его можно менять от сообщения к сообщению без потери кэша, а thinking оплачивается как вывод, так что внутри задачи effort оказывается самым дешёвым рычагом. На старых моделях смена effort перезаписывает кэш так же, как смена модели.</p>
+  <h3>Что похоже на чистую точку, но ею не является</h3>
+  <dl class="defs">
+    <div><dt>Возобновлённая сессия</dt><dd><code>claude -c</code> и <code>--resume</code> возвращают разговор, кэш которого может быть ещё тёплым. В счёт идёт только первый промпт действительно нового разговора.</dd></div>
+    <div><dt><code>/model</code></dt><dd>В интерактивной сессии <code>/model</code> и <code>/effort</code> заодно сохраняют ваш выбор по умолчанию для всех будущих сессий. Поэтому agento никогда не вызывает их ради одной задачи: он держит более дешёвую настройку только на эту задачу, а если вы сами наберёте <code>/model</code>, это удержание снимается.</dd></div>
+    <div><dt>Сжатие посреди хода</dt><dd>После сжатия кэш действительно начинается заново, так что следующий промпт будет чистой точкой. А ход, который уже идёт, остаётся на своей модели.</dd></div>
+    <div><dt><code>/agento new</code> в длинном контексте</dt><dd>Если вручную отметить новую задачу в длинном тёплом разговоре, на другую модель переедет весь этот разговор. Поэтому здесь agento предлагает сделать <code>/clear</code>.</dd></div>
+  </dl>
 </section>
 
-<section id="decision" class="tight alt">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">02</span> Решение на старте задачи</p>
-    <figure class="diagram big flow">
-        <svg class="dg" viewBox="0 0 680 660" role="img" aria-labelledby="flow-t flow-d">
-          <title id="flow-t">Как принимается решение на старте задачи</title>
-          <desc id="flow-d">Когда приходит промпт, agento проверяет, чистая ли это точка. Если нет, ничего не меняется. Если да, он классифицирует задачу, сверяет уверенность с порогом и проверяет, хватит ли конфигурации дешевле вашей. При включённом автопилоте он удерживает дешёвую конфигурацию на эту задачу, иначе показывает подсказку. Во всех остальных случаях ничего не происходит.</desc>
-          <defs>
-            <marker id="flow-ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker>
-          </defs>
-          <rect class="box" x="40" y="10" width="330" height="40" rx="20"/>
-          <text class="t-head" x="205" y="35" text-anchor="middle">Вы отправляете промпт</text>
-          <path class="ln" d="M205 50 V 78" marker-end="url(#flow-ah)"/>
-
-          <rect class="box-q" x="40" y="80" width="330" height="62" rx="10"/>
-          <text class="t-head" x="56" y="102">◇ Чистая точка?</text>
-          <text class="t-dim" x="56" y="120">первый промпт · после /clear или компакции</text>
-          <text class="t-dim" x="56" y="136">кэш остыл · /agento new</text>
-          <path class="ln" d="M370 111 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="104">нет</text>
-          <rect class="box" x="410" y="80" width="250" height="62" rx="10"/>
-          <text class="t-head" x="426" y="102">Ничего не меняется</text>
-          <text class="t-dim" x="426" y="120">внутри задачи — только субагенты,</text>
-          <text class="t-dim" x="426" y="136">зацикливание и учёт</text>
-          <path class="ln" d="M205 142 V 170" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="161">да</text>
-
-          <rect class="box-acc" x="40" y="172" width="330" height="62" rx="10"/>
-          <text class="t-head" x="56" y="194">Классифицировать задачу</text>
-          <text class="t-dim" x="56" y="212">agento-brain через unix-сокет</text>
-          <text class="t-dim" x="56" y="228">или rules-v1 (нет ответа за 400 мс)</text>
-          <path class="ln" d="M205 234 V 262" marker-end="url(#flow-ah)"/>
-
-          <rect class="box-q" x="40" y="264" width="330" height="62" rx="10"/>
-          <text class="t-head" x="56" y="286">◇ Уверенность достаточна?</text>
-          <text class="t-dim" x="56" y="304">≥ 0.65 balanced · ≥ 0.55 eco</text>
-          <text class="t-dim" x="56" y="320">в режиме quality: никогда</text>
-          <path class="ln" d="M370 295 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="288">нет</text>
-          <rect class="box" x="410" y="264" width="250" height="62" rx="10"/>
-          <text class="t-head" x="426" y="286">Без подсказки</text>
-          <text class="t-dim" x="426" y="304">сомнительный вердикт остаётся</text>
-          <text class="t-dim" x="426" y="320">в учёте, а не на экране</text>
-          <path class="ln" d="M205 326 V 354" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="345">да</text>
-
-          <rect class="box-q" x="40" y="356" width="330" height="62" rx="10"/>
-          <text class="t-head" x="56" y="378">◇ Дешевле вашей конфигурации?</text>
-          <text class="t-dim" x="56" y="396">модель или effort ниже,</text>
-          <text class="t-dim" x="56" y="412">чем выбрали вы (P3)</text>
-          <path class="ln" d="M370 387 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="380">нет</text>
-          <rect class="box" x="410" y="356" width="250" height="62" rx="10"/>
-          <text class="t-head" x="426" y="378">Без подсказки</text>
-          <text class="t-dim" x="426" y="396">не выше вашего выбора; сложной</text>
-          <text class="t-dim" x="426" y="412">задаче — «план с Opus»</text>
-          <path class="ln" d="M205 418 V 446" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="437">да</text>
-
-          <rect class="box-q" x="40" y="448" width="330" height="62" rx="10"/>
-          <text class="t-head" x="56" y="470">◇ Автопилот включён?</text>
-          <text class="t-dim" x="56" y="488">по умолчанию выключен;</text>
-          <text class="t-dim" x="56" y="504">только там, где смена бесплатна</text>
-          <path class="ln" d="M370 479 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="472">нет</text>
-          <rect class="box-acc" x="410" y="448" width="250" height="62" rx="10"/>
-          <text class="t-head" x="426" y="470">Подсказка над промптом</text>
-          <text class="t-dim" x="426" y="488">[Sonnet] [Effort medium]</text>
-          <text class="t-dim" x="426" y="504">[Оставить] [Не предлагать]</text>
-          <path class="ln" d="M205 510 V 538" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="529">да</text>
-
-          <rect class="box-acc" x="40" y="540" width="330" height="62" rx="10"/>
-          <text class="t-head" x="56" y="562">Удержать на эту задачу</text>
-          <text class="t-dim" x="56" y="580">turn.step шлёт основные запросы задачи</text>
-          <text class="t-dim" x="56" y="596">на дешёвой конфигурации · [Вернуть opus·max]</text>
-
-          <text class="t-dim" x="40" y="630">Никогда не запускает /model (он поменял бы ваш default) · не посреди задачи</text>
-          <text class="t-dim" x="40" y="648">Ваш /model или /effort сразу снимает удержание</text>
-        </svg>
-        <figcaption>Пороги — как в <code>plugin/core/suggest.ts</code>. Одновременно видна не больше чем одна полоса; застрявший агент важнее любой подсказки.</figcaption>
-      </figure>
-    <div class="two-col" style="margin-top:32px">
-
-      
-      <div>
-        <h3>Что считается чистой точкой</h3>
-        <p>Менять модель дёшево только тогда, когда нечего терять — тёплого кэша нет. agento считает стартом задачи: первый промпт действительно нового разговора, первый промпт после <code>/clear</code> или компакции, промпт после того как кэш остыл (5 минут на API-ключе, 1 час на подписке) и явный <code>/agento new</code>. Внутри задачи вердикт тоже считается — для учёта, — но ни к каким действиям не ведёт.</p>
-        <h3>Подсказка или автопилот</h3>
-        <p>По умолчанию вы получаете подсказку с причиной и оценкой и решаете сами. С <code>autopilot: clean-points</code> agento применяет выбор сам, но только для этой задачи и только там, где смена бесплатна, и сообщает об этом с кнопкой отмены. Следующая чистая точка решает заново.</p>
-      </div>
-      <div>
-        <h3>Другие подсказки</h3>
-        <ul class="ticks">
-          <li><strong>План с Opus (S2).</strong> Сложная задача или задача на планирование на Sonnet или Haiku получает «Обсудить архитектуру с Opus (plan mode)». Когда план одобрен — «Писать код на Sonnet — чистый контекст».</li>
-          <li><strong>Гигиена контекста (S4).</strong> Новая тема в контексте больше 60k или любой контекст больше 150k: <code>/clear</code> или «Сжать с сохранением важного».</li>
-          <li><strong>Агент буксует (S7).</strong> Тест падает третий раз, одно место правится снова и снова, ошибки инструментов подряд: [Остановить] [Подсказка агенту] [Продолжить].</li>
-        </ul>
-      </div>
-    </div>
-  </div>
+<section class="row" id="cache">
+  <h2>Сколько стоит смена на середине</h2>
+  <p>Возьмём обычный шаг агента с закэшированным префиксом 100k: префикс читается из кэша, 3k нового ввода в него записываются, на выходе 1,5k токенов. По прайсу:</p>
+  <table>
+    <thead><tr><th>Один шаг</th><th class="r">Opus 5.5</th><th class="r">Sonnet 5.5</th><th class="r">Haiku 4.5</th></tr></thead>
+    <tbody>
+      <tr><td>чтение кэша, 100k</td><td class="r">$0,020</td><td class="r">$0,020</td><td class="r">$0,010</td></tr>
+      <tr><td>запись в кэш, 3k</td><td class="r">$0,015</td><td class="r">$0,0075</td><td class="r">$0,0038</td></tr>
+      <tr><td>вывод, 1,5k</td><td class="r">$0,030</td><td class="r">$0,015</td><td class="r">$0,0075</td></tr>
+      <tr class="hl"><td>итого</td><td class="r">$0,065</td><td class="r">$0,0425</td><td class="r">$0,021</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:1em">Opus 5.5 и Sonnet 5.5 читают кэш по одной цене, поэтому Sonnet экономит только на выводе и новом вводе: примерно $0,0225 за шаг. А смена модели посреди задачи записывает весь префикс в кэш новой модели: 100k по $2,50 за миллион, то есть $0,25 вместо $0,02 за чтение. Лишние $0,23, один раз.<sup class="n">2</sup></p>
+  <p class="note"><span class="n">2</span>Встроенный <code>opusplan</code> платит эту цену каждый раз: он планирует на Opus и выполняет на Sonnet в том же контексте.</p>
+  <figure>
+<!-- fig:switchcost -->
+<svg class="v-wide" viewBox="0 0 660 262" role="img" aria-label="Накопленная стоимость после смены модели при префиксе 100k: остаться на Opus или перейти на Sonnet. Линии пересекаются примерно на десятом шаге."><line x1="46" x2="540" y1="210" y2="210" class="s1"/><text x="40" y="214" font-size="12" class="t3" text-anchor="end">$0,00</text><line x1="46" x2="540" y1="142.14" y2="142.14" class="sr" stroke-dasharray="2 4"/><text x="40" y="146.14" font-size="12" class="t3" text-anchor="end">$0,50</text><line x1="46" x2="540" y1="74.29" y2="74.29" class="sr" stroke-dasharray="2 4"/><text x="40" y="78.29" font-size="12" class="t3" text-anchor="end">$1,00</text><text x="46" y="228" font-size="12" class="t3" text-anchor="middle">0</text><text x="169.5" y="228" font-size="12" class="t3" text-anchor="middle">5</text><text x="293" y="228" font-size="12" class="t3" text-anchor="middle">10</text><text x="416.5" y="228" font-size="12" class="t3" text-anchor="middle">15</text><text x="540" y="228" font-size="12" class="t3" text-anchor="middle">20</text><text x="540" y="246" font-size="12" class="t3" text-anchor="end">шагов после смены</text><line x1="46" y1="210" x2="540" y2="33.57" class="s1 w2"/><line x1="46" y1="178.79" x2="540" y2="63.43" class="s1 w2" stroke-dasharray="6 4"/><circle cx="46" cy="178.79" r="4" class="fp s1 w2"/><text x="548" y="37.57" font-size="13" class="t1 b">остаться на Opus</text><text x="548" y="67.43" font-size="13" class="t1 b">перейти на Sonnet</text><text x="48" y="120.43" font-size="12.5" class="t2">+$0,23 за перезапись кэша</text><line x1="52" y1="125.43" x2="48" y2="172.79" class="sr"/><g class="sm w24"><line x1="292.49" y1="113.83" x2="304.49" y2="125.83"/><line x1="304.49" y1="113.83" x2="292.49" y2="125.83"/></g><text x="308.49" y="147.83" font-size="13" class="tm b">окупилось: ~10 шагов</text></svg>
+<svg class="v-narrow" viewBox="0 0 358 262" role="img" aria-label="Накопленная стоимость после смены модели при префиксе 100k: остаться на Opus или перейти на Sonnet. Линии пересекаются примерно на десятом шаге."><line x1="46" x2="346" y1="210" y2="210" class="s1"/><text x="40" y="214" font-size="12" class="t3" text-anchor="end">$0,00</text><line x1="46" x2="346" y1="142.14" y2="142.14" class="sr" stroke-dasharray="2 4"/><text x="40" y="146.14" font-size="12" class="t3" text-anchor="end">$0,50</text><line x1="46" x2="346" y1="74.29" y2="74.29" class="sr" stroke-dasharray="2 4"/><text x="40" y="78.29" font-size="12" class="t3" text-anchor="end">$1,00</text><text x="46" y="228" font-size="12" class="t3" text-anchor="middle">0</text><text x="121" y="228" font-size="12" class="t3" text-anchor="middle">5</text><text x="196" y="228" font-size="12" class="t3" text-anchor="middle">10</text><text x="271" y="228" font-size="12" class="t3" text-anchor="middle">15</text><text x="346" y="228" font-size="12" class="t3" text-anchor="middle">20</text><text x="346" y="246" font-size="12" class="t3" text-anchor="end">шагов после смены</text><line x1="46" y1="210" x2="346" y2="33.57" class="s1 w2"/><line x1="46" y1="178.79" x2="346" y2="63.43" class="s1 w2" stroke-dasharray="6 4"/><circle cx="46" cy="178.79" r="4" class="fp s1 w2"/><line x1="52" x2="78" y1="26" y2="26" class="s1 w2"/><text x="86" y="30" font-size="13" class="t1 b">остаться на Opus</text><line x1="52" x2="78" y1="46" y2="46" class="s1 w2" stroke-dasharray="6 4"/><text x="86" y="50" font-size="13" class="t1 b">перейти на Sonnet</text><circle cx="65" cy="66" r="4" class="fp s1 w2"/><text x="86" y="70" font-size="12.5" class="t2">+$0,23 за перезапись кэша</text><g class="sm w24"><line x1="193.33" y1="113.83" x2="205.33" y2="125.83"/><line x1="205.33" y1="113.83" x2="193.33" y2="125.83"/></g><text x="209.33" y="147.83" font-size="13" class="tm b">окупилось: ~10 шагов</text></svg>
+<details class="data"><summary>Таблица данных</summary>
+<table>
+<thead><tr><th>Шагов после смены</th><th class="r">Остаться на Opus</th><th class="r">Перейти на Sonnet</th></tr></thead>
+<tbody>
+<tr><td>0</td><td class="r">$0,00</td><td class="r">$0,23</td></tr>
+<tr><td>5</td><td class="r">$0,33</td><td class="r">$0,44</td></tr>
+<tr><td>10</td><td class="r">$0,65</td><td class="r">$0,66</td></tr>
+<tr><td>15</td><td class="r">$0,98</td><td class="r">$0,87</td></tr>
+<tr><td>20</td><td class="r">$1,30</td><td class="r">$1,08</td></tr>
+</tbody>
+</table>
+</details>
+<!-- /fig:switchcost -->
+    <figcaption><b>Рисунок 1.</b> Накопленная стоимость после решения при префиксе 100k. Смена окупается примерно через десять шагов, и то если Sonnet не понадобятся лишние. Прайс на 2026-10-05.</figcaption>
+  </figure>
+  <p>Десять шагов укладываются в короткую задачу, так почему бы всё-таки не переключаться? Потому что никто не обещает, что дешёвая модель уложится в то же число шагов, а на длинной задаче префикс как раз большой, и штраф растёт вместе с ним. Поэтому решение переносится туда, где оно бесплатно: в начало задачи, на <code>/clear</code> и в субагентов, у которых свой кэш.<sup class="n">3</sup></p>
+  <p class="note"><span class="n">3</span>Почему счёт определяет кэш, а не вывод инструментов: «Token Reduction Is Not Cost Reduction», <a href="https://arxiv.org/abs/2607.12161">arXiv 2607.12161</a>.</p>
 </section>
 
-<section id="economics" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">03</span> Экономика кэша промптов</p>
-    <div class="two-col">
-      <div>
-        <h2 style="font-size:1.5rem">Разбор примера</h2>
-        <p>Типичный шаг агента на закэшированном префиксе 100k: префикс читается из кэша, 3k нового ввода пишутся в кэш, 1.5k уходит в output. Цены прайса на 2026-10-05.</p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th scope="col">Один шаг</th><th class="num" scope="col">Opus 5.5</th><th class="num" scope="col">Sonnet 5.5</th><th class="num" scope="col">Haiku 4.5</th></tr></thead>
-            <tbody>
-              <tr><td>чтение кэша, 100k</td><td class="num">$0.020</td><td class="num">$0.020</td><td class="num">$0.010</td></tr>
-              <tr><td>запись кэша, 3k</td><td class="num">$0.015</td><td class="num">$0.0075</td><td class="num">$0.00375</td></tr>
-              <tr><td>output, 1.5k</td><td class="num">$0.030</td><td class="num">$0.015</td><td class="num">$0.0075</td></tr>
-              <tr><td><strong>итого</strong></td><td class="num"><strong>$0.065</strong></td><td class="num"><strong>$0.0425</strong> (−35%)</td><td class="num"><strong>$0.021</strong> (−67%)</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p style="margin-top:16px">Opus 5.5 и Sonnet 5.5 читают кэш по одной цене — $0.20 за миллион токенов, поэтому Sonnet экономит только на output и новом вводе: около <strong>$0.0225 за шаг</strong>. Смена модели посреди задачи пишет весь префикс в кэш новой модели: 100k × $2.50/M = $0.25 вместо чтения за $0.02, <strong>+$0.23 разово</strong>. Окупается это примерно через <strong>10 шагов</strong> — и только если Sonnet не понадобятся лишние шаги. Встроенный <code>opusplan</code> платит этот налог: планирует на Opus и выполняет на Sonnet в том же контексте.</p>
-      </div>
-      <div>
-
-        <h3>Где менять бесплатно</h3>
-        <ul class="ticks">
-          <li><strong>Effort на моделях 5.5.</strong> На Opus 5.5, Sonnet 5.5 и Fable 5.1 effort меняется от сообщения к сообщению без потери кэша. На других моделях смена effort тоже сбрасывает кэш. Thinking оплачивается как output, поэтому effort режет самую дорогую часть шага.</li>
-          <li><strong>Субагенты.</strong> У субагента свой кэш, родительский он не читает, поэтому его модель выбирается, не трогая вашу.</li>
-          <li><strong>Пустой или остывший кэш.</strong> После <code>/clear</code>, после компакции, после истечения TTL. Именно здесь agento и принимает решение.</li>
-        </ul>
-        <p class="note">Источники: <a href="https://arxiv.org/abs/2607.12161">Token Reduction Is Not Cost Reduction</a> (arXiv), страницы Anthropic о ценах и кэше промптов.</p>
-      </div>
+<section class="row" id="handoff">
+  <h2>План на Opus, код на Sonnet</h2>
+  <p>Сложная задача на Sonnet или Haiku получает одну подсказку: обсудить план с Opus в plan mode. Срабатывает она либо по правилам (слова про архитектуру и планирование), либо по ответу обученного классификатора «сначала план». Когда вы одобряете план, agento предлагает передать работу дальше.</p>
+  <figure>
+<!-- fig:handoff -->
+<svg class="v-wide" viewBox="0 0 660 262" role="img" aria-label="Размер контекста: план обсуждается на Opus и растёт до 90k; после одобрения плана /clear, и Sonnet начинает с ~8k."><line x1="30" y1="200" x2="650" y2="200" class="s1"/><line x1="30" y1="50" x2="30" y2="200" class="sr"/><path d="M30 182 C 123 155, 216 95, 340 65 L 340 200 L 30 200 Z" class="fa"/><path d="M30 182 C 123 155, 216 95, 340 65" class="s1 w2" fill="none"/><path d="M343.1 188 C 464 179, 557 158, 650 140 L 650 200 L 343.1 200 Z" class="fa"/><path d="M343.1 188 C 464 179, 557 158, 650 140" class="s1 w2" fill="none"/><line x1="340" y1="65" x2="340" y2="200" class="s1" stroke-dasharray="3 3"/><circle cx="343.1" cy="188" r="5" class="fp s1 w2"/><text x="48.6" y="54" font-size="13.5" class="t1 b">план на Opus: ~90k</text><text x="350" y="110" font-size="13.5" class="t1 b">план одобрен, /clear</text><text x="350" y="127" font-size="12.5" class="t2">перезаписывать нечего</text><text x="414.4" y="222" font-size="13.5" class="t1 b">код на Sonnet</text><text x="414.4" y="239" font-size="12.5" class="t2">с ~8k: план и нужные файлы</text><text x="48.6" y="222" font-size="13.5" class="t1 b">обсуждение</text><text x="48.6" y="239" font-size="12.5" class="t2">файлы, вопросы, варианты</text></svg>
+<svg class="v-narrow" viewBox="0 0 358 262" role="img" aria-label="Размер контекста: план обсуждается на Opus и растёт до 90k; после одобрения плана /clear, и Sonnet начинает с ~8k."><line x1="30" y1="200" x2="348" y2="200" class="s1"/><line x1="30" y1="50" x2="30" y2="200" class="sr"/><path d="M30 182 C 77.7 155, 125.4 95, 189 65 L 189 200 L 30 200 Z" class="fa"/><path d="M30 182 C 77.7 155, 125.4 95, 189 65" class="s1 w2" fill="none"/><path d="M190.59 188 C 252.6 179, 300.3 158, 348 140 L 348 200 L 190.59 200 Z" class="fa"/><path d="M190.59 188 C 252.6 179, 300.3 158, 348 140" class="s1 w2" fill="none"/><line x1="189" y1="65" x2="189" y2="200" class="s1" stroke-dasharray="3 3"/><circle cx="190.59" cy="188" r="5" class="fp s1 w2"/><text x="39.54" y="54" font-size="13.5" class="t1 b">план на Opus: ~90k</text><text x="199" y="110" font-size="13.5" class="t1 b">план одобрен, /clear</text><text x="199" y="127" font-size="12.5" class="t2">перезаписывать нечего</text><text x="199" y="222" font-size="13.5" class="t1 b">код на Sonnet</text><text x="199" y="239" font-size="12.5" class="t2">с ~8k: план и нужные файлы</text><text x="39.54" y="222" font-size="13.5" class="t1 b">обсуждение</text><text x="39.54" y="239" font-size="12.5" class="t2">файлы, вопросы, варианты</text></svg>
+<!-- /fig:handoff -->
+    <figcaption><b>Рисунок 2.</b> Передача работы в размерах контекста. План сохраняется в файл, <code>/clear</code> очищает контекст, и Sonnet начинает с плана и нужных ему файлов, а не со всего обсуждения. Разрез приходится на чистую точку, так что перезаписывать нечего.</figcaption>
+  </figure>
+  <figure>
+    <div class="printout">
+      <div><span class="ac">◆</span> <span class="b">План одобрен</span></div>
+      <div class="in">План сохранится в .agento/plans/, Sonnet начнёт с контекстом ~8k вместо 90k.</div>
+      <div class="in"><span class="ok">≈ −$0.90 на такой задаче</span> <span class="dm">· оценка</span></div>
+      <div class="in btns"><span class="b">[Писать код на Sonnet — чистый контекст]</span><span>[Продолжить на Opus]</span><span>[Не предлагать]</span></div>
     </div>
-    <figure class="diagram big eco" style="margin-top:28px">
-          <svg class="dg" viewBox="0 0 640 290" role="img" aria-labelledby="eco-t eco-d">
-            <title id="eco-t">Переплата за смену модели посреди задачи в следующих шагах</title>
-            <desc id="eco-d">Смена Opus 5.5 на Sonnet 5.5 на префиксе 100k начинается с переплаты $0.23 и отыгрывает $0.0225 за шаг; окупается примерно через 10 шагов.</desc>
-            <rect x="50" y="30" width="570" height="118" style="fill:var(--accent-wash)"/>
-            <rect x="50" y="148" width="570" height="62" style="fill:color-mix(in srgb, var(--c2) 10%, transparent)"/>
-            <line class="ln" x1="50" y1="148.4" x2="620" y2="148.4" style="stroke:var(--line-2)"/>
-            <line x1="50" y1="30" x2="50" y2="210" style="stroke:var(--line-2)"/>
-            <text class="t-dim" x="42" y="52" text-anchor="end">+$0.20</text>
-            <text class="t-dim" x="42" y="100" text-anchor="end">+$0.10</text>
-            <text class="t-dim" x="42" y="152" text-anchor="end">$0</text>
-            <text class="t-dim" x="42" y="200" text-anchor="end">−$0.10</text>
-            <g class="t-dim">
-              <text class="t-dim" x="50" y="230" text-anchor="middle">0</text>
-              <text class="t-dim" x="121" y="230" text-anchor="middle">2</text>
-              <text class="t-dim" x="192" y="230" text-anchor="middle">4</text>
-              <text class="t-dim" x="264" y="230" text-anchor="middle">6</text>
-              <text class="t-dim" x="335" y="230" text-anchor="middle">8</text>
-              <text class="t-dim" x="406" y="230" text-anchor="middle">10</text>
-              <text class="t-dim" x="477" y="230" text-anchor="middle">12</text>
-              <text class="t-dim" x="548" y="230" text-anchor="middle">14</text>
-              <text class="t-dim" x="620" y="230" text-anchor="middle">16</text>
-            </g>
-            <text class="t-dim" x="335" y="252" text-anchor="middle">шагов после смены</text>
-            <path d="M50 39.5 L620 210" style="stroke:var(--accent);stroke-width:2.5;fill:none;stroke-linecap:round"/>
-            <circle cx="50" cy="39.5" r="5" style="fill:var(--accent);stroke:var(--surface);stroke-width:2"/>
-            <circle cx="414" cy="148.4" r="5" style="fill:var(--accent);stroke:var(--surface);stroke-width:2"/>
-            <text class="t-acc" x="62" y="26">+$0.23: префикс записывается заново</text>
-            <text x="424" y="140" style="font-size:12px">≈ 10 шагов: окупилось</text>
-            <text class="t-dim" x="60" y="140">вы переплачиваете</text>
-            <text class="t-dim" x="60" y="200">ниже $0: смена окупилась</text>
-            <text class="t-dim" x="50" y="282">Opus 5.5 → Sonnet 5.5, префикс 100k, при том же числе шагов</text>
-          </svg>
-        </figure>
-  </div>
+    <figcaption><b>Рисунок 3.</b> Баннер после одобрения плана, настоящий текст плагина; суммы условные. Кнопка сохраняет план, выполняет <code>/clear</code> и вставляет в поле ввода «Реализуй план из .agento/plans/…». Enter нажимаете вы.</figcaption>
+  </figure>
 </section>
 
-<section id="principles" class="tight alt">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">04</span> Семь принципов — с примером каждый</p>
-    <div class="grid g2">
-      <div class="card principle"><span class="k"><b>P1</b> · не посреди задачи</span><h3>Главная модель не меняется посреди задачи. Автоматически — никогда.</h3><p>Вы на 40-м шаге рефакторинга на Opus с контекстом 150k, и правила считают следующий промпт лёгким. agento молчит: смена переписала бы ~150k кэша, около +$0.35, ради выигрыша в центы за шаг.</p></div>
-      <div class="card principle"><span class="k"><b>P2</b> · экономия внутри задачи</span><h3>Внутри задачи экономим, не трогая главную модель.</h3><p>Потоку на Opus нужно прочитать 30 файлов. С включённым оркестром их читает субагент <code>agento-scout</code> на Haiku и возвращает сводку с путями и строками; кэш Opus не тронут.</p></div>
-      <div class="card principle"><span class="k"><b>P3</b> · потолок</span><h3>Не выше вашего выбора.</h3><p>Вы начинаете большой рефакторинг на <code>sonnet·low</code>. agento может предложить спланировать его с Opus, но сам никогда не поднимет ни модель, ни effort. Ваш выбор — потолок стоимости.</p></div>
-      <div class="card principle"><span class="k"><b>P4</b> · видимость</span><h3>Ничего молча.</h3><p>Автопилот перевёл лёгкую задачу на <code>sonnet·medium</code>. Вы видите «agento: sonnet·medium для этой задачи» с кнопками [Вернуть opus·max] и [Выключить автопилот], а учёт записывает причину.</p></div>
-      <div class="card principle"><span class="k"><b>P5</b> · fail-open</span><h3>При любой ошибке Claude Code работает так, как будто agento нет.</h3><p><code>agento-brain</code> упал или тормозит — через 400 мс отвечают правила. Хук бросил исключение — запрос идёт без изменений. Ничто в agento не может заблокировать ваш ход.</p></div>
-      <div class="card principle"><span class="k"><b>P6</b> · доллары</span><h3>Мерить доллары и проценты лимитов, а не токены.</h3><p>В панели «$6.71 факт» и «≈ $2.12 … оценка», и одно никогда не выдаётся за другое. Подписчик видит недельный лимит; «% лимита за доллар» подбирается по его собственной истории и подписан как оценка.</p></div>
-      <div class="card principle"><span class="k"><b>P7</b> · стабильный префикс</span><h3>Всё, что agento добавляет в промпт, фиксируется при старте сессии.</h3><p>Оркестр, включённый посреди сессии, ничего не меняет до следующей: «Оркестр применится с новой сессии». Правка system prompt посреди сессии сломала бы тот самый кэш, который agento бережёт.</p></div>
-      <div class="card"><span class="tag">источник</span><h3>Откуда они взялись</h3><p>Каждый хук написан с оглядкой на них, и тесты проверяют каждый: <a href="https://github.com/regksemx/agento/tree/main/plugin/core">plugin/core</a>.</p></div>
-    </div>
-  </div>
+<section class="row" id="subagents">
+  <h2>Субагенты и оркестратор</h2>
+  <p>Субагент начинает с собственного пустого кэша и не читает кэш родителя, поэтому модель для него можно выбирать свободно. agento распределяет запуски по тому, о чём просит промпт: чтение и поиск уходят на Haiku, хорошо описанный код на Sonnet. Выше модели, на которой работаете вы, он субагента не поднимает.</p>
+  <p>Если включить режим оркестратора (по умолчанию он выключен), основной поток получает трёх помощников и короткую инструкцию, когда к кому обращаться:</p>
+  <table>
+    <thead><tr><th>Агент</th><th>Модель</th><th>Что делает</th></tr></thead>
+    <tbody>
+      <tr><td><code>agento-scout</code></td><td>Haiku</td><td>Ищет код, читает много файлов, прослеживает вызовы. Ничего не правит. Возвращает пути и номера строк, а не содержимое файлов.</td></tr>
+      <tr><td><code>agento-builder</code></td><td>Sonnet</td><td>Делает чётко описанный кусок работы по готовому плану и прогоняет проверки. Если план неверен, останавливается и сообщает.</td></tr>
+      <tr><td><code>agento-checker</code></td><td>Haiku</td><td>Запускает тесты, проверку типов и сборку и сообщает только о том, что упало, с файлом и строкой.</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:1em">Когда обученный классификатор считает, что задача начинается с разведки, agento добавляет агенту одну строку: сначала отправь <code>agento-scout</code> найти нужные файлы. Включённый режим оркестратора начинает действовать со следующей сессии: системный промпт фиксируется при старте, и его смена сломала бы кэш.<sup class="n">4</sup></p>
+  <p class="note"><span class="n">4</span>Это принцип 7, ниже. Панель так и пишет: «Оркестр применится с новой сессии».</p>
 </section>
 
-<section id="lessons" class="tight">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">05</span> Чему мы научились</p>
-    <div class="grid g2">
-      <div class="lesson"><h3><code>/model</code> — не переключатель на одну задачу</h3><p>В интерактивной сессии <code>/model</code> и <code>/effort</code> ещё и сохраняют ваш выбор по умолчанию для всех новых сессий. Поэтому для выбора на одну задачу agento их не запускает: он удерживает дешёвую конфигурацию для этой задачи через <code>turn.step</code>, а модель самой сессии не трогает. Ваш собственный <code>/model</code> снимает удержание.</p></div>
-      <div class="lesson"><h3>Resume — не чистая точка</h3><p><code>claude -c</code> и <code>--resume</code> возвращают разговор, кэш которого может быть ещё тёплым. Считается только первый промпт действительно нового разговора; при возобновлении учёт к тому же забывает, что знал о кэше.</p></div>
-      <div class="lesson"><h3>Автокомпакция может случиться посреди хода</h3><p>Компакция действительно начинает кэш заново, поэтому следующий промпт — чистая точка. Но текущий ход сохраняет свою конфигурацию, пока этот промпт не решит заново (P1).</p></div>
-      <div class="lesson"><h3><code>/agento new</code> на тёплом контексте не бесплатен</h3><p>Если вручную отметить новую задачу в длинном тёплом разговоре, смена модели перенесла бы весь разговор на другую модель. Там agento вместо смены предлагает <code>/clear</code>.</p></div>
-      <div class="lesson"><h3>Кнопки никогда не отправляют промпт за вас</h3><p>Передача плана сохраняет план, запускает <code>/clear</code> и кладёт в поле ввода «Реализуй план из .agento/plans/…». Enter нажимаете вы.</p></div>
-      <div class="lesson"><h3>Судья — не роутер</h3><p>В опубликованной работе Opus, которого просили выбрать модель по началу задачи, угадал «нужна сильная модель» лишь в 7 случаях из 147. Судить законченную задачу проще, но и этому мы не верим на слово: метки судьи сверяются с ручной разметкой и повторными прогонами (см. <a href="benchmarks.html#judges">Сравнение судей</a>).</p></div>
+<section class="row" id="loop">
+  <h2>Когда агент ходит по кругу</h2>
+  <p>Застрявший агент обходится дороже всего: каждый лишний шаг заново читает весь контекст. Защита от зацикливания следит за вызовами инструментов и показывает один баннер, когда один и тот же тест падает в третий раз, одно и то же место правится третий раз за десять шагов или четыре вызова инструментов подряд заканчиваются ошибкой. Она работает и в субагентах, а после срабатывания молчит десять шагов.</p>
+  <figure>
+    <div class="printout">
+      <div><span class="ac">◆</span> <span class="b">Агент буксует</span></div>
+      <div class="in">тест падает уже 3-й раз: vitest run tests/date.spec.ts</div>
+      <div class="in dm">каждый лишний шаг: ≈ $0.07 за шаг · оценка</div>
+      <div class="in btns"><span class="b">[Остановить]</span><span>[Подсказка агенту]</span><span>[Продолжить]</span></div>
     </div>
-  </div>
+    <figcaption><b>Рисунок 4.</b> Баннер о зацикливании, имя теста выдуманное. «Подсказка агенту» добавляет к его следующему ходу заметку: остановись, перечитай ошибку целиком, не повторяй то же действие, предложи другой подход. Промпт за вас она не отправляет.</figcaption>
+  </figure>
 </section>
 
-<section id="scenarios" class="tight alt">
-  <div class="wrap">
-    <p class="eyebrow"><span class="n">06</span> Сценарии S1–S11</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th scope="col">ID</th><th scope="col">Сценарий</th><th scope="col">Триггер</th><th scope="col">Что делает agento</th><th scope="col">Статус</th></tr></thead>
-        <tbody>
-          <tr><td class="mono">S1</td><td><strong>Модель под задачу</strong></td><td>Старт задачи; лёгкая задача на Opus/Fable или effort max/xhigh</td><td>Подсказка «Похоже на лёгкую задачу» с [Sonnet] [Effort medium] [Оставить] [Не предлагать] или автопилот</td><td>плагин</td></tr>
-          <tr><td class="mono">S2</td><td><strong>Архитектор → исполнитель</strong></td><td>Сложная задача на Sonnet/Haiku; затем одобренный план</td><td>План с Opus в plan mode; план сохраняется в <code>.agento/plans/</code>, <code>/clear</code>, Sonnet стартует с контекстом ~8k</td><td>плагин</td></tr>
-          <tr><td class="mono">S3</td><td><strong>Оркестр субагентов</strong></td><td>Оркестр включён (по умолчанию выключен)</td><td>scout (Haiku) читает, builder (Sonnet) пишет, checker (Haiku) гоняет тесты и возвращает только ошибки</td><td>плагин, эксперимент</td></tr>
-          <tr><td class="mono">S4</td><td><strong>Гигиена контекста</strong></td><td>Новая тема в контексте больше 60k или любой контекст больше 150k</td><td>[/clear] [Сжать с сохранением важного] [Оставить] с ценой старого контекста за шаг</td><td>плагин</td></tr>
-          <tr><td class="mono">S5</td><td><strong>Осознанность TTL кэша</strong></td><td>Кэш главного потока остыл</td><td><code>cache ● 41m</code> / <code>cache ○</code> в строке статуса; аудит советует TTL в 1 час, если паузы часто дольше 5 минут</td><td>плагин, аудит</td></tr>
-          <tr><td class="mono">S6</td><td><strong>Подбор effort</strong></td><td>Старт задачи; max/xhigh на лёгкой задаче</td><td>Входит в подсказку S1; внутри задачи effort не меняется</td><td>плагин</td></tr>
-          <tr><td class="mono">S7</td><td><strong>Защита от зацикливания</strong></td><td>Тот же тест падает ×3, одно место правится ×3, ≥ 4 ошибок инструментов подряд</td><td>«Агент буксует» с [Остановить] [Подсказка агенту] [Продолжить]</td><td>плагин</td></tr>
-          <tr><td class="mono">S8</td><td><strong>Fast mode</strong></td><td>Запрос в fast mode</td><td>Учитывается по повышенной цене в учёте и в аудите</td><td>плагин, аудит</td></tr>
-          <tr><td class="mono">S9</td><td><strong>Гигиена настройки</strong></td><td>Разово, в аудите</td><td>Размер CLAUDE.md, фиксированный префикс сессии, MCP-инструменты; <code>/agento:tune</code> предлагает настройку компактнее</td><td>аудит, skill</td></tr>
-          <tr><td class="mono">S10</td><td><strong>Консультант</strong></td><td>—</td><td>Дешёвый исполнитель спрашивает у Opus короткий совет с компактным контекстом</td><td>в планах</td></tr>
-          <tr><td class="mono">S11</td><td><strong>Обученный классификатор</strong></td><td>Старт задачи</td><td>Ученик, дистиллированный из Laya, вместо правил в S1, S2 и S4</td><td>конвейер готов, не по умолчанию</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<section class="row" id="brain">
+  <h2>Классификатор за подсказками</h2>
+  <p>В чистой точке нужно ответить на вопрос «что нужно этой задаче?»: какой уровень модели, какой effort, составлять ли сначала план, начинать ли с разведки. Ответить могут двое.</p>
+  <dl class="defs">
+    <div><dt>Встроенные правила</dt><dd>Ключевые слова на русском и английском, длина промпта, слова про план и архитектуру. Доступны всегда, отвечают мгновенно и сейчас именно они выбирают модель.</dd></div>
+    <div><dt><code>agento-brain</code></dt><dd>Необязательный локальный демон на unix-сокете, в нём работает обученный ученик <code>multilingual-e5-small</code>. Медианный ответ около 6 мс на Mac с Apple silicon. Его ответы «сначала план» и «начать с разведки» используются, а выбор уровня модели сам ничего не решает.</dd></div>
+  </dl>
+  <p>Плагин ждёт демон не дольше 400 мс. При любой ошибке, таймауте или ответе, который не удалось разобрать, отвечают правила, а панель показывает, кто именно ответил.<sup class="n">5</sup> Почему выбору модели от ученика пока нельзя доверять, разобрано на странице <a href="benchmarks.html#training">«Бенчмарки»</a>.</p>
+  <p class="note"><span class="n">5</span>Подробности: <a href="https://github.com/regksemx/agento/blob/main/brain/README.md">brain/README.md</a>, <a href="https://github.com/regksemx/agento/blob/main/training/README.md">training/README.md</a> и инструкция по GPU-серверу <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">docs/runbook-gpu.md</a>.</p>
 </section>
 
+<section class="row" id="principles">
+  <h2>Семь принципов</h2>
+  <p>Каждый хук написан с оглядкой на них, и для каждого есть тесты.</p>
+  <ol class="rules long">
+    <li><strong>Основная модель не меняется посреди задачи.</strong> <span class="ex">Вы на сороковом шаге рефакторинга на Opus, контекст 150k, и правила решили, что следующий промпт лёгкий. agento молчит: смена перезаписала бы около 150k кэша, это примерно +$0,35, ради экономии в центы на шаге.</span></li>
+    <li><strong>Внутри задачи экономить, не трогая основную модель.</strong> <span class="ex">Потоку на Opus нужно прочитать 30 файлов. В режиме оркестратора их читает <code>agento-scout</code> на Haiku и возвращает сводку с путями и строками, а кэш Opus остаётся нетронутым.</span></li>
+    <li><strong>Не выше вашего выбора.</strong> <span class="ex">Вы начали большой рефакторинг на <code>sonnet·low</code>. agento может предложить спланировать его с Opus, но сам ни модель, ни effort не поднимет. Ваш выбор и есть потолок.</span></li>
+    <li><strong>Ничего втихую.</strong> <span class="ex">Автопилот перевёл лёгкую задачу на <code>sonnet·medium</code>. Вы видите «agento: sonnet·medium для этой задачи» с кнопками вернуть как было и выключить автопилот, а в журнале записана причина.</span></li>
+    <li><strong>Fail-open.</strong> <span class="ex"><code>agento-brain</code> не запущен или тормозит: через 400 мс отвечают правила. Хук выбросил исключение: запрос уходит без изменений. Ничто в agento не может заблокировать ваш ход.</span></li>
+    <li><strong>Доллары и лимиты, а не токены.</strong> <span class="ex">Панель пишет «$6.71 факт» и «≈ $2.12 оценка» и никогда не выдаёт одно за другое. Подписчик видит недельный лимит, а курс подобран по его собственной истории и помечен как оценка.</span></li>
+    <li><strong>То, что agento добавляет в промпт, фиксируется при старте сессии.</strong> <span class="ex">Если включить оркестратор посреди сессии, до следующей ничего не изменится. Правка системного промпта на ходу сломала бы тот самый кэш, который agento бережёт.</span></li>
+  </ol>
+</section>
+
+<section class="row" id="privacy">
+  <h2>Что уходит с вашей машины</h2>
+  <p>Ничего, если вы не обучаете модель. Аудит читает транскрипты, которые Claude Code и так хранит на диске, и печатает отчёт; плагин ведёт журнал рядом с ними. Нет ни аккаунта, ни телеметрии. Обучение необязательно: конвейер собирает датасет из вашей же истории, вычищает его и отправляет только на GPU-машину, которую вы выбрали сами.</p>
+  <p>Картинки на этом сайте и в README построены по синтетическому примеру отчёта или по агрегатам. Ни в одной нет промптов, названий проектов или путей из чьей-либо работы.</p>
+</section>
 </main>
 
-<footer>
-  <div class="wrap">
-    <div>
-      <p class="brand"><span class="d" style="color:var(--accent)">◆</span>&nbsp;agento</p>
-      <p>Открытый код под Apache-2.0. Независимый проект, не связан с Anthropic и не одобрен ею.</p>
-    </div>
-    <div>
-      <h4>Сайт</h4>
-      <ul>
-        <li><a href="./">Главная</a></li>
-        <li><a href="benchmarks.html">Бенчмарки</a></li>
-        <li><a href="./#faq">Вопросы</a></li>
-        <li><a href="../how-it-works.html" hreflang="en" lang="en" data-set-lang="en">English version</a></li>
-      </ul>
-    </div>
-    <div>
-      <h4>Репозиторий</h4>
-      <ul>
-        <li><a href="https://github.com/regksemx/agento">GitHub</a></li>
-        <li><a href="https://github.com/regksemx/agento/tree/main/plugin">Код плагина</a></li>
-        <li><a href="https://github.com/regksemx/agento/blob/main/training/README.md">Пайплайн обучения</a></li>
-        <li><a href="https://github.com/regksemx/agento/blob/main/LICENSE">Лицензия</a></li>
-      </ul>
-    </div>
+<footer class="colophon">
+  <div>
+    <p>Всё работает на вашей машине. Ни аккаунта, ни телеметрии, ни аналитики на этой странице.</p>
+    <p>Apache-2.0. Независимый проект, не связан с Anthropic.</p>
   </div>
+  <div><p><a href="https://github.com/regksemx/agento">GitHub</a> · <a href="./">Главная</a> · <a href="benchmarks.html">Бенчмарки</a></p></div>
 </footer>
+</div>
 </body>
 </html>
