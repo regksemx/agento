@@ -4,6 +4,7 @@ import { buildReport } from './audit/index.ts';
 import { detectColor, renderJson, renderMarkdown, renderTerminal } from './report/index.ts';
 import { buildDataset, renderDatasetSummary } from './dataset/index.ts';
 import { datasetJudgeCmd } from './dataset/judge/index.ts';
+import { datasetReplayCmd } from './dataset/replay/index.ts';
 
 const VERSION = '0.1.0';
 
@@ -13,6 +14,7 @@ Usage
   agento audit [options]     analyze local Claude Code transcripts
   agento dataset build [options]   build the training dataset (tasks.jsonl) from local transcripts
   agento dataset judge [options]   L1 labels: a judge model reads each finished task (resumable)
+  agento dataset replay [options]  L2 labels: re-run past tasks on cheaper configurations in a git worktree (SPENDS your limit)
   agento --version
 
 Audit options
@@ -44,6 +46,30 @@ Dataset judge options (--lang, --no-color as above); input: $AGENTO_HOME/dataset
   --force             judge again tasks that already have a verdict
   --yes               claude: do not ask for confirmation
   --dry-run           print task count, token and cost estimates; call nothing
+
+Dataset replay options (--lang, --no-color, --dir, --project, --tasks as above); output: $AGENTO_HOME/dataset/replay/{runs,labels}.jsonl
+  THIS SPENDS YOUR CLAUDE LIMIT (subscription) or MONEY (ANTHROPIC_API_KEY). Nothing runs without --max-tasks, --budget-usd and a confirmation.
+  --max-tasks <N>     replay at most N tasks (required)
+  --budget-usd <X>    stop before a run whose estimate does not fit the remaining budget (required)
+  --yes               do not ask for confirmation (without a terminal and without --yes: refuse)
+  --dry-run           print the selection and the plan (tasks x ladder x samples, cost range, account); run nothing, create no worktree
+  --select            print only the selection and skip reasons
+  --ladder <list>     default haiku-low,sonnet-medium,sonnet-high,opus-medium (tier-effort, comma separated)
+  --samples <N>       runs per configuration, all must pass (default: 2)
+  --install           install dependencies in the worktree from the lockfile (default: off)
+  --prefer-l1-disagreement   prioritize tasks where the L1 judge says cheaper than what ran
+  --include-dirty     also replay tasks whose working tree was dirty at the start (default: skipped)
+  --judge-diff        also ask a judge to compare the replay diff with the original (--judge-backend <openai|claude> --judge-model <m>
+                      [--judge-base-url <url>] [--judge-api-key-env VAR] [--structured])
+  --judge-file <file> L1 judge file for the L1 vs L2 comparison (default: newest in $AGENTO_HOME/dataset/judge)
+  --threshold <p>     L1 threshold when re-deriving labels (default: 0.7)
+  --bash <safe|all|none>   Bash for the replayed agent: test command + read-only (default), everything (unsandboxed!), nothing
+  --run-timeout <sec> per run (default: 1200)   --test-timeout <sec> per test command (default: 600)
+  --max-turns <N>     pass --max-turns to claude (not listed by this claude's --help, so only on request)
+  --max-commit-age-days <N>   skip tasks whose nearest earlier commit is older (default: 14)
+  --max-runs-per-day <N>      daily run cap (default: 40 without an API key)
+  --out-dir <dir>     default: $AGENTO_HOME/dataset/replay
+  --force             ignore existing labels and earlier runs
 `;
 
 interface Args {
@@ -72,7 +98,7 @@ function parseArgs(argv: string[]): Args {
   return { cmd, sub, flags };
 }
 
-const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out', 'backend', 'base-url', 'model', 'api-key-env', 'concurrency', 'threshold', 'max-tasks', 'timeout', 'retries', 'tasks']);
+const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out', 'backend', 'base-url', 'model', 'api-key-env', 'concurrency', 'threshold', 'max-tasks', 'timeout', 'retries', 'tasks', 'ladder', 'samples', 'budget-usd', 'judge-backend', 'judge-model', 'judge-base-url', 'judge-api-key-env', 'judge-file', 'run-timeout', 'test-timeout', 'max-turns', 'bash', 'max-commit-age-days', 'max-runs-per-day', 'out-dir']);
 
 export function parseSince(v: string | undefined, now = Date.now()): number | undefined {
   if (v === undefined) return now - 30 * 86_400_000;
@@ -160,8 +186,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   if (cmd === 'dataset' && sub === 'judge') {
     return datasetJudgeCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
   }
+  if (cmd === 'dataset' && sub === 'replay') {
+    return datasetReplayCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
+  }
   if (cmd === 'dataset') {
-    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build, judge)\n\n${HELP}`);
+    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build, judge, replay)\n\n${HELP}`);
     return 1;
   }
   process.stderr.write(`agento: unknown command "${cmd}"\n\n${HELP}`);

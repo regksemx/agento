@@ -66,6 +66,13 @@ export interface SubagentMeta {
   description?: string;
 }
 
+// A `file-history-snapshot` / `file-history-delta` row: files Claude had modified in the session, each with the time of its latest backup.
+export interface FileHistoryEntry {
+  ts: number;
+  kind: 'snapshot' | 'delta';
+  files: Array<{ path: string; ts: number }>; // path as recorded: relative to cwd or absolute
+}
+
 export interface SessionData {
   sessionId: string;
   project: string; // directory name under projects/
@@ -78,6 +85,7 @@ export interface SessionData {
   toolResults: ToolResult[];
   markers: SessionMarker[];
   agents: Record<string, SubagentMeta>; // agentId -> `agent-<id>.meta.json`; empty when there are none
+  fileHistory?: FileHistoryEntry[]; // sorted by ts; absent when the transcript has no such rows
   reportedCostUSD?: number; // from the last `cost-state` row, if any
 }
 

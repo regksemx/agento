@@ -12,6 +12,7 @@ import type {
   ApiCall,
   Corpus,
   CorpusStats,
+  FileHistoryEntry,
   Lineage,
   MarkerKind,
   SessionData,
@@ -57,6 +58,7 @@ interface FileResult {
   prompts: UserPrompt[];
   toolResults: ToolResult[];
   markers: SessionMarker[];
+  fileHistory: FileHistoryEntry[];
   agent?: SubagentMeta; // from the `.meta.json` next to a subagent file
   cwd?: string;
   gitBranch?: string;
@@ -170,6 +172,7 @@ async function parseFile(file: TranscriptFile, since: number | undefined): Promi
     prompts: [],
     toolResults: [],
     markers: [],
+    fileHistory: [],
     lines: 0,
     badLines: 0,
     duplicateRows: 0,
@@ -198,6 +201,7 @@ async function parseFile(file: TranscriptFile, since: number | undefined): Promi
     if (type === 'assistant') onAssistant(row, file, res, pending);
     else if (type === 'user') onUser(row, file, isMain, res, pendingMarker);
     else if (type === 'system') onSystem(row, file, isMain, res, pendingMarker);
+    else if ((type === 'file-history-snapshot' || type === 'file-history-delta') && isMain) onFileHistory(row, res);
     else if (type === 'cost-state' && isMain) {
       const c = row.totalCostUSD;
       if (typeof c === 'number' && Number.isFinite(c)) costState = c;
@@ -224,6 +228,7 @@ async function parseFile(file: TranscriptFile, since: number | undefined): Promi
     res.prompts = keep(res.prompts);
     res.toolResults = keep(res.toolResults);
     res.markers = keep(res.markers);
+    res.fileHistory = keep(res.fileHistory);
   }
   return res;
 }
@@ -239,6 +244,28 @@ async function readAgentMeta(transcriptPath: string): Promise<SubagentMeta | und
   } catch {
     return undefined; // no meta file (older builds) or unreadable: the type stays unknown
   }
+}
+
+// `file-history-snapshot` (older builds: `snapshot.trackedFileBackups` = every file Claude edited so far, with the time of its
+// latest backup) and `file-history-delta` (newer builds: one row per backed-up file). Both say which files the session had
+// modified by a given time; `dataset replay` uses that to tell whether the working tree was dirty when a task began.
+function onFileHistory(row: Row, res: FileResult): void {
+  if (row.type === 'file-history-delta') {
+    const path = row.trackingPath;
+    const backup = isObject(row.backup) ? row.backup : {};
+    const ts = parseTs(backup.backupTime) ?? parseTs(row.timestamp);
+    if (typeof path === 'string' && path && ts !== undefined) res.fileHistory.push({ ts, kind: 'delta', files: [{ path, ts }] });
+    return;
+  }
+  const snap = row.snapshot;
+  if (!isObject(snap) || !isObject(snap.trackedFileBackups)) return;
+  const snapTs = parseTs(snap.timestamp);
+  const files: Array<{ path: string; ts: number }> = [];
+  for (const [path, b] of Object.entries(snap.trackedFileBackups)) {
+    const ts = (isObject(b) ? parseTs(b.backupTime) : undefined) ?? snapTs;
+    if (ts !== undefined) files.push({ path, ts });
+  }
+  if (files.length > 0 && snapTs !== undefined) res.fileHistory.push({ ts: snapTs, kind: 'snapshot', files });
 }
 
 function onAssistant(row: Row, file: TranscriptFile, res: FileResult, pending: Map<string, Pending>): void {
@@ -507,6 +534,7 @@ function merge(dir: string, fileCount: number, results: FileResult[]): Corpus {
     s.prompts.push(...r.prompts);
     s.toolResults.push(...r.toolResults);
     s.markers.push(...r.markers);
+    if (r.fileHistory.length > 0 && r.file.lineage === 'main') (s.fileHistory ??= []).push(...r.fileHistory);
   }
 
   const out: SessionData[] = [];
@@ -515,6 +543,7 @@ function merge(dir: string, fileCount: number, results: FileResult[]): Corpus {
     s.prompts.sort((a, b) => a.ts - b.ts);
     s.toolResults.sort((a, b) => a.ts - b.ts);
     s.markers.sort((a, b) => a.ts - b.ts);
+    s.fileHistory?.sort((a, b) => a.ts - b.ts);
     if (costUnreliable.has(s.sessionId)) s.reportedCostUSD = undefined;
     if (s.calls.length === 0 && s.prompts.length === 0) continue;
     const times = [...s.calls, ...s.prompts, ...s.toolResults, ...s.markers].map((x) => x.ts);

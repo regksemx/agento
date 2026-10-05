@@ -207,6 +207,119 @@ Config keys may be written `haiku-low`, `haiku·low`, `Haiku Low`, `haiku_low`. 
 **Terminal summary** (audit visual language): judged / skipped / failed, token usage and cost, distribution over the four configurations, plan-first and delegate-explore shares,
 agreement matrix L0 x L1, observed model x L1 with the line "ran on Opus/Fable, judge says sonnet or haiku suffices: N tasks, $X (saving ≈ $Y at the judged tier's list price)", and a dim note that L1 is unvalidated.
 
+## L2: `agento dataset replay`
+
+Task T32, spec §2.1. Re-runs a past task on cheaper configurations in a throw-away git worktree and checks the result. The cheapest
+configuration that passes is the **gold** (L2) label, and the main output is the validation of the L1 judge (L1 vs L2). Code:
+`cli/src/dataset/replay/`. **It spends the Claude limit** (subscription) or money (`ANTHROPIC_API_KEY`), so everything is guarded.
+
+```
+agento dataset replay --max-tasks N --budget-usd X [--yes] [--dry-run | --select]
+  [--ladder haiku-low,sonnet-medium,sonnet-high,opus-medium] [--samples 2] [--install] [--prefer-l1-disagreement] [--include-dirty]
+  [--judge-diff --judge-backend <openai|claude> --judge-model <m> [--judge-base-url <url>] [--judge-api-key-env VAR] [--structured]]
+  [--judge-file <file>] [--threshold 0.7] [--bash safe|all|none] [--run-timeout sec] [--test-timeout sec] [--max-turns N]
+  [--max-commit-age-days 14] [--max-runs-per-day N] [--tasks <file>] [--dir <projects>] [--project <text>] [--out-dir <dir>] [--force] [--lang ru|en] [--no-color]
+```
+
+### Safety guards
+
+| Guard | Behaviour |
+|---|---|
+| required flags | `--max-tasks` and `--budget-usd` (except `--select`, which only lists the selection) |
+| plan + confirmation | prints tasks x ladder x samples, an estimated cost range, the account (`ANTHROPIC_API_KEY` present = API key, real money; Bedrock/Vertex/Foundry = cloud; otherwise subscription = weekly limit) and asks `[y/N]`. Without `--yes` and without a terminal it refuses (exit 1) |
+| `--dry-run` | selection + plan, runs nothing, creates no worktree, spawns no `claude` |
+| budget | per run the estimate is the task's own tokens (all lineages) repriced as the configuration's tier, times 1.5. A run whose estimate exceeds the remaining budget never starts; the whole replay stops (no label for a half-finished ladder). `claude` also gets `--max-budget-usd` = min(remaining, max(2 x estimate, $0.5)) |
+| daily cap | without an API key at most 40 runs per local day (`--max-runs-per-day`), counted from `runs.jsonl` |
+| infrastructure errors | a run that yields no usable result (spawn failure, no JSON, an error before any turn: auth/credit) is `status: "error"`, gives the task **no label** (never a fake `opus·medium`), is retried by the next invocation, and 3 in a row stop the replay (exit 1) |
+| user's tree | never written to. `git worktree add --detach <tmp>/<taskId> <commit>`; removed with `git worktree remove --force` + `prune` after each task, and by cleanup handlers on exit, SIGINT/SIGTERM/SIGHUP and uncaught errors; child processes are killed as a process group |
+| prompts | read from the transcripts in memory (a prompt cut by the parser at 4000 chars is re-read raw) and passed to `claude` on **stdin**; never written to disk by agento and never stored in `runs.jsonl`/`labels.jsonl` |
+| Bash for the agent | `--bash safe` (default): the recorded test command plus read-only commands (`git status/diff/log/show`, `ls`, `cat`, `head`, `tail`, `grep`, `find`, `wc`, `pwd`); `all`: any command **unsandboxed, as you** (cwd is the worktree, nothing stops it leaving it); `none` |
+
+### Selection (`--select`)
+
+A task is replayable when all hold (reason when it is not, counted in the summary):
+
+| Reason | Rule |
+|---|---|
+| `already-labeled` | has a label in `labels.jsonl` (`--force` ignores) |
+| `no-source` | the task is not in the local transcripts any more (taskIds are rebuilt from them) |
+| `multi-prompt` | the task window has one human prompt, or only bare confirmations after it (`да`, `ок`, `продолжай`, `yes`, `go on`, ... up to 4 words from a fixed list) |
+| `no-cwd`, `cwd-missing`, `not-a-repo` | the session cwd is recorded, exists and is inside a git repository |
+| `no-branch`, `branch-missing` | `gitBranch` is recorded (not `HEAD`) and still exists locally (or as `origin/<branch>`) |
+| `no-commit`, `stale-commit` | starting commit = latest commit on that branch with commit time <= task `startTs` (`git log --before`); older than 14 days (`--max-commit-age-days`) is skipped |
+| `dirty-start` | see below; skipped unless `--include-dirty` (those candidates carry `dirtyStart: true`) |
+| `no-verification` | the original task edited no files: a replay that changes nothing passes any test command and any diff check, so it would prove nothing (read-only tasks are not replayed) |
+
+**Dirty start** = either signal: (1) a file the session had already modified before the task (`Edit`/`Write` calls, `file-history-snapshot`
+rows with `trackedFileBackups[*].backupTime`, `file-history-delta` rows) has no commit on the branch on or after that modification time
+(gitignored files are ignored); (2) the task's first `Edit` of a file has an `old_string` that is not in that file at the commit (or the file is absent).
+Hand edits made outside any Claude session cannot be seen, except through signal 2.
+
+**Verification command** (repository root at the commit, nested projects are not looked up): `package.json` `scripts.test` (not the npm placeholder; `pnpm`/`yarn`/`bun`/`npm` by lockfile), `go.mod` -> `go test ./...`, `Cargo.toml` -> `cargo test`,
+pytest (`pytest.ini`, `conftest.py`, or `pytest` in `pyproject.toml`/`setup.cfg`/`tox.ini`) -> `python3 -m pytest -x -q`, `gradlew` -> `./gradlew test`, `build.gradle(.kts)` -> `gradle test`, `pom.xml` -> `mvn -q test`.
+Tasks with a test command are preferred (the test check is strong; the diff check alone is weak). Order: tasks with a test command first, then (`--prefer-l1-disagreement`) tasks where the judge file says cheaper than what ran, then by `taskId`.
+
+### Run and ladder
+
+`claude -p --model <haiku|sonnet|opus> --effort <low|medium|high> --permission-mode acceptEdits --output-format json --no-session-persistence --max-budget-usd <cap> --allowed-tools <list>`, prompt on stdin, cwd = the worktree (plus the session's sub-directory).
+Flags were checked against `claude --help` (2.1.x). **`--max-turns` is not listed by that help**, so it is passed only with an explicit `--max-turns N`; the run is otherwise bounded by `--max-budget-usd` and `--run-timeout` (default 1200 s).
+Neutral follow-ups are appended to the prompt once (`-p` has no second turn). `--install` (off by default) first runs the lockfile install in the worktree
+(`npm ci`, `pnpm/yarn/bun install --frozen-lockfile`, `uv sync --frozen`, `poetry install`); go/cargo fetch on demand.
+
+Per task: the test command is run **once on the starting commit** (baseline). If it is red there (typically: dependencies not installed), the test check is `unavailable` for that task, not a failure.
+Ladder (default `haiku·low -> sonnet·medium -> sonnet·high -> opus·medium`, `--ladder`), `--samples` (default 2) runs per configuration, the worktree is reset to the commit between runs.
+Checks per run, evaluated cheapest first:
+
+| Check | Rule |
+|---|---|
+| `tests` | the recorded command exits 0 (only when the baseline was green) |
+| `diff` | `git diff` against the commit is not empty, for tasks whose original edited files |
+| `judge` | `--judge-diff`: a judge model (the `openai` or `claude` judge backend) answers whether the replay diff solves the same task as the original diff without regressions. The original diff is rebuilt from the transcript's Edit/Write/MultiEdit inputs, **re-read raw** (the parser cuts tool-input strings at 1000 chars); main line only, best effort. Both diffs and the task text are scrubbed before being sent. Runs only when the other checks passed |
+
+A run passes only if every evaluated check passes (at least one must be evaluated) and `claude` did not report an error (turn/budget cap).
+A configuration passes only if all samples pass (a failed first sample skips the rest). The ladder stops at the first passing configuration; label = that
+configuration, or `opus·medium` if none passed (`passedConfig: null`). Resume: finished runs in `runs.jsonl` are reused, so an interrupted ladder continues without paying again.
+
+A non-empty diff is a weak check (any edit passes): for tasks without tests prefer `--judge-diff`.
+
+## Records (`$AGENTO_HOME/dataset/replay/`)
+
+`runs.jsonl` (every run, appended as it finishes) and `labels.jsonl` (one per task, appended after its ladder; the last wins). Torn last lines are ignored.
+**No prompt text is stored.**
+
+```jsonc
+// runs.jsonl
+{
+  "v": 1, "taskId": "9f2c0a41b7d3e856", "ts": 1790000000000,
+  "config": "sonnet-medium", "tier": "sonnet", "effort": "medium", "sample": 1,
+  "status": "ok",                      // "ok" | "timeout" (a failed sample) | "error" (infrastructure, no verdict)
+  "agentError": "error_max_budget_usd",// only when claude reported is_error
+  "checks": { "tests": "pass", "diff": "pass", "judge": "skipped" },   // pass | fail | skipped | unavailable | error
+  "pass": true,
+  "costUsd": 0.31, "judgeCostUsd": 0.02, "numTurns": 12, "durationMs": 84000,
+  "diffFiles": 3, "diffLines": 42
+}
+// labels.jsonl
+{
+  "v": 1, "taskId": "9f2c0a41b7d3e856", "ts": 1790000000000,
+  "l2Tier": "sonnet", "l2Effort": "medium",
+  "l2Evidence": {
+    "passedConfig": "sonnet-medium",   // null: nothing passed, the label is the opus·medium fallback
+    "steps": [ { "config": "haiku-low", "samples": 1, "passed": 0, "pass": false }, { "config": "sonnet-medium", "samples": 2, "passed": 2, "pass": true } ],
+    "testCommand": "npm test", "testBaseline": "pass",
+    "checks": ["tests", "diff"],       // checks that applied to this task
+    "commit": "<40 hex>", "samples": 2
+  },
+  "costUsd": 1.42                      // all runs of the task
+}
+```
+
+`tasks.jsonl` is never modified. Joining is by `taskId`.
+
+**Terminal summary**: selected / replayed / labeled / skipped with reasons, runs and money spent against the budget, L2 label distribution (and the opus·medium fallback share),
+observed model x L2 (with "ran on Opus/Fable, L2 found sonnet or haiku enough"), and **L1 vs L2** from the newest file in `dataset/judge/` (`--judge-file` overrides): a tier matrix,
+exact and same-tier agreement, "judge cheaper than what sufficed" (under-routing, the quality risk) and "judge dearer than needed" (missed saving). A dim note says L2 is calibration, not truth (2 samples, only detectable checks).
+
 ## What comes next
 
-- `dataset replay` (T32): L2, re-runs the task on a cheaper configuration in a git worktree; adds `l2` and calibrates the L0 thresholds.
+- Calibrate the L1 threshold and the L0 thresholds against L2 (`labels.jsonl`); `agento train` takes L2 as gold.
