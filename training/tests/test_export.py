@@ -319,3 +319,20 @@ def test_human_records_are_not_mistaken_for_judge_failures(tmp_path):
 
     line = json.loads(human_line("a", "opus", "high", plan=True, delegate=True))
     assert from_agento_judge(line) == line  # passes through untouched: no l1 view is invented from it
+
+
+def test_conservative_threshold_relabels_judge_lines():
+    from agento_train import export as ex
+
+    row = {"taskId": "t", "ok": True, "l1Tier": "haiku", "l1Effort": "low",
+           "l1Probs": {"haiku-low": 0.8, "sonnet-medium": 0.88, "sonnet-high": 0.9, "opus-medium": 0.95}}
+    ex.L1_THRESHOLD = 0.85
+    try:
+        out = ex.from_agento_judge(dict(row))
+        assert (out["l1Tier"], out["l1Effort"]) == ("sonnet", "medium")
+        assert "probs" not in out["l1"]
+        ex.L1_THRESHOLD = 0.99
+        out = ex.from_agento_judge(dict(row))
+        assert (out["l1Tier"], out["l1Effort"]) == ("opus", "medium")
+    finally:
+        ex.L1_THRESHOLD = None

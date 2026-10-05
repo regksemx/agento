@@ -321,6 +321,12 @@ def read_jsonl(path: Path) -> list[dict]:
 # `agento dataset judge` writes per-configuration success probabilities (cheapest first) and two flags at the top level.
 HUMAN_FILE = "human.jsonl"
 JUDGE_CONFIGS = ("haiku-low", "sonnet-medium", "sonnet-high", "opus-medium")
+CONFIG_LABELS = {"haiku-low": ("haiku", "low"), "sonnet-medium": ("sonnet", "medium"), "sonnet-high": ("sonnet", "high"), "opus-medium": ("opus", "medium")}
+
+# When set, judge verdicts are re-read conservatively: the label is the cheapest configuration whose success
+# probability reaches this threshold (else opus·medium), and no soft targets are emitted, so the student does not
+# inherit the judge's optimism. None keeps the judge's own labels and its soft distribution.
+L1_THRESHOLD: Optional[float] = None
 
 
 def from_agento_judge(row: dict) -> Optional[dict]:
@@ -340,7 +346,10 @@ def from_agento_judge(row: dict) -> Optional[dict]:
     out = {k: v for k, v in row.items() if k not in ("l1Probs", "needsPlanFirst", "delegateExplore")}
     l1 = dict(out.get("l1") or {})
     l1.update(flags)
-    if has_probs:
+    if has_probs and L1_THRESHOLD is not None:
+        chosen = next((c for c in JUDGE_CONFIGS if float(probs[c]) >= L1_THRESHOLD), "opus-medium")
+        out["l1Tier"], out["l1Effort"] = CONFIG_LABELS[chosen]
+    elif has_probs:
         hl, sm, sh, om = (min(1.0, max(0.0, float(probs[c]))) for c in JUDGE_CONFIGS)
         sm = max(sm, hl)
         sh = max(sh, sm)

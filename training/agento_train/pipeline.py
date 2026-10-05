@@ -56,6 +56,7 @@ def run(a: argparse.Namespace, log=print) -> Path:
 
     data_dir = root / "data"
     log("pipeline: [1/4] export")
+    export.L1_THRESHOLD = getattr(a, "l1_threshold", None)
     stats = export.export(tasks, data_dir, judge_dir, tokenizer, a.max_state_tokens, a.holdout_project, False)
 
     log("pipeline: [2/4] teacher")
@@ -81,6 +82,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--smoke", action="store_true", help="2 steps on CPU with tiny models and synthetic data")
     ap.add_argument("--max-state-tokens", type=int, default=export.MAX_STATE_TOKENS)
     ap.add_argument("--holdout-project", action="append", default=[], metavar="SUBSTR")
+    ap.add_argument("--l1-threshold", type=float, default=None,
+                    help="re-read judge verdicts conservatively: cheapest config with p >= this (e.g. 0.85), hard labels only")
     teacher.add_args(ap)
     distill.add_args(ap)
     a = ap.parse_args(argv)
