@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { LoopSignal } from '../core/loop-guard.ts';
 import type { TaskVerdict } from '../core/task.ts';
-import { agentHint, autopilotBanner, autopilotToast, costLine, reasonsText, s1Banner, s2aBanner, s2bBanner, s4Banner, s7Banner, savingLine, type MoneyCtx } from './banner.ts';
+import type { TrajectoryVerdict } from '../core/trajectory.ts';
+import { agentHint, autopilotBanner, autopilotToast, costLine, reasonsText, s1Banner, s2aBanner, s2bBanner, s3Banner, s4Banner, s7Banner, savingLine, trajectoryReasonsText, type MoneyCtx } from './banner.ts';
 
 const API: MoneyCtx = { lang: 'ru', isSubscription: false, pctPerUsd: null };
 const SUB_CAL: MoneyCtx = { lang: 'ru', isSubscription: true, pctPerUsd: 2 };
@@ -140,5 +141,45 @@ describe('reasons', () => {
   it('translated, unknown ones kept', () => {
     expect(reasonsText({ reasons: ['planning keywords: 1', 'no strong signal'] }, 'ru')).toBe('слова про план/подход ×1, no strong signal');
     expect(reasonsText({ reasons: ['heavy keywords: 3'] }, 'en')).toBe('architecture/complexity words ×3');
+  });
+});
+
+describe('S3: after the first steps', () => {
+  const down: TrajectoryVerdict = {
+    complexity: 'small',
+    spawnTier: 'sonnet',
+    handoff: false,
+    handoffSavingUsd: null,
+    mainDowngrade: { to: 'sonnet', breakEvenSteps: 2, penaltyUsd: 0.05, perStepUsd: 0.03, savingUsd: 0.1 },
+    reasons: ['files: 1', 'edits: 2', 'no errors'],
+  };
+  const explored: TrajectoryVerdict = { complexity: 'medium', spawnTier: null, handoff: true, handoffSavingUsd: 0.4, mainDowngrade: null, reasons: ['files: 5', 'no edits yet', 'context: 120000'] };
+
+  it('a downgrade says what the rewrite costs and when it pays back, and offers Sonnet', () => {
+    const b = s3Banner({ verdict: down, current: cur, prefixTokens: 9000, steps: 3, money: EN });
+    expect(b.scenario).toBe('S3');
+    expect(b.title).toBe('This task turned out small, and you are on opus·high');
+    expect(b.reason).toBe('After 3 steps: 1 file, 2 edits, no errors. Sonnet is enough for the rest, but switching mid-task rewrites the 9k cache (≈ $0.05 once): pays back in about 2 steps.');
+    expect(b.estimate).toBe('≈ −$0.10 on a task like this · estimate');
+    expect(b.actions.map((a) => a.key)).toEqual(['model', 'keep', 'never']);
+    expect(b.data).toMatchObject({ model: 'sonnet', fromModel: cur.model, fromEffort: 'high' });
+  });
+
+  it('a handoff points at plan mode and offers no model button', () => {
+    const b = s3Banner({ verdict: explored, current: cur, prefixTokens: 120_000, steps: 4, money: EN });
+    expect(b.title).toBe('Exploring is done, the coding is next');
+    expect(b.reason).toContain('120k of context');
+    expect(b.reason).toContain('plan mode');
+    expect(b.estimate).toBe('≈ −$0.40 on a task like this · estimate');
+    expect(b.actions.map((a) => a.key)).toEqual(['keep', 'never']);
+    expect(b.data.model).toBeUndefined();
+  });
+
+  it('russian text', () => {
+    const b = s3Banner({ verdict: down, current: cur, prefixTokens: 9000, steps: 3, money: API });
+    expect(b.title).toContain('небольшой');
+    expect(b.reason).toContain('окупится за ~2 шаг.');
+    expect(b.actions.map((a) => a.label)).toEqual(['Sonnet', 'Оставить', 'Не предлагать']);
+    expect(trajectoryReasonsText(['files: 1', 'errors: 2', 'no edits yet'], 'ru')).toBe('файлов: 1, ошибок инструментов: 2, правок ещё не было');
   });
 });

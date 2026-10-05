@@ -7,23 +7,25 @@ import { COLD_MARGIN_MS, isWarm, TTL_MS, type LineageState } from './cache.ts';
 import { modelIdForTier, tierOf, tierRank, TIER_ALIAS, type Tier } from './pricing.ts';
 import type { Mode } from './spawn-policy.ts';
 import { startKindOf } from './brain.ts';
-import { classifyRules, extractFeatures, isTaskStart, topicShift, type TaskContext, type TaskEffort, type TaskFeatures, type TaskStartReason, type TaskVerdict } from './task.ts';
+import { classifyRules, extractFeatures, conversationTopicShift, isTaskStart, type TaskContext, type TaskEffort, type TaskFeatures, type TaskStartReason, type TaskVerdict } from './task.ts';
 
-export type Scenario = 'S1' | 'S2a' | 'S2b' | 'S4' | 'S7' | 'AP';
+export type Scenario = 'S1' | 'S2a' | 'S2b' | 'S3' | 'S4' | 'S7' | 'AP';
 
-// One banner at a time; a higher number takes the band from a lower one. S7 > S2 > (autopilot notice) > S1 > S4.
-export const PRIORITY: Record<Scenario, number> = { S7: 6, S2a: 5, S2b: 5, AP: 4, S1: 3, S4: 2 };
+// One banner at a time; a higher number takes the band from a lower one. S7 > S2 > (autopilot notice) > S1 = S3 > S4.
+// S3 (the trajectory's, after a task's first steps) is newer than the S1 that the same task's prompt may have raised.
+export const PRIORITY: Record<Scenario, number> = { S7: 6, S2a: 5, S2b: 5, AP: 4, S1: 3, S3: 3, S4: 2 };
 
 export function canReplace(shown: Scenario | undefined, next: Scenario): boolean {
   return shown === undefined || PRIORITY[next] >= PRIORITY[shown];
 }
 
 // "Don't suggest" is kept per scenario and directory; the two handoff banners are one scenario to the user.
-export type DismissKey = 'S1' | 'S2' | 'S4';
+export type DismissKey = 'S1' | 'S2' | 'S3' | 'S4';
 
 export function dismissKeyOf(s: Scenario): DismissKey | null {
   if (s === 'S1') return 'S1';
   if (s === 'S2a' || s === 'S2b') return 'S2';
+  if (s === 'S3') return 'S3';
   if (s === 'S4') return 'S4';
   return null;
 }
@@ -39,6 +41,15 @@ export const CONFIDENCE_HANDOFF = 0.55;
 export const S4_CONTEXT_TOKENS = 60_000;
 export const S4_BIG_CONTEXT_TOKENS = 150_000;
 export const S4_TOPIC_SHIFT = 0.85;
+// A topic shift also needs a prompt long enough to be one (a short remark shares few words with anything), unless the
+// user says outright that the topic changes.
+export const S4_TOPIC_MIN_CHARS = 50;
+const NEW_TOPIC_PHRASES: readonly string[] = ['новая тема', 'новую тему', 'теперь другое', 'new topic', 'switching to'];
+
+const claimsNewTopic = (prompt: string): boolean => {
+  const p = prompt.toLowerCase().replace(/ё/g, 'е');
+  return NEW_TOPIC_PHRASES.some((x) => p.includes(x));
+};
 
 // S1 and autopilot never run in `quality`; nothing runs in `off`.
 export function confidenceThreshold(mode: Mode): number {
@@ -120,6 +131,9 @@ export interface PromptFacts extends TaskStartFacts {
   suggestions: boolean;
   prompt: string;
   prevPrompt: string;
+  // The task's last few prompts (the previous one included), to tell a return to an earlier subtopic from a new topic.
+  // Absent in state an older version wrote: the previous prompt alone is compared.
+  recentPrompts?: readonly string[];
   current: Current;
   // The main conversation's size now (before this prompt).
   contextTokens: number;
@@ -164,8 +178,9 @@ export function decidePrompt(f: PromptFacts): PromptDecision {
   if (!start) {
     // A new topic in a warm, long context is not a clean point: no model suggestion, a /clear one instead.
     if (!canS4) return none;
-    const shift = topicShift(f.prevPrompt, f.prompt);
-    if (ctx > S4_CONTEXT_TOKENS && shift >= S4_TOPIC_SHIFT) return { ...none, action: { kind: 'S4', why: 'topic-shift', shift } };
+    const shift = conversationTopicShift(f.recentPrompts?.length ? f.recentPrompts : f.prevPrompt, f.prompt);
+    const longEnough = f.prompt.trim().length >= S4_TOPIC_MIN_CHARS || claimsNewTopic(f.prompt);
+    if (ctx > S4_CONTEXT_TOKENS && shift >= S4_TOPIC_SHIFT && longEnough) return { ...none, action: { kind: 'S4', why: 'topic-shift', shift } };
     if (ctx > S4_BIG_CONTEXT_TOKENS) return { ...none, action: { kind: 'S4', why: 'big-context', shift } };
     return none;
   }

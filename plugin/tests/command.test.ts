@@ -164,7 +164,7 @@ describe('T21: the pane, on every surface', () => {
     for (let i = 0; i < 3; i++) await $.tool.call({ tool: 'Bash', command: 'npx vitest run auth.spec' });
     const ui = await mountPane($);
     expect(await rowText(ui, 'Hints')).toBe('2 shown · 0 accepted · 1 "don\'t suggest"');
-    expect(await rowText(ui, 'Loops')).toBe('1 (npx vitest run auth.spec)');
+    expect(await rowText(ui, 'Loops')).toBe('1 (failing-test: npx vitest run auth.spec)');
   });
 
   test('a subscriber sees the weekly limit, and savings in percent once a calibration exists', async ($, on) => {

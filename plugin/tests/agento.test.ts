@@ -239,7 +239,10 @@ describe('T16: agent.spawn routing', () => {
     const r = rig(on);
     await spawn($, { subagentType: 'Explore', prompt: 'find usages of foo', model: 'opus' });
     expect(r.spawns[0]?.model).toBe('opus');
-    expect(r.ledger?.decisions ?? []).toHaveLength(0);
+    // Recorded for the pane, as the model that was asked for; nothing is credited for it.
+    expect(r.ledger?.decisions).toHaveLength(1);
+    expect(r.ledger?.decisions[0]).toMatchObject({ model: 'opus', parentModel: OPUS, reason: 'explicit-model' });
+    expect(r.ledger?.routed ?? {}).toEqual({});
   });
 
   test('never above the parent', async ($, on) => {
@@ -290,7 +293,10 @@ describe('T16: mode setting', () => {
     const r = rig(on);
     await spawn($, { subagentType: 'Explore', prompt: 'find usages of foo' });
     expect(r.spawns[0]?.model).toBeUndefined();
-    expect(r.ledger?.decisions ?? []).toHaveLength(0);
+    // Not touched, but recorded: the pane shows the model it kept.
+    expect(r.ledger?.decisions).toHaveLength(1);
+    expect(r.ledger?.decisions[0]).toMatchObject({ model: OPUS, parentModel: OPUS, reason: 'mode-quality' });
+    expect(r.ledger?.routed ?? {}).toEqual({});
   });
 
   test('eco routes like balanced', { options: { mode: 'eco' } }, async ($, on) => {

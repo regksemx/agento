@@ -14,6 +14,8 @@ export interface SpawnInput {
   prompt: string;
   parentModel: string;
   mode: Mode;
+  // What the running task's first steps said (core/trajectory.ts): a ceiling for the subagent's tier, or null.
+  trajectory?: { spawnTier: Tier | null } | null;
 }
 
 // `model` undefined = leave the spawn untouched.
@@ -84,6 +86,18 @@ export function decideSpawnModel(i: SpawnInput): SpawnDecision {
   } else if (lower === 'general-purpose' && isImplementPrompt(i.prompt)) {
     target = 'sonnet';
     why = 'implementation';
+  }
+  // The trajectory only ever lowers: a rule's target above its ceiling comes down to it, and a spawn no rule covers
+  // takes it. Never above the parent (below), and the sensitive types were left alone above.
+  const ceiling = i.trajectory?.spawnTier ?? null;
+  if (ceiling) {
+    if (!target) {
+      target = ceiling;
+      why = 'trajectory';
+    } else if (tierRank(target) > tierRank(ceiling)) {
+      target = ceiling;
+      why += '+trajectory';
+    }
   }
   if (!target) return keep('no-rule');
 

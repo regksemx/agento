@@ -7,6 +7,7 @@ import type { EstimateBasis } from '../core/estimate.ts';
 import type { TaskVerdict } from '../core/task.ts';
 import type { Downgrade, S4Reason } from '../core/suggest.ts';
 import type { LoopSignal } from '../core/loop-guard.ts';
+import type { TrajectoryVerdict } from '../core/trajectory.ts';
 import { loopReason, type Lang } from './strings.ts';
 
 // What an amount is shown in: dollars, or for a subscriber with a calibration, a share of the weekly limit (spec §7.8).
@@ -207,6 +208,69 @@ export function s2bBanner(i: S2bInput): BannerBase {
     estimate: est,
     actions,
     data: { ...(i.plan ? { plan: i.plan } : {}) },
+  };
+}
+
+// What the trajectory's reasons (core/trajectory.ts) say, in words.
+export function trajectoryReasonsText(reasons: readonly string[], lang: Lang): string {
+  const ru = lang === 'ru';
+  const out: string[] = [];
+  for (const r of reasons) {
+    let m = /^files: (\d+)$/.exec(r);
+    if (m) out.push(ru ? `файлов: ${m[1]}` : `${m[1]} ${m[1] === '1' ? 'file' : 'files'}`);
+    else if ((m = /^edits: (\d+)$/.exec(r))) out.push(ru ? `правок: ${m[1]}` : `${m[1]} ${m[1] === '1' ? 'edit' : 'edits'}`);
+    else if (r === 'no errors') out.push(ru ? 'без ошибок' : 'no errors');
+    else if (r === 'no edits yet') out.push(ru ? 'правок ещё не было' : 'no edits yet');
+    else if ((m = /^errors: (\d+)$/.exec(r))) out.push(ru ? `ошибок инструментов: ${m[1]}` : `${m[1]} tool errors`);
+    else if ((m = /^context: (\d+)$/.exec(r))) out.push(ru ? `контекст ${Math.round(Number(m[1]) / 1000)}k` : `${Math.round(Number(m[1]) / 1000)}k of context`);
+  }
+  return out.join(', ');
+}
+
+export interface S3Input {
+  verdict: TrajectoryVerdict;
+  current: { model: string; effort: string | null };
+  // The tokens the task's conversation carries now.
+  prefixTokens: number;
+  steps: number;
+  money: MoneyCtx;
+}
+
+// After a task's first steps: the rest of the task would fit a cheaper setup. A suggestion only: switching a running task
+// rewrites the cache, so the banner says what that costs and when it pays back, and the person decides (P1, P4, P6).
+export function s3Banner(i: S3Input): BannerBase {
+  const ru = i.money.lang === 'ru';
+  const v = i.verdict;
+  const down = v.mainDowngrade;
+  const cur = setupLabel(i.current.model, i.current.effort);
+  const k = `${Math.round(i.prefixTokens / 1000)}k`;
+  const why = trajectoryReasonsText(v.reasons, i.money.lang);
+  const tail: AgentoBannerAction[] = [
+    { key: 'keep', label: ru ? 'Оставить' : 'Keep' },
+    { key: 'never', label: ru ? 'Не предлагать' : "Don't suggest" },
+  ];
+  if (down) {
+    const pay = ru ? `окупится за ~${down.breakEvenSteps} шаг.` : `pays back in about ${down.breakEvenSteps} ${down.breakEvenSteps === 1 ? 'step' : 'steps'}.`;
+    return {
+      scenario: 'S3',
+      title: ru ? `Задача оказалась небольшой, а у вас ${cur}` : `This task turned out small, and you are on ${cur}`,
+      reason: ru
+        ? `После ${i.steps} шагов: ${why}. Для остального хватит Sonnet, но смена посреди задачи заново запишет кэш (${k}, ≈ ${formatUsd(down.penaltyUsd)} один раз): ${pay}`
+        : `After ${i.steps} steps: ${why}. Sonnet is enough for the rest, but switching mid-task rewrites the ${k} cache (≈ ${formatUsd(down.penaltyUsd)} once): ${pay}`,
+      estimate: savingLine(down.savingUsd, 'default', i.money),
+      actions: [{ key: 'model', label: 'Sonnet', primary: true }, ...tail],
+      data: { model: down.to, fromModel: i.current.model, fromEffort: i.current.effort, estimateUsd: down.savingUsd },
+    };
+  }
+  return {
+    scenario: 'S3',
+    title: ru ? 'Разведка закончена, дальше писать код' : 'Exploring is done, the coding is next',
+    reason: ru
+      ? `После ${i.steps} шагов: ${why}. Эти ${k} контекста читаются на каждом шаге. Составьте план и одобрите его в plan mode: тогда код можно писать на Sonnet из чистого контекста.`
+      : `After ${i.steps} steps: ${why}. Those ${k} of context are read on every step. Write a plan and approve it in plan mode: the code can then be written on Sonnet from a clean context.`,
+    estimate: savingLine(v.handoffSavingUsd, 'default', i.money),
+    actions: tail,
+    data: { fromModel: i.current.model, fromEffort: i.current.effort, estimateUsd: v.handoffSavingUsd },
   };
 }
 

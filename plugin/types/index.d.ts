@@ -89,8 +89,14 @@ export type AgentoRoute = {
   planFirst?: boolean;
   delegateExplore?: boolean;
   latencyMs?: number;
-  // `autopilot`, `S1`, `S2a`, `S4` or `none`.
+  // `autopilot`, `S1`, `S2a`, `S3` (trajectory), `S4` or `none`.
   action: string;
+  // Absent for a task-start classification; `trajectory` for the decision after the task's first steps, which also
+  // carries its complexity (`small`, `medium`, `large`) and the reasons. Its `tier` is the ceiling it set for subagents
+  // (else the tier the task runs on), and its confidence is 0: it is a heuristic, not a classifier's score.
+  stage?: 'trajectory';
+  complexity?: string;
+  reasons?: string[];
 };
 
 export type AgentoLedger = {
@@ -128,7 +134,7 @@ export type AgentoLedger = {
 
 // ---- suggestions (one banner above the prompt at a time) ----
 
-export type AgentoScenario = 'S1' | 'S2a' | 'S2b' | 'S4' | 'S7' | 'AP';
+export type AgentoScenario = 'S1' | 'S2a' | 'S2b' | 'S3' | 'S4' | 'S7' | 'AP';
 
 export type AgentoBannerAction = {
   // `model`, `effort`, `keep`, `never`, `undo`, `disable`, `ok`, `discuss`, `handoff`, `continue`, `orchestra`, `clear`, `compact`, `stop`, `hint`.
@@ -176,11 +182,41 @@ export type AgentoOverride = {
   since: number;
 };
 
+// What the main thread's first steps of the task showed (core/trajectory.ts), and what was decided from it.
+export type AgentoTrajectory = {
+  steps: number;
+  reads: number;
+  searches: number;
+  filesRead: string[];
+  edits: number;
+  filesEdited: string[];
+  editChars: number;
+  toolErrors: number;
+  errorStreak: number;
+  failingTests: number;
+  inputTokens: number;
+  outputTokens: number;
+  hasEdit: boolean;
+};
+
+export type AgentoTrajectoryVerdict = {
+  complexity: 'small' | 'medium' | 'large';
+  // The ceiling for the model of subagents spawned later in the task.
+  spawnTier: 'haiku' | 'sonnet' | 'opus' | 'fable' | null;
+  handoff: boolean;
+  handoffSavingUsd: number | null;
+  mainDowngrade: { to: 'sonnet'; breakEvenSteps: number; penaltyUsd: number; perStepUsd: number; savingUsd: number } | null;
+  reasons: string[];
+};
+
 // What the prompt hook knows about the current task and what lets the next one be told apart.
 export type AgentoTask = {
   prompts: number;
   lastPrompt: string;
   lastPromptAt: number;
+  // The task's last few prompts (this one included, each cut short), for telling a return to an earlier subtopic from a
+  // new topic. Absent in state an older version wrote; reset where the task starts.
+  recentPrompts?: string[];
   // A /clear or a compaction since the last prompt.
   marker: 'clear' | 'compact' | null;
   // `/agento new`: the next prompt starts a task.
@@ -195,6 +231,12 @@ export type AgentoTask = {
   pendingHint: string | null;
   // The next prompt is agento's own (the handoff's "implement the plan"): suggest nothing on it.
   quiet: boolean;
+  // Absent in state an older version wrote: read as nothing seen yet, nothing decided.
+  trajectory?: AgentoTrajectory;
+  // Set once per task, when the checkpoint was reached (it stays for the spawns that follow).
+  trajectoryVerdict?: AgentoTrajectoryVerdict | null;
+  // The verdict of the prompt that began the task, for the trajectory to confirm or lower.
+  promptVerdict?: { tier: string; effort: string; confidence: number; planFirst?: boolean } | null;
 };
 
 // Fixed at session.start: what the system prompt carries is identical for the whole session (P7).

@@ -160,3 +160,42 @@ describe('keyword detection', () => {
     expect(isSensitivePrompt(p)).toBe(true),
   );
 });
+
+describe('decideSpawnModel: the trajectory hint (a ceiling after the first steps, only downward)', () => {
+  const hint = (spawnTier: 'haiku' | 'sonnet' | 'opus' | null) => ({ trajectory: { spawnTier } });
+
+  it('a spawn no rule covers takes the ceiling', () => {
+    expect(decideSpawnModel(base({ subagentType: 'general-purpose', prompt: 'do something', ...hint('sonnet') }))).toEqual({ model: 'sonnet', reason: 'trajectory' });
+    expect(decideSpawnModel(base({ subagentType: 'general-purpose', prompt: 'do something' }))).toEqual({ reason: 'no-rule' });
+  });
+
+  it('a rule\'s target above the ceiling comes down to it, one below it is kept', () => {
+    expect(decideSpawnModel(base({ subagentType: 'general-purpose', prompt: 'implement the feature', ...hint('haiku') }))).toEqual({ model: 'haiku', reason: 'implementation+trajectory' });
+    expect(decideSpawnModel(base({ subagentType: 'Explore', ...hint('sonnet') }))).toEqual({ model: 'haiku', reason: 'explore-agent' });
+    expect(decideSpawnModel(base({ subagentType: 'general-purpose', prompt: 'implement the feature', ...hint('opus') }))).toEqual({ model: 'sonnet', reason: 'implementation' });
+  });
+
+  it('never above the parent, nor to the parent\'s own tier', () => {
+    expect(decideSpawnModel(base({ parentModel: SONNET, prompt: 'do something', ...hint('sonnet') })).model).toBeUndefined();
+    expect(decideSpawnModel(base({ parentModel: HAIKU, prompt: 'do something', ...hint('sonnet') })).model).toBeUndefined();
+    expect(decideSpawnModel(base({ parentModel: SONNET, prompt: 'do something', ...hint('opus') })).reason).toBe('not-cheaper-than-parent');
+  });
+
+  it.each(['quality', 'off'] as const)('never in %s mode', (mode) => {
+    expect(decideSpawnModel(base({ mode, prompt: 'do something', ...hint('sonnet') })).model).toBeUndefined();
+  });
+
+  it('the sensitive and untouchable cases stay as they are', () => {
+    expect(decideSpawnModel(base({ prompt: 'review this for security holes', ...hint('sonnet') })).reason).toBe('plan-review-security');
+    expect(decideSpawnModel(base({ subagentType: 'code-reviewer', prompt: 'look at it', ...hint('sonnet') })).reason).toBe('plan-review-security');
+    expect(decideSpawnModel(base({ requestedModel: 'opus', prompt: 'do something', ...hint('sonnet') })).reason).toBe('explicit-model');
+    expect(decideSpawnModel(base({ subagentType: 'fork', prompt: 'do something', ...hint('sonnet') })).reason).toBe('fork-inherits-cache');
+    expect(decideSpawnModel(base({ subagentType: 'agento-builder', prompt: 'do something', ...hint('sonnet') })).reason).toBe('agento-agent');
+  });
+
+  it('no ceiling (null, absent) changes nothing', () => {
+    for (const trajectory of [null, undefined, { spawnTier: null }]) {
+      expect(decideSpawnModel(base({ subagentType: 'Explore', trajectory }))).toEqual({ model: 'haiku', reason: 'explore-agent' });
+    }
+  });
+});

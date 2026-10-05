@@ -258,7 +258,25 @@ const STOPWORDS = new Set(
   ).split(/\s+/),
 );
 
+// With fewer meaningful words than this on either side there is no evidence of a shift (topicShift, the audit's).
 const MIN_TOPIC_TOKENS = 3;
+// conversationTopicShift: a prompt with fewer meaningful words is a remark, a question about the last reply or a
+// follow-up, not a topic.
+export const MIN_TOPIC_TOKENS_LIVE = 6;
+
+// How a follow-up opens ("and also ...", "а еще ..."): the prompt carries on, whatever words it shares. Matched at the
+// start of the prompt, case-insensitive (ё = е), as a whole word or phrase.
+export const CONTINUATION_MARKERS: readonly string[] = [
+  // RU
+  'и еще', 'а еще', 'еще', 'и', 'а', 'кстати', 'вот', 'также', 'тоже', 'плюс', 'ну',
+  // EN
+  'and also', 'and', 'also', 'btw', 'one more', 'plus', 'another thing', 'oh and', 'wait',
+];
+const CONTINUATION_RE = new RegExp(`^(?:${[...CONTINUATION_MARKERS].sort((x, y) => y.length - x.length).join('|')})(?![\\p{L}\\p{N}])`, 'u');
+
+export function opensWithContinuation(prompt: string): boolean {
+  return CONTINUATION_RE.test(prompt.trim().toLowerCase().replace(/ё/g, 'е').replace(/^[^\p{L}\p{N}]+/u, ''));
+}
 
 // Word stems: camelCase and snake_case split, ё folded, English plurals dropped, then cut to 5 chars
 // so "обработчика"/"обработчики" and "handler"/"handlers" collapse together.
@@ -278,13 +296,34 @@ function topicTokens(text: string): Set<string> {
   return out;
 }
 
+// 1 − Jaccard of two stem sets.
+function jaccardDistance(a: Set<string>, b: Set<string>): number {
+  let inter = 0;
+  for (const t of a) if (b.has(t)) inter += 1;
+  return 1 - inter / (a.size + b.size - inter);
+}
+
 // 1 − Jaccard of the two prompts' stem sets: 0 = same topic, 1 = nothing in common.
 // With too little text on either side there is no evidence of a shift, so the result is 0.
 export function topicShift(prevPrompt: string, prompt: string): number {
   const a = topicTokens(prevPrompt);
   const b = topicTokens(prompt);
   if (a.size < MIN_TOPIC_TOKENS || b.size < MIN_TOPIC_TOKENS) return 0;
-  let inter = 0;
-  for (const t of a) if (b.has(t)) inter += 1;
-  return 1 - inter / (a.size + b.size - inter);
+  return jaccardDistance(a, b);
+}
+
+// The live check (S4): how far `prompt` is from the conversation so far. `earlier` is the last few prompts of the task
+// (or just the previous one); the distance is to the closest, so a return to an earlier subtopic is not a new topic.
+// A prompt that opens as a follow-up or carries too few words is no topic: 0.
+export function conversationTopicShift(earlier: string | readonly string[], prompt: string): number {
+  const b = topicTokens(prompt);
+  if (b.size < MIN_TOPIC_TOKENS_LIVE || opensWithContinuation(prompt)) return 0;
+  let best: number | null = null;
+  for (const e of typeof earlier === 'string' ? [earlier] : earlier) {
+    const a = topicTokens(e);
+    if (a.size < MIN_TOPIC_TOKENS) continue;
+    const d = jaccardDistance(a, b);
+    if (best === null || d < best) best = d;
+  }
+  return best ?? 0;
 }

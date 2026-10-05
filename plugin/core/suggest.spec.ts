@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LineageState } from './cache.ts';
-import { canReplace, decidePrompt, detectTaskStart, dismissKeyOf, downgradeFor, confidenceThreshold, makeOverride, overrideFor, type PromptFacts } from './suggest.ts';
+import { canReplace, decidePrompt, detectTaskStart, dismissKeyOf, downgradeFor, confidenceThreshold, makeOverride, overrideFor, S4_TOPIC_MIN_CHARS, type PromptFacts } from './suggest.ts';
 import { modelIdForTier } from './pricing.ts';
 
 const NOW = 1_760_000_000_000;
@@ -118,6 +118,50 @@ describe('decidePrompt', () => {
     expect((d.action as { shift: number }).shift).toBeGreaterThanOrEqual(0.85);
   });
 
+  describe('S4 topic shift: a follow-up is not a new topic', () => {
+    const PANE = 'Давай посмотрим на панель /agento: почему она показывает не тот баннер и как ведёт себя плагин при смене модели';
+    const at64 = (prompt: string, over: Partial<PromptFacts> = {}) =>
+      decidePrompt(facts({ isFirstPrompt: false, mainCache: warm(64_000), contextTokens: 64_000, prevPrompt: PANE, prompt, ...over })).action.kind;
+
+    it('the real Russian follow-up (64k, warm) does not fire', () => {
+      expect(at64('а еще вот вылезает чет раньше времени мне кажется')).toBe('none');
+      expect(at64('а еще вот вылезает чет раньше времени мне кажется', { recentPrompts: [PANE, 'почини панель агенто и поведение плагина'] })).toBe('none');
+    });
+    it('a longer follow-up that opens with a continuation marker does not fire', () => {
+      expect(at64('а еще выводится сообщение про миграцию базы данных заказов и индексы таблицы')).toBe('none');
+      expect(at64('Also, one thing seems off with the banner')).toBe('none');
+      expect(at64('also, one thing seems off with the banner when the cache is warm and the context is large')).toBe('none');
+    });
+    it('a short prompt without a marker is no topic either', () => {
+      expect(at64('вылезает чет раньше времени мне кажется')).toBe('none');
+    });
+    it('a return to an earlier subtopic is not a new topic', () => {
+      const earlier = 'Напиши миграцию базы данных для таблицы заказов и индексы';
+      const recent = [earlier, PANE, 'почини панель агенто и поведение плагина'];
+      expect(at64('Вернёмся к миграции базы данных: добавь в таблицу заказов индексы и проверь откат', { prevPrompt: recent[2], recentPrompts: recent })).toBe('none');
+      // ... while against the last prompt alone it would look like a shift.
+      expect(at64('Вернёмся к миграции базы данных: добавь в таблицу заказов индексы и проверь откат', { prevPrompt: recent[2] })).toBe('S4');
+    });
+    it('a genuinely new long topic still fires', () => {
+      const d = decidePrompt(facts({ isFirstPrompt: false, mainCache: warm(64_000), contextTokens: 64_000, prevPrompt: PANE, recentPrompts: [PANE], prompt: 'Напиши миграцию базы данных для таблицы заказов и добавь индексы по дате' }));
+      expect(d.action).toMatchObject({ kind: 'S4', why: 'topic-shift' });
+    });
+    it('state from before recentPrompts (the field absent) compares with the previous prompt', () => {
+      const p = 'Напиши миграцию базы данных для таблицы заказов и добавь индексы по дате';
+      expect(decidePrompt(facts({ isFirstPrompt: false, mainCache: warm(64_000), contextTokens: 64_000, prevPrompt: PANE, prompt: p })).action.kind).toBe('S4');
+      expect(decidePrompt(facts({ isFirstPrompt: false, mainCache: warm(64_000), contextTokens: 64_000, prevPrompt: PANE, recentPrompts: [], prompt: p })).action.kind).toBe('S4');
+    });
+    it('the length bar is waived by an explicit new-topic phrase', () => {
+      const short = 'новая тема: миграция базы, индексы, откат';
+      expect(short.length).toBeLessThan(S4_TOPIC_MIN_CHARS);
+      expect(at64(short)).toBe('S4');
+      expect(at64('миграция базы данных, индексы, откат, схема')).toBe('none');
+    });
+    it('big-context (> 150k) still fires for a follow-up', () => {
+      expect(decidePrompt(facts({ isFirstPrompt: false, mainCache: warm(160_000), contextTokens: 160_000, prevPrompt: PANE, prompt: 'а еще вот вылезает чет раньше времени мне кажется' })).action).toMatchObject({ kind: 'S4', why: 'big-context' });
+    });
+  });
+
   it('same topic in a long warm context: nothing', () => {
     const p = 'Поправь парсер конфигурации YAML и добавь валидацию схемы';
     expect(decidePrompt(facts({ isFirstPrompt: false, mainCache: warm(120_000), contextTokens: 120_000, prevPrompt: p, prompt: `${p} ещё и для JSON` })).action.kind).toBe('none');
@@ -192,6 +236,15 @@ describe('banner priority: S7 > S2 > S1 > S4', () => {
     expect(canReplace('S2a', 'S7')).toBe(true);
     expect(canReplace('S7', 'S2b')).toBe(false);
     expect(canReplace('S7', 'S7')).toBe(true);
+    // The trajectory's banner takes the band from S1 and S4, never from S2, the autopilot notice or S7.
+    expect(canReplace('S1', 'S3')).toBe(true);
+    expect(canReplace('S4', 'S3')).toBe(true);
+    expect(canReplace('S3', 'S1')).toBe(true);
+    expect(canReplace('S3', 'S4')).toBe(false);
+    expect(canReplace('S2b', 'S3')).toBe(false);
+    expect(canReplace('AP', 'S3')).toBe(false);
+    expect(canReplace('S7', 'S3')).toBe(false);
+    expect(dismissKeyOf('S3')).toBe('S3');
   });
   it('the autopilot notice outranks S1 and yields to S2', () => {
     expect(canReplace('S1', 'AP')).toBe(true);

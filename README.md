@@ -158,7 +158,7 @@ Also optional: **train your own System 1** on your history — dataset → judge
 
 - **66%** of spend was **cache reads**; cache hit ratio 99.2%.
 - An **Opus judge** reading finished tasks said **303 of 560 (54%)** Opus/Fable tasks would have been fine on Sonnet or Haiku. That is the judge's opinion, not a replay — and against the author's hand labels the same judge **under-routes 41%** of the time (n = 34).
-- **First training run (`opus-v1`).** From the prompt alone the student cannot pick the model safely (no threshold keeps under-routing ≤ 5%), so it never acts on its own for the tier. Its plan-first (92%) and delegate-explore (76%) heads are used by the plugin: plan-first brings up the Opus planning hint, explore-first tells the agent to start with `agento-scout` when orchestrator mode is on. Next: decide after the first steps, when trajectory signals exist.
+- **First training run (`opus-v1`).** From the prompt alone the student cannot pick the model safely (no threshold keeps under-routing ≤ 5%), so it never acts on its own for the tier. Its plan-first (92%) and delegate-explore (76%) heads are used by the plugin: plan-first brings up the Opus planning hint, explore-first tells the agent to start with `agento-scout` when orchestrator mode is on. The plugin now also decides after the first steps, from trajectory signals (files touched, errors, failing tests, token burn); that part is heuristic and not yet benchmarked.
 
 All charts with their caveats: [Benchmarks](https://regksemx.github.io/agento/benchmarks.html) (data: [`site/data/`](site/data/); chart: `node scripts/bench-svg.ts > docs/assets/bench.svg`). A public benchmark of cost per resolved task is on the [roadmap](#roadmap).
 
@@ -196,6 +196,8 @@ No. The audit and the plugin read local files and run locally. The only network 
 <summary><b>Will it switch models mid-task?</b></summary>
 
 Never. The main model changes only at a clean point (first prompt, after `/clear` or compaction, cold cache). Autopilot is off by default; when on, it holds the cheaper setup for that one task and never runs `/model`, which would also change your default for every new session.
+
+After the first steps of a task (four main requests, or the first edit) it looks at what the agent actually did. A small task caps the model of subagents spawned later (down only, never in `quality` mode), and may raise a one-time hint with the cache rewrite's break-even or a plan-then-code handoff; you decide, and the running task's model is never changed on its own.
 </details>
 
 <details>

@@ -1,9 +1,9 @@
 // The view-model of the `/agento` pane (spec §7.7). Pure: the hook turns these rows into `Text` and `Button`.
 // Every dollar figure is marked `факт` (measured) or `оценка` (estimate), as P6 asks.
 
-import type { AgentoBrain, AgentoLedger, AgentoPaneRange } from '../types';
-import { isWarm, warmRemainingMs, type LineageState } from '../core/cache.ts';
-import { tierOf } from '../core/pricing.ts';
+import type { AgentoBrain, AgentoLedger, AgentoPaneRange, AgentoRoute } from '../types';
+import { isWarm, rewriteCost, warmRemainingMs, type LineageState } from '../core/cache.ts';
+import { familyOf, tierOf, tierRank } from '../core/pricing.ts';
 import { fmtPct, formatUsd } from './status.ts';
 import type { Lang } from './strings.ts';
 import { hintsOf, savedOf } from './ledger.ts';
@@ -44,6 +44,31 @@ export interface PanelData {
   handoff: AgentoLedger['handoff'];
   // What is known of the local classifier daemon; absent before the probe has run.
   brain?: AgentoBrain | undefined;
+  // Current state, from the ledger and the task state (all optional: absent in state an older version wrote).
+  main?: AgentoLedger['main'];
+  task?: { class: string; tier: string | null; cost: number; steps: number } | null;
+  // When the weekly limit window resets, as the API gave it (the calibration's newest window); 'unknown' or absent when not known.
+  resetsAt?: string | null;
+  routes?: AgentoRoute[];
+  spawns?: SpawnsView;
+  lastSignalKind?: string | null;
+}
+
+// One subagent spawn as the pane shows it. `actual` is set only when the steps ran it on another model than chosen.
+export interface SpawnView {
+  ts: number;
+  type: string;
+  parent: string;
+  model: string;
+  reason: string;
+  actual: string | null;
+}
+
+export interface SpawnsView {
+  recent: SpawnView[];
+  total: number;
+  // Spawns agento moved to a cheaper tier than the parent's.
+  cheaper: number;
 }
 
 export interface PanelModel {
@@ -100,6 +125,68 @@ export function classifierText(b: AgentoBrain | undefined, lang: Lang): Seg[] {
   return [{ text: `brain ${b.runId ?? '?'}`, tone: 'success' }, { text: b.p50Ms !== null ? ` · p50 ${b.p50Ms < 10 ? b.p50Ms.toFixed(1) : Math.round(b.p50Ms)} ms` : '', tone: 'dim' }];
 }
 
+const MAX_SPAWN_ROWS = 5;
+const MAX_ROUTE_ROWS = 3;
+
+// `claude-opus-5-5-20260801[1m]` -> `opus-5-5`; an alias or an unknown id stays as it is.
+export function shortModel(m: string): string {
+  return m.replace(/\[.*?\]$/, '').replace(/^claude-/, '').replace(/-\d{8}$/, '');
+}
+
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(Math.round(n));
+}
+
+// Cost per model tier, in the fixed tier order.
+export function tierCosts(byModel: Record<string, { steps: number; cost: number }>): Array<{ name: string; cost: number }> {
+  const acc: Record<string, number> = {};
+  for (const [model, t] of Object.entries(byModel)) {
+    const k = tierOf(model) ?? 'other';
+    acc[k] = (acc[k] ?? 0) + t.cost;
+  }
+  return [...TIER_ORDER, 'other'].filter((k) => (acc[k] ?? 0) > 0).map((k) => ({ name: k, cost: acc[k] ?? 0 }));
+}
+
+// The most recent spawns from the ledger, newest first, each with the model its steps actually ran on when that
+// differs from the one chosen (the step's lineage is `agent:<agentId>`; the steps are the ledger's recent ones).
+export function spawnsOf(l: Pick<AgentoLedger, 'decisions' | 'recent'>): SpawnsView {
+  const actualOf = (agentId: string): string | null => {
+    for (let i = l.recent.length - 1; i >= 0; i--) {
+      const s = l.recent[i];
+      if (s && s.lineage === `agent:${agentId}`) return s.model;
+    }
+    return null;
+  };
+  const differs = (a: string, b: string): boolean => {
+    const fa = familyOf(a);
+    const fb = familyOf(b);
+    return fa !== 'unknown' && fb !== 'unknown' ? fa !== fb : a !== b;
+  };
+  const cheaper = l.decisions.filter((d) => {
+    const to = tierOf(d.model);
+    const from = tierOf(d.parentModel);
+    return d.reason !== 'explicit-model' && to !== null && from !== null && tierRank(to) < tierRank(from);
+  }).length;
+  const recent = l.decisions.slice(-MAX_SPAWN_ROWS).reverse().map((d): SpawnView => {
+    const a = actualOf(d.agentId);
+    return { ts: d.ts, type: d.subagentType, parent: d.parentModel, model: d.model, reason: d.reason, actual: a !== null && differs(a, d.model) ? a : null };
+  });
+  return { recent, total: l.decisions.length, cheaper };
+}
+
+// `in 3d 4h`, `in 5h03m`; null when it cannot be read or is past.
+function resetsIn(resetsAt: string | null | undefined, now: number, ru: boolean): string | null {
+  if (!resetsAt) return null;
+  const ms = Date.parse(resetsAt) - now;
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  const d = Math.floor(ms / 86_400_000);
+  const rest = d > 0 ? `${d}${ru ? 'д' : 'd'} ${Math.floor((ms % 86_400_000) / 3_600_000)}${ru ? 'ч' : 'h'}` : duration(ms);
+  return ru ? `сброс через ${rest}` : `resets in ${rest}`;
+}
+
 export function buildPanel(d: PanelData, lang: Lang): PanelModel {
   const ru = lang === 'ru';
   const fact = ru ? 'факт' : 'measured';
@@ -115,8 +202,42 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
           ? ru ? '7 дней' : '7 days'
           : ru ? 'всё время' : 'all time';
 
+  const ago = (ts: number): string => `${duration(d.now - ts)} ${ru ? 'назад' : 'ago'}`;
+  const scope: Seg[] = d.range === 'session' ? [] : [{ text: ru ? '  (сессия)' : '  (session)', tone: 'dim' }];
+
+  // Now: the main thread and the running task
+  const now: Seg[] = [];
+  if (d.main) now.push({ text: `${shortModel(d.main.model)}${d.main.effort ? `·${d.main.effort}` : ''}`, tone: 'accent' });
+  if (d.task) {
+    const t = d.task;
+    now.push({ text: `${now.length > 0 ? '  ' : ''}${ru ? 'задача' : 'task'} ${t.class}${t.tier ? ` (${t.tier})` : ''}`, tone: 'plain' }, { text: ` · ${t.steps} ${ru ? 'шагов' : 'steps'} · ${formatUsd(t.cost)}`, tone: 'dim' });
+  }
+  if (now.length > 0) rows.push({ label: ru ? 'Сейчас' : 'Now', segs: now });
+
+  // Cache: state, prefix, and what a cold restart would cost
+  if (d.cache) {
+    const warm = isWarm(d.cache, d.now);
+    const cs: Seg[] = [{ text: warm ? `● warm ${Math.max(1, Math.floor(warmRemainingMs(d.cache, d.now) / 60_000))}m` : '○ cold', tone: warm ? 'success' : 'dim' }, { text: ` · ${ru ? 'префикс' : 'prefix'} ${fmtTokens(d.cache.prefixTokens)} · ttl ${d.cache.ttl}`, tone: 'plain' }];
+    const restart = rewriteCost(d.cache.model, d.cache.prefixTokens, d.cache.ttl);
+    if (restart !== null) cs.push({ text: `  ${ru ? 'холодный старт' : 'cold restart'} ≈ ${formatUsd(restart)}`, tone: 'dim' });
+    rows.push({ label: ru ? 'Кэш' : 'Cache', segs: cs });
+  }
+
+  // Limits: subscribers only. Only the 7-day window is kept; the 5-hour one is not in the ledger.
+  if (d.isSubscription) {
+    const ls: Seg[] = [];
+    if (d.sevenDayPct !== null) {
+      ls.push({ text: `${ru ? '7д' : '7d'} ${bar(d.sevenDayPct, 100, 10)} ${fmtPct(d.sevenDayPct)}`, tone: 'accent' });
+      const reset = resetsIn(d.resetsAt, d.now, ru);
+      if (reset) ls.push({ text: ` · ${reset}`, tone: 'dim' });
+    } else {
+      ls.push({ text: ru ? 'пока нет данных' : 'no reading yet', tone: 'dim' });
+    }
+    rows.push({ label: ru ? 'Лимиты' : 'Limits', segs: ls });
+  }
+
   // Spend
-  const spend: Seg[] = [{ text: `${formatUsd(d.cost)} ${d.isSubscription ? (ru ? 'API-экв.' : 'API-equiv.') : fact}`, tone: 'plain' }];
+  const spend: Seg[] =[{ text: `${formatUsd(d.cost)} ${d.isSubscription ? (ru ? 'API-экв.' : 'API-equiv.') : fact}`, tone: 'plain' }];
   if (d.isSubscription && d.sevenDayPct !== null) spend.push({ text: `  ${ru ? '7д' : '7d'} ${fmtPct(d.sevenDayPct)}`, tone: 'accent' });
   const hit = cacheHit(d.tokens);
   if (hit !== null) spend.push({ text: `   ${ru ? 'кэш hit' : 'cache hit'} ${Math.round(hit * 100)}%`, tone: 'dim' });
@@ -133,12 +254,20 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
   tiers.forEach((t, i) => models.push({ text: `${i > 0 ? '   ' : ''}${t.name} ${bar(t.steps, max, 10)} ${t.steps}`, tone: 'plain' }));
   if (tiers.length === 0) models.push({ text: ru ? 'пока нет шагов' : 'no steps yet', tone: 'dim' });
   rows.push({ label: ru ? 'Модели' : 'Models', segs: models });
+  const costs = tierCosts(d.byModel);
+  const costSum = costs.reduce((a, c) => a + c.cost, 0);
+  if (costSum > 0) rows.push({ label: ru ? 'По моделям' : 'By model', segs: [{ text: costs.map((c) => `${c.name} ${formatUsd(c.cost)} ${Math.round((c.cost / costSum) * 100)}%`).join(' · ') }] });
+  const tk = d.tokens;
+  if (tk.input + tk.output + tk.cacheRead + tk.cacheWrite > 0) {
+    rows.push({ label: ru ? 'Токены' : 'Tokens', segs: [{ text: `in ${fmtTokens(tk.input)} · out ${fmtTokens(tk.output)}`, tone: 'plain' }, { text: `   ${ru ? 'кэш' : 'cache'} ${ru ? 'чтение' : 'read'} ${fmtTokens(tk.cacheRead)} · ${ru ? 'запись' : 'write'} ${fmtTokens(tk.cacheWrite)}`, tone: 'dim' }] });
+  }
 
   // Savings: only agento's own mechanisms, always an estimate.
   const total = savedTotal(d.saved);
   const parts: string[] = [];
+  const pct = d.isSubscription && d.pctPerUsd !== null ? d.pctPerUsd : null;
   const add = (v: number, name: string): void => {
-    if (v > 0) parts.push(`${name} ${formatUsd(v)}`);
+    if (v > 0) parts.push(`${name} ${formatUsd(v)}${pct !== null ? ` (${fmtPct(v * pct)})` : ''}`);
   };
   add(d.saved.spawnRouting, ru ? 'субагенты' : 'subagents');
   add(d.saved.suggestions, ru ? 'подсказки' : 'hints');
@@ -153,6 +282,40 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
   }
   rows.push({ label: ru ? 'Экономия' : 'Savings', segs: savedSegs });
 
+  // Routing: the last task classifications and what each led to (the session's, whatever the period)
+  const routes = (d.routes ?? []).slice(-MAX_ROUTE_ROWS).reverse();
+  const routeLabel = ru ? 'Маршрут' : 'Routing';
+  if (routes.length === 0) rows.push({ label: routeLabel, segs: [{ text: ru ? 'пока нет' : 'none yet', tone: 'dim' }] });
+  routes.forEach((r, i) => {
+    const segs: Seg[] = [{ text: `${ago(r.ts)}  `, tone: 'dim' }, { text: r.classifier }, { text: ` · ${r.tier}·${r.effort}`, tone: 'accent' }];
+    segs.push({ text: r.stage === 'trajectory' ? ` · ${ru ? 'траектория' : 'trajectory'} ${r.complexity ?? '?'}` : ` · ${Math.round(r.confidence * 100)}%`, tone: 'plain' });
+    if (r.planFirst) segs.push({ text: ' · plan-first', tone: 'plain' });
+    if (r.delegateExplore) segs.push({ text: ' · delegate-explore', tone: 'plain' });
+    if (r.fallback) segs.push({ text: ` · fallback ${r.fallback}`, tone: 'dim' });
+    segs.push({ text: ` → ${r.action}`, tone: 'success' });
+    if (i === 0) segs.push(...scope);
+    rows.push({ label: i === 0 ? routeLabel : '', segs });
+  });
+
+  // Subagents: which model each recent spawn was launched with
+  const sp = d.spawns;
+  if (!sp || sp.total === 0) {
+    rows.push({ label: ru ? 'Субагенты' : 'Subagents', segs: [{ text: ru ? 'пока нет' : 'none yet', tone: 'dim' }] });
+  } else {
+    rows.push({
+      label: ru ? 'Субагенты' : 'Subagents',
+      segs: [{ text: ru ? `${sp.total} запусков · ${sp.cheaper} дешевле родителя` : `${sp.total} spawns · ${sp.cheaper} routed cheaper`, tone: 'plain' }, ...scope],
+    });
+    for (const v of sp.recent) {
+      const kept = v.model === v.parent;
+      const segs: Seg[] = [{ text: `${ago(v.ts)}  `, tone: 'dim' }, { text: v.type }];
+      segs.push(kept ? { text: `  ${shortModel(v.parent)} · ${ru ? 'оставлена' : 'kept'}`, tone: 'dim' } : { text: `  ${shortModel(v.parent)} → ${shortModel(v.model)}`, tone: 'success' });
+      segs.push({ text: ` · ${v.reason}`, tone: 'dim' });
+      if (v.actual) segs.push({ text: `  ${ru ? 'шёл на' : 'ran on'} ${shortModel(v.actual)}`, tone: 'warning' });
+      rows.push({ label: '', segs });
+    }
+  }
+
   // Hints
   const h = d.hints;
   const hintParts = ru
@@ -164,7 +327,7 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
   // Loops
   rows.push({
     label: ru ? 'Буксование' : 'Loops',
-    segs: d.loopSignals > 0 ? [{ text: `${d.loopSignals}`, tone: 'warning' }, ...(d.lastSignal ? [{ text: ` (${d.lastSignal})`, tone: 'dim' as Tone }] : [])] : [{ text: ru ? 'нет' : 'none', tone: 'dim' }],
+    segs: d.loopSignals > 0 ? [{ text: `${d.loopSignals}`, tone: 'warning' }, ...(d.lastSignal ? [{ text: ` (${d.lastSignalKind ? `${d.lastSignalKind}: ` : ''}${d.lastSignal})`, tone: 'dim' as Tone }] : [])] : [{ text: ru ? 'нет' : 'none', tone: 'dim' }],
   });
 
   // Classifier

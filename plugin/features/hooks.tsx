@@ -11,8 +11,9 @@ import { exploreHint, langFromEnv, orchestrateSection } from '../core/orchestrat
 import { tierOf, TIER_ALIAS, type Tier } from '../core/pricing.ts';
 import { canReplace, decidePrompt, detectTaskStart, dismissKeyOf, dismissStoreKey, makeOverride, overrideFor, S4_CONTEXT_TOKENS, taskContextOf, type DismissKey, type Downgrade, type PromptFacts } from '../core/suggest.ts';
 import { RULES_ID, rulesClassifier, type TaskContext, type TaskEffort, type TaskVerdict } from '../core/task.ts';
+import { decideTrajectory, emptyTrajectory, foldStep, foldToolCall, normalizeTrajectory, type TrajectoryStats, type TrajectoryVerdict } from '../core/trajectory.ts';
 import type { AgentoBanner, AgentoBrain, AgentoLedger, AgentoLoopSignalRecord, AgentoPaneRange, AgentoSpawnDecision, AgentoStep, AgentoTask } from '../types';
-import { agentHint, autopilotBanner, autopilotToast, s1Banner, s2aBanner, s2bBanner, s4Banner, s7Banner, type BannerBase, type MoneyCtx } from './banner.ts';
+import { agentHint, autopilotBanner, autopilotToast, s1Banner, s2aBanner, s2bBanner, s3Banner, s4Banner, s7Banner, type BannerBase, type MoneyCtx } from './banner.ts';
 import { nextMode, parseAgentoArgs, parseAutopilot, parseOnOff, type Autopilot } from './command.ts';
 import {
   applyCredit,
@@ -34,7 +35,7 @@ import {
   type HintKind,
   type StepInput,
 } from './ledger.ts';
-import { buildPanel, foldDays, rangeDays, sessionNumbers, type PanelData, type Row, type Tone } from './panel.ts';
+import { buildPanel, foldDays, rangeDays, sessionNumbers, spawnsOf, type PanelData, type Row, type Tone } from './panel.ts';
 import { formatStatus } from './status.ts';
 import type { Lang } from './strings.ts';
 
@@ -82,13 +83,14 @@ export function configure(options: Readonly<Record<string, unknown>>): void {
 }
 
 // The model to spawn on instead of the requested one, or undefined to leave the spawn alone.
-export function chooseSpawnModel(m: Mode, e: AgentSpawnInput): { model?: string; reason: string } {
+// `trajectory`: what the running task's first steps said, a ceiling for the subagent's tier (core/trajectory.ts).
+export function chooseSpawnModel(m: Mode, e: AgentSpawnInput, trajectory?: { spawnTier: Tier | null } | null): { model?: string; reason: string } {
   try {
     if (m === 'quality' || m === 'off') return { reason: `mode-${m}` };
     // A fork inherits the parent's cache, a teammate is a named member of the team, and an agent
     // another plugin or the user defined has chosen its own model.
     if (e.fork || e.isTeammate || (e.provider && e.provider.plugin !== 'engine')) return { reason: 'not-routable' };
-    return decideSpawnModel({ subagentType: e.subagentType, requestedModel: e.model, prompt: e.prompt, parentModel: e.parentModel, mode: m });
+    return decideSpawnModel({ subagentType: e.subagentType, requestedModel: e.model, prompt: e.prompt, parentModel: e.parentModel, mode: m, trajectory });
   } catch {
     return { reason: 'error' };
   }
@@ -131,7 +133,11 @@ function enqueue<T>($: Dollar, job: () => Promise<T>): Promise<T | undefined> {
 let subscription: boolean | undefined;
 let pruned = false;
 
-const emptyTask = (): AgentoTask => ({ prompts: 0, lastPrompt: '', lastPromptAt: 0, marker: null, explicitNew: false, shown: [], current: null, override: null, pendingHint: null, quiet: false });
+// The prompts kept per task for the topic-shift check, and how much of each.
+const RECENT_PROMPTS = 5;
+const RECENT_PROMPT_CHARS = 400;
+
+const emptyTask = (): AgentoTask => ({ prompts: 0, lastPrompt: '', lastPromptAt: 0, marker: null, explicitNew: false, shown: [], current: null, override: null, pendingHint: null, quiet: false, trajectory: emptyTrajectory(), trajectoryVerdict: null, promptVerdict: null });
 
 async function langOf($: Dollar): Promise<Lang> {
   const { value } = await $.state.get(sessionRef);
@@ -195,7 +201,7 @@ async function clearBanner($: Dollar, keep?: (b: AgentoBanner) => boolean): Prom
 
 async function dismissedFor($: Dollar, cwd: string): Promise<DismissKey[]> {
   const out: DismissKey[] = [];
-  for (const k of ['S1', 'S2', 'S4'] as const) if (await safe(() => $.store.get(dismissStoreKey(k, cwd)), undefined)) out.push(k);
+  for (const k of ['S1', 'S2', 'S3', 'S4'] as const) if (await safe(() => $.store.get(dismissStoreKey(k, cwd)), undefined)) out.push(k);
   return out;
 }
 
@@ -495,6 +501,8 @@ export const onTurnStep: Hook<'turn.step'> = async function* ($, e, next) {
       }
       $.ui.status(formatStatus(l, await $.clock.now()));
     });
+    // The main thread's step joins the task's trajectory (its cache is in the ledger now).
+    if (e.agentId === undefined) await safe(() => feedTrajectory($, (s) => foldStep(s, usage), false), undefined);
   } catch {
     // the ledger is a convenience, never a reason to fail a step
   }
@@ -502,13 +510,23 @@ export const onTurnStep: Hook<'turn.step'> = async function* ($, e, next) {
 };
 
 export const onAgentSpawn: Hook<'agent.spawn'> = async ($, e, next) => {
-  const { model, reason } = chooseSpawnModel(mode, e);
-  if (!model) return next(e);
+  // The task's trajectory verdict, if it has one yet: a ceiling for this subagent's tier, never a raise.
+  const hint = await safe(async () => {
+    const { value: t } = await $.state.get(taskRef);
+    return t?.trajectoryVerdict ? { spawnTier: t.trajectoryVerdict.spawnTier } : null;
+  }, null);
+  const { model, reason } = chooseSpawnModel(mode, e, hint);
   let res;
-  try {
-    res = await next({ ...e, model });
-  } catch {
-    return next(e);
+  if (!model) {
+    if (mode === 'off') return next(e);
+    // Left alone: still recorded below (after the call, when the agent's id is known), so the pane shows the model it kept.
+    res = await next(e);
+  } else {
+    try {
+      res = await next({ ...e, model });
+    } catch {
+      return next(e);
+    }
   }
   try {
     if (res.deny === undefined && res.agentId) {
@@ -517,13 +535,13 @@ export const onAgentSpawn: Hook<'agent.spawn'> = async ($, e, next) => {
         agentId: res.agentId,
         subagentType: e.subagentType,
         parentModel: e.parentModel,
-        model,
+        model: model ?? e.model ?? e.parentModel,
         reason,
         mechanism: 'spawn-routing',
       };
       await enqueue($, async () => {
         await update($, ledgerRef, (prev) => applyDecision(prev, d, mode, subscription ?? false));
-        await bumpDay($, d.ts, { routedSpawns: 1 });
+        if (model) await bumpDay($, d.ts, { routedSpawns: 1 });
       });
     }
   } catch {
@@ -556,6 +574,7 @@ export const onToolCall: Hook<'tool.call'> = async ($, e, next) => {
       });
     }
     if (e.tool === 'ExitPlanMode' && lineage === 'main' && r.isError !== true) await planApproved($, r.result);
+    if (lineage === 'main') await safe(() => feedTrajectory($, (s) => foldToolCall(s, { tool: String(tool), input, isError: r.isError === true, text: r.text }), true), undefined);
   } catch {
     // the guard is advisory
   }
@@ -580,6 +599,65 @@ async function planApproved($: Dollar, result: unknown): Promise<void> {
   const saving = plannerTokens && planner ? handoffSaving(planner, 'sonnet', plannerTokens, DEFAULT_TASK_STEPS.default) : null;
   const money = await moneyOf($);
   await showBanner($, s2bBanner({ plan, plannerTokens, savingUsd: saving, orchestrate: s?.orchestrate === true, money }), cwd);
+}
+
+// ---- the trajectory: a second decision, after the task's first steps ----
+
+const TRAJECTORY_ID = 'trajectory-v1';
+
+// Folds one main-thread tool call or step into the task's trajectory and, for a tool call, once the checkpoint is reached,
+// decides: a step's own tools have not run when the step ends, so the decision waits for the first of them. The
+// verdict never touches the running task's model or effort (P1): it is kept for the subagents spawned later (see
+// onAgentSpawn), and it may raise one suggestion banner that the person decides on.
+async function feedTrajectory($: Dollar, fold: (s: TrajectoryStats) => TrajectoryStats, decide: boolean): Promise<void> {
+  if (mode !== 'balanced' && mode !== 'eco') return;
+  const { value: t0 } = await $.state.get(taskRef);
+  if (t0?.trajectoryVerdict) return;
+  const { value: l } = await $.state.get(ledgerRef);
+  const cache = l?.lineages.main;
+  // What the task runs on: an autopilot choice holds for it, else the model of its last request, else the session's.
+  const model = t0?.override?.modelId ?? l?.main?.model ?? (await safe(() => $.session.model(), ''));
+  const current = { model, effort: t0?.override?.effort ?? l?.main?.effort ?? null };
+  const now = await $.clock.now();
+  let fired: TrajectoryVerdict | undefined;
+  let stats = emptyTrajectory();
+  // Folded and decided in one update, so a verdict is given once even when a tool call and a step land together.
+  await update($, taskRef, (t) => {
+    const base = t ?? emptyTask();
+    if (base.trajectoryVerdict) return base;
+    const next = fold(normalizeTrajectory(base.trajectory));
+    stats = next;
+    const verdict = !decide ? null : decideTrajectory({ stats: next, promptVerdict: base.promptVerdict ?? null, current, cache, now, mode, alreadyDecided: false });
+    if (verdict) fired = verdict;
+    return { ...base, trajectory: next, ...(verdict ? { trajectoryVerdict: verdict } : {}) };
+  });
+  if (fired) await announceTrajectory($, fired, stats, current, cache?.prefixTokens ?? 0, now);
+}
+
+async function announceTrajectory($: Dollar, v: TrajectoryVerdict, stats: TrajectoryStats, current: { model: string; effort: string | null }, prefixTokens: number, now: number): Promise<void> {
+  let action = 'none';
+  try {
+    const { value: t } = await $.state.get(taskRef);
+    const cwd = await safe(() => $.session.cwd(), '');
+    if (suggestionsOn && !t?.quiet && !t?.shown.includes('S3') && (v.mainDowngrade || v.handoff) && !(await dismissedFor($, cwd)).includes('S3')) {
+      const money = await moneyOf($);
+      if (await showBanner($, s3Banner({ verdict: v, current, prefixTokens, steps: stats.steps, money }), cwd)) {
+        await markShown($, 'S3');
+        action = 'S3';
+      }
+    }
+  } catch {
+    // the banner is a convenience
+  }
+  await safe(
+    () =>
+      enqueue($, async () => {
+        await update($, ledgerRef, (prev) =>
+          applyRoute(prev, { ts: now, classifier: TRAJECTORY_ID, stage: 'trajectory', tier: v.spawnTier ?? tierOf(current.model) ?? current.model, effort: current.effort ?? '', confidence: 0, action, complexity: v.complexity, reasons: v.reasons }, mode, subscription ?? false),
+        );
+      }),
+    undefined,
+  );
 }
 
 // ---- prompt.compose: the one stable section of orchestrator mode (P7) ----
@@ -654,6 +732,7 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<stri
     suggestions: suggestionsOn,
     prompt: text,
     prevPrompt: task.lastPrompt,
+    recentPrompts: task.recentPrompts,
     isFirstPrompt,
     marker: task.marker,
     explicitNew: task.explicitNew,
@@ -679,11 +758,14 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<stri
   await clearBanner($, (b) => b.scenario === 'S7');
   await update($, taskRef, (t) => {
     const base = t ?? emptyTask();
+    // A task of its own (a start, or the executor of a handoff in a clean context) has a trajectory of its own.
+    const fresh = !!dec?.start || base.quiet;
     return {
       ...base,
       prompts: base.prompts + 1,
       lastPrompt: text,
       lastPromptAt: now,
+      recentPrompts: [...(fresh ? [] : (base.recentPrompts ?? [])), text.slice(0, RECENT_PROMPT_CHARS)].slice(-RECENT_PROMPTS),
       marker: null,
       explicitNew: false,
       quiet: false,
@@ -692,6 +774,9 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<stri
       // dropping it on a warm cache (`/agento new` mid-conversation) would move the conversation to another model.
       override: dec?.start?.freeSwitch ? null : base.override,
       current: dec?.start && dec.verdict ? { class: classOf(dec.verdict), tier: null, cost: 0, steps: 0 } : base.current,
+      trajectory: fresh ? emptyTrajectory() : normalizeTrajectory(base.trajectory),
+      trajectoryVerdict: fresh ? null : (base.trajectoryVerdict ?? null),
+      promptVerdict: dec?.start && dec.verdict ? { tier: dec.verdict.tier, effort: dec.verdict.effort, confidence: dec.verdict.confidence, ...(dec.verdict.planFirst !== undefined ? { planFirst: dec.verdict.planFirst } : {}) } : fresh ? null : (base.promptVerdict ?? null),
     };
   });
   if (dec?.start && dec.verdict) {
@@ -880,6 +965,22 @@ async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Pro
         }
         return await clearBanner($, (b) => b.id !== banner.id);
       }
+      case 'S3': {
+        if (key === 'never') {
+          await dismiss($, banner);
+        } else if (key === 'model' && d.model) {
+          // The person's own choice, held for the rest of the task as an S1 button does; the cache is rewritten once. `/model`
+          // is never run for it: it would also become the default of every new session.
+          if (await holdForTask($, { model: d.model }, { model: d.fromModel ?? '', effort: d.fromEffort ?? null })) {
+            $.ui.toast(lang === 'ru' ? `agento: ${d.model} до конца задачи` : `agento: ${d.model} for the rest of this task`, { timeoutMs: 6000 });
+            if (d.fromModel) await setCredit($, 'suggestion-accepted', d.fromModel, d.model);
+            await countHint($, 'accepted');
+          } else {
+            $.ui.toast(lang === 'ru' ? `Не удалось назвать модель: выполните /model ${d.model}` : `Could not name the model: run /model ${d.model}`, { timeoutMs: 8000 });
+          }
+        }
+        return await clearBanner($, (b) => b.id !== banner.id);
+      }
       case 'S4': {
         if (key === 'never') {
           await dismiss($, banner);
@@ -1030,7 +1131,7 @@ export const onModelCommand: Hook<'command.run'> = async ($, e, next) => {
 
 // ---- ui.render: the banner above the prompt ----
 
-const TONE_OF_SCENARIO = { S1: 'suggestion', S2a: 'suggestion', S2b: 'suggestion', S4: 'suggestion', S7: 'warning', AP: 'success' } as const;
+const TONE_OF_SCENARIO = { S1: 'suggestion', S2a: 'suggestion', S2b: 'suggestion', S3: 'suggestion', S4: 'suggestion', S7: 'warning', AP: 'success' } as const;
 
 export const onRenderBand: MatchedHook<'ui.render', { component: 'AbovePrompt' }> = async ($, e, next) => {
   try {
@@ -1069,6 +1170,7 @@ async function panelData($: Dollar, range: AgentoPaneRange): Promise<PanelData> 
   const { value: stored } = await $.state.get(ledgerRef);
   const l: AgentoLedger = stored ?? emptyLedger(now, mode, subscription ?? false);
   const { value: s } = await $.state.get(sessionRef);
+  const { value: task } = await $.state.get(taskRef);
   const cal = await safe(() => $.store.get(CALIBRATION_KEY), undefined);
   let numbers = sessionNumbers(l);
   if (range !== 'session') {
@@ -1099,6 +1201,12 @@ async function panelData($: Dollar, range: AgentoPaneRange): Promise<PanelData> 
     cache: l.lineages.main,
     handoff: l.handoff ?? null,
     brain: (await $.state.get(brainRef)).value,
+    main: l.main,
+    task: task?.current ?? null,
+    resetsAt: isCalibration(cal) ? (cal.windows[cal.windows.length - 1]?.resetsAt ?? null) : null,
+    routes: l.routes ?? [],
+    spawns: spawnsOf(l),
+    lastSignalKind: last?.kind ?? null,
   };
 }
 
@@ -1120,10 +1228,10 @@ export const onRenderPane: MatchedHook<'ui.render', { component: 'Pane'; request
           ))}
         </Box>
         <Text dimColor>{'─'.repeat(width)}</Text>
-        {model.rows.map((r) => (
-          <Box key={`row:${r.label}`}>
+        {model.rows.map((r, i) => (
+          <Box key={`row:${r.label || i}`}>
             <Text dimColor>{label(r)}</Text>
-            <Box key={`val:${r.label}`}>
+            <Box key={`val:${r.label || i}`}>
               {r.segs.map((seg) => (
                 <Text color={COLOR[seg.tone ?? 'plain']} dimColor={seg.tone === 'dim'} wrap="truncate-end">
                   {seg.text}

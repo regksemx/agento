@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyRules, extractFeatures, isTaskStart, rulesClassifier, topicShift, type TaskTier } from './task.ts';
+import { classifyRules, extractFeatures, conversationTopicShift, isTaskStart, opensWithContinuation, rulesClassifier, topicShift, type TaskTier } from './task.ts';
 
 const ctx = { contextTokens: 0, isSessionStart: true };
 
@@ -190,5 +190,27 @@ describe('topicShift', () => {
     expect(topicShift('the and for with', 'для и на с')).toBe(0);
     expect(topicShift('implement the exporter for invoices in the billing module', 'ok commit')).toBe(0);
     expect(topicShift('', '')).toBe(0);
+  });
+});
+
+describe('conversationTopicShift', () => {
+  it('a prompt that opens as a follow-up, or has too few words, is no shift', () => {
+    const prev = 'почини обработчик платежей в сервисе биллинга';
+    expect(conversationTopicShift(prev, 'а еще вот вылезает чет раньше времени мне кажется')).toBe(0);
+    expect(conversationTopicShift(prev, 'Ещё: добавь страницу с ценами и форму обратной связи на лендинг')).toBe(0);
+    expect(conversationTopicShift(prev, 'and also add a pricing page with a feedback form on the landing')).toBe(0);
+    expect(conversationTopicShift(prev, 'вылезает чет раньше времени мне кажется')).toBe(0);
+    expect(conversationTopicShift(prev, 'добавь страницу с ценами и форму обратной связи на лендинг')).toBe(1);
+    expect(opensWithContinuation('Also, one thing')).toBe(true);
+    expect(opensWithContinuation('Alsoran is a library')).toBe(false);
+    expect(opensWithContinuation('Another approach to caching')).toBe(false);
+  });
+
+  it('takes the closest of several earlier prompts', () => {
+    const billing = 'почини обработчик платежей в сервисе биллинга';
+    const landing = 'добавь страницу с ценами и форму обратной связи на лендинг';
+    const back = 'обработчик платежей в сервисе биллинга снова падает на проверке подписи';
+    expect(conversationTopicShift(landing, back)).toBe(1);
+    expect(conversationTopicShift([billing, landing], back)).toBeLessThan(0.85);
   });
 });

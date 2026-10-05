@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LineageState } from '../core/cache.ts';
-import { bar, buildPanel, classifierText, cacheHit, duration, foldDays, tierSteps, type PanelData } from './panel.ts';
+import type { AgentoRoute, AgentoSpawnDecision, AgentoStep } from '../types';
+import { bar, buildPanel, classifierText, cacheHit, duration, foldDays, shortModel, spawnsOf, tierCosts, tierSteps, type PanelData } from './panel.ts';
 
 const NOW = 1_760_000_000_000;
 const cache: LineageState = { model: 'claude-opus-5-5', prefixTokens: 100_000, lastAt: NOW - 60_000, ttl: '1h' };
@@ -145,5 +146,123 @@ describe('classifierText: who classifies', () => {
   });
   it('a daemon that is down is said so', () => {
     expect(text({ ...up, status: 'down' }, 'en')).toBe('rules-v1 · local  (brain unavailable)');
+  });
+});
+
+const decision = (over: Partial<AgentoSpawnDecision> = {}): AgentoSpawnDecision => ({ ts: NOW - 120_000, agentId: 'a1', subagentType: 'Explore', parentModel: 'claude-opus-5-5', model: 'haiku', reason: 'explore', mechanism: 'spawn-routing', ...over });
+const step = (lineage: string, model: string): AgentoStep => ({ ts: NOW - 60_000, lineage, model, effort: null, tokens: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 }, cost: 0.01, baselineCost: 0.02, mechanism: null, savedEstimate: null });
+const rowsOf = (m: ReturnType<typeof buildPanel>, label: string) => {
+  const i = m.rows.findIndex((r) => r.label === label);
+  const out = [m.rows[i]];
+  for (let j = i + 1; j < m.rows.length && m.rows[j]?.label === ''; j++) out.push(m.rows[j]);
+  return out.filter((r): r is NonNullable<typeof r> => !!r).map((r) => r.segs.map((x) => x.text).join(''));
+};
+
+describe('spawnsOf: which model each subagent was launched with', () => {
+  it('newest first, at most five, with counts of spawns and of those routed cheaper', () => {
+    const ds = Array.from({ length: 7 }, (_, i) => decision({ agentId: `a${i}`, ts: NOW - (7 - i) * 60_000 }));
+    ds[0] = decision({ agentId: 'a0', model: 'claude-opus-5-5' });
+    const v = spawnsOf({ decisions: ds, recent: [] });
+    expect(v.recent.map((r) => r.ts)).toEqual([NOW - 60_000, NOW - 2 * 60_000, NOW - 3 * 60_000, NOW - 4 * 60_000, NOW - 5 * 60_000]);
+    expect(v.total).toBe(7);
+    expect(v.cheaper).toBe(6);
+  });
+  it('the actual model shows only when it differs from the chosen one (an alias equals its id)', () => {
+    const l = {
+      decisions: [decision({ agentId: 'a1', model: 'haiku' }), decision({ agentId: 'a2', model: 'sonnet' }), decision({ agentId: 'a3' })],
+      recent: [step('agent:a1', 'claude-sonnet-5-5'), step('agent:a2', 'claude-sonnet-5-5'), step('main', 'claude-opus-5-5')],
+    };
+    expect(spawnsOf(l).recent.map((r) => r.actual)).toEqual([null, null, 'claude-sonnet-5-5']);
+  });
+  it('an explicit model is not counted as routed', () => {
+    expect(spawnsOf({ decisions: [decision({ model: 'haiku', reason: 'explicit-model' })], recent: [] }).cheaper).toBe(0);
+  });
+});
+
+describe('the Subagents section', () => {
+  const spawns = spawnsOf({
+    decisions: [decision({ agentId: 'a1', ts: NOW - 600_000 }), decision({ agentId: 'a2', subagentType: 'general-purpose', model: 'claude-opus-5-5', reason: 'not-cheaper-than-parent' })],
+    recent: [step('agent:a1', 'claude-sonnet-5-5')],
+  });
+  it('en: rewritten, kept and actual-differs rows, newest first, behind a count line', () => {
+    const r = rowsOf(buildPanel(data({ spawns }), 'en'), 'Subagents');
+    expect(r).toEqual([
+      '2 spawns · 1 routed cheaper',
+      '2m ago  general-purpose  opus-5-5 · kept · not-cheaper-than-parent',
+      '10m ago  Explore  opus-5-5 → haiku · explore  ran on sonnet-5-5',
+    ]);
+  });
+  it('ru: the same, in Russian', () => {
+    const r = rowsOf(buildPanel(data({ spawns }), 'ru'), 'Субагенты');
+    expect(r[0]).toBe('2 запусков · 1 дешевле родителя');
+    expect(r[1]).toContain('opus-5-5 · оставлена');
+    expect(r[2]).toContain('шёл на sonnet-5-5');
+  });
+  it('empty: says none yet; another period tags the numbers as the session\'s', () => {
+    expect(rowsOf(buildPanel(data(), 'en'), 'Subagents')).toEqual(['none yet']);
+    expect(rowsOf(buildPanel(data({ spawns: { recent: [], total: 0, cheaper: 0 } }), 'ru'), 'Субагенты')).toEqual(['пока нет']);
+    expect(rowsOf(buildPanel(data({ spawns, range: 'today' }), 'en'), 'Subagents')[0]).toBe('2 spawns · 1 routed cheaper  (session)');
+  });
+  it('tones: a rewrite is success, a kept spawn dim, a differing actual a warning', () => {
+    const m = buildPanel(data({ spawns }), 'en');
+    const i = m.rows.findIndex((r) => r.label === 'Subagents');
+    expect(m.rows[i + 1]?.segs.find((s) => s.text.includes('kept'))?.tone).toBe('dim');
+    expect(m.rows[i + 2]?.segs.find((s) => s.text.includes('→'))?.tone).toBe('success');
+    expect(m.rows[i + 2]?.segs.find((s) => s.text.includes('ran on'))?.tone).toBe('warning');
+  });
+});
+
+describe('the richer pane', () => {
+  it('Now: main model and effort, the task with its steps and cost; omitted without either', () => {
+    const m = buildPanel(data({ main: { model: 'claude-opus-5-5', effort: 'high' }, task: { class: 'refactor', tier: 'sonnet', cost: 0.41, steps: 12 } }), 'en');
+    expect(text(m, 'Now')).toBe('opus-5-5·high  task refactor (sonnet) · 12 steps · $0.41');
+    expect(text(buildPanel(data({ main: { model: 'claude-opus-5-5', effort: 'high' }, task: { class: 'refactor', tier: 'sonnet', cost: 0.41, steps: 12 } }), 'ru'), 'Сейчас')).toBe('opus-5-5·high  задача refactor (sonnet) · 12 шагов · $0.41');
+    expect(buildPanel(data(), 'en').rows.some((r) => r.label === 'Now')).toBe(false);
+  });
+  it('Cache: state, prefix and the price of a cold restart', () => {
+    expect(text(buildPanel(data(), 'en'), 'Cache')).toBe('● warm 58m · prefix 100k · ttl 1h  cold restart ≈ $0.80');
+    expect(text(buildPanel(data({ cache: { ...cache, lastAt: NOW - 2 * 3_600_000 } }), 'ru'), 'Кэш')).toBe('○ cold · префикс 100k · ttl 1h  холодный старт ≈ $0.80');
+    expect(buildPanel(data({ cache: undefined }), 'en').rows.some((r) => r.label === 'Cache')).toBe(false);
+  });
+  it('Limits: subscribers only; the 7-day window with its reset', () => {
+    const reset = new Date(NOW + 3 * 86_400_000 + 4 * 3_600_000).toISOString();
+    expect(text(buildPanel(data({ isSubscription: true, sevenDayPct: 63.4, resetsAt: reset }), 'en'), 'Limits')).toBe('7d ▇▇▇▇▇▇░░░░ 63% · resets in 3d 4h');
+    expect(text(buildPanel(data({ isSubscription: true, sevenDayPct: 63.4, resetsAt: reset }), 'ru'), 'Лимиты')).toBe('7д ▇▇▇▇▇▇░░░░ 63% · сброс через 3д 4ч');
+    expect(text(buildPanel(data({ isSubscription: true, sevenDayPct: 5, resetsAt: 'unknown' }), 'en'), 'Limits')).toBe('7d ▇░░░░░░░░░ 5.0%');
+    expect(text(buildPanel(data({ isSubscription: true }), 'en'), 'Limits')).toBe('no reading yet');
+    expect(buildPanel(data(), 'en').rows.some((r) => r.label === 'Limits')).toBe(false);
+  });
+  it('By model: cost and share per tier; Tokens: in, out and cache', () => {
+    const m = buildPanel(data(), 'en');
+    expect(text(m, 'By model')).toBe('opus $3.00 45% · sonnet $2.70 40% · haiku $1.00 15%');
+    expect(text(m, 'Tokens')).toBe('in 600 · out 20k   cache read 940k · write 60k');
+    expect(text(buildPanel(data(), 'ru'), 'По моделям')).toContain('opus $3.00 45%');
+    const empty = buildPanel(data({ byModel: {}, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }), 'en');
+    expect(empty.rows.some((r) => r.label === 'By model' || r.label === 'Tokens')).toBe(false);
+    expect(tierCosts({ 'claude-opus-5-5': { steps: 1, cost: 1 }, 'claude-opus-4-8': { steps: 1, cost: 2 }, x: { steps: 1, cost: 0.5 } })).toEqual([{ name: 'opus', cost: 3 }, { name: 'other', cost: 0.5 }]);
+  });
+  it('Savings: each mechanism with its amount, and its share of the weekly limit where calibrated', () => {
+    const sav = { spawnRouting: 1, suggestions: 0, handoff: 0.5, autopilot: 0 };
+    expect(text(buildPanel(data({ saved: sav }), 'en'), 'Savings')).toBe('≈ $1.50  (subagents $1.00 · handoff $0.50)   estimate');
+    expect(text(buildPanel(data({ saved: sav, isSubscription: true, pctPerUsd: 4 }), 'en'), 'Savings')).toBe('≈ 6.0% of the weekly limit  (subagents $1.00 (4.0%) · handoff $0.50 (2.0%))   estimate');
+  });
+  it('Routing: the last three decisions newest first, with flags and the action; none yet when empty', () => {
+    const route = (over: Partial<AgentoRoute>): AgentoRoute => ({ ts: NOW - 300_000, classifier: 'rules-v1', tier: 'sonnet', effort: 'medium', confidence: 0.82, action: 'S1', ...over });
+    const routes = [route({ ts: NOW - 900_000 }), route({ classifier: 'brain:run-7', planFirst: true, delegateExplore: true, ts: NOW - 600_000, fallback: undefined }), route({ stage: 'trajectory', complexity: 'large', confidence: 0, action: 'none', ts: NOW - 120_000 }), route({ tier: 'haiku', effort: 'low', action: 'autopilot', ts: NOW - 60_000 })];
+    expect(rowsOf(buildPanel(data({ routes }), 'en'), 'Routing')).toEqual([
+      '1m ago  rules-v1 · haiku·low · 82% → autopilot',
+      '2m ago  rules-v1 · sonnet·medium · trajectory large → none',
+      '10m ago  brain:run-7 · sonnet·medium · 82% · plan-first · delegate-explore → S1',
+    ]);
+    expect(rowsOf(buildPanel(data({ routes: [route({ fallback: 'timeout' })] }), 'ru'), 'Маршрут')[0]).toBe('5m назад  rules-v1 · sonnet·medium · 82% · fallback timeout → S1');
+    expect(rowsOf(buildPanel(data(), 'en'), 'Routing')).toEqual(['none yet']);
+    expect(rowsOf(buildPanel(data(), 'ru'), 'Маршрут')).toEqual(['пока нет']);
+  });
+  it('Loops: the last signal with its kind', () => {
+    expect(text(buildPanel(data({ lastSignalKind: 'failing-test' }), 'en'), 'Loops')).toBe('1 (failing-test: auth.spec падает 3 раза)');
+  });
+  it('shortModel', () => {
+    expect(shortModel('claude-opus-5-5-20260801[1m]')).toBe('opus-5-5');
+    expect(shortModel('sonnet')).toBe('sonnet');
   });
 });

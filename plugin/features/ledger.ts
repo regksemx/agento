@@ -212,7 +212,8 @@ export function dropMainLineage(prev: AgentoLedger): AgentoLedger {
 
 export function applyDecision(prev: AgentoLedger | undefined, d: AgentoSpawnDecision, mode: Mode, isSubscription: boolean): AgentoLedger {
   const l: AgentoLedger = prev ? { ...prev } : emptyLedger(d.ts, mode, isSubscription);
-  l.routed = setCapped(l.routed, d.agentId, d, MAX_ROUTED);
+  // Only a spawn agento moved is credited later; one left on the parent's model, or on the model that was asked for, saved nothing.
+  if (d.model !== d.parentModel && d.reason !== 'explicit-model') l.routed = setCapped(l.routed, d.agentId, d, MAX_ROUTED);
   l.decisions = [...l.decisions, d].slice(-MAX_DECISIONS);
   return l;
 }

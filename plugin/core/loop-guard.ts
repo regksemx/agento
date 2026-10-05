@@ -28,6 +28,9 @@ export const LOOP_LIMITS = {
 } as const;
 
 const TEST_RE = /(?:^|[\s;&|(])(?:test|pytest|jest|vitest|go\s+test|cargo\s+test|mvn|gradle|gradlew)(?=$|[\s;&|):])/i;
+// Whether a shell command runs a test suite (also what the trajectory counts failing runs by).
+export const isTestCommand = (command: string): boolean => TEST_RE.test(command);
+
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit']);
 const MIN_OVERLAP = 8; // chars a shared fragment needs before two edits count as "the same place"
 const MIN_LINE = 12; // trimmed length of a shared line that counts as overlap
