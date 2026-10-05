@@ -45,8 +45,9 @@ AGENTO_TASKS=~/.agento/dataset/tasks.jsonl training/run.sh
 | `run.log`, `gpu.txt` | log |
 
 Useful flags (all go through `run.sh`): `--checkpoint multilingual|english|typed-decisions|<dir>` (default multilingual:
-the prompts are mostly Russian), `--epochs 6`, `--student jhu-clsp/ettin-encoder-150m` (falls back to
-`answerdotai/ModernBERT-base` if it cannot load), `--holdout-project <substr>` (repeatable), `--no-int8`,
+the prompts are mostly Russian), `--epochs 6`, `--student intfloat/multilingual-e5-small` (default; falls back to
+`jhu-clsp/mmBERT-small` if it cannot load; `--student jhu-clsp/ettin-encoder-150m --student-max-len 512` restores the old 150m, see
+`BENCHMARK.md`), `--student-max-len 256`, `--no-shrink-embeddings`, `--holdout-project <substr>` (repeatable), `--no-int8`,
 `--laya-loop` (upstream's unweighted loop for an A/B), `--no-grad-ckpt` (faster, more memory; 48 GB can afford it),
 `--micro-batch/--grad-accum`. `TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124` picks a CUDA build.
 
@@ -88,7 +89,9 @@ tasks without a single error, so a small calibration split often yields "no safe
 (1-alpha)*weight*CE(labels)`. ONNX fp32 opset 17, inputs `input_ids`/`attention_mask`, outputs `logits_<head>`; ORT vs torch
 argmax agreement must be >= 99% (the run fails otherwise). Static INT8 (QDQ, calibrated on training texts) is kept only if
 agreement with fp32 >= 98% and mean ECE delta <= 0.02, else deleted with the reason printed. Dynamic INT8 is never produced
-(Laya measured it collapsing agreement). Latency: onnxruntime CPU, batch 1, 512 tokens, p50/p95.
+(Laya measured it collapsing agreement). Latency: onnxruntime CPU, batch 1, `max_len` tokens (256) and a 128-token prompt, p50/p95. The word-embedding table is stored as fp16 in
+the ONNX (fp32 compute, -190 MB for multilingual vocabularies; `--no-shrink-embeddings` to disable). The student default
+(`multilingual-e5-small`, max_len 256: p50 ~35 ms, 279 MB on an M-series Mac) comes from the study in `BENCHMARK.md`.
 
 **Metrics.** Accuracy, macro-F1, ECE, Brier, AURC per head; under-routing (recommended cheaper than the label), over-routing, and
 savings, against always-opus, always-sonnet, rules v1 (`rulesVerdict`), L0, majority. Savings formula

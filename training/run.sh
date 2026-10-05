@@ -4,6 +4,8 @@
 #   training/run.sh                       # all stages on $AGENTO_TASKS (default ~/.agento/dataset/tasks.jsonl)
 #   training/run.sh --smoke               # 2 steps on CPU, tiny models, synthetic data (proves the wiring)
 #   training/run.sh --epochs 8 --checkpoint english --holdout-project myapp     # any flag of agento_train.pipeline
+#   training/run.sh --student jhu-clsp/ettin-encoder-150m --student-max-len 512  # the old, slower 150m student (see BENCHMARK.md)
+#   Student defaults (agento_train.distill): intfloat/multilingual-e5-small, --student-max-len 256.
 #
 # Environment: AGENTO_TASKS, AGENTO_RUN_ID, TORCH_INDEX_URL (e.g. https://download.pytorch.org/whl/cu124),
 #              LAYA_FROM_PYPI=1 (skip the pinned git revision of laya; the vendored loop is used), HF_TOKEN, PYTHON.

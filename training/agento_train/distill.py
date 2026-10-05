@@ -2,7 +2,8 @@
 
     python -m agento_train.distill --data artifacts/<run>/data --teacher artifacts/<run>/teacher --out artifacts/<run>/student
 
-Student: a small encoder (default `jhu-clsp/ettin-encoder-150m`, fallback `answerdotai/ModernBERT-base`) with mean pooling
+Student: a small encoder (default `intfloat/multilingual-e5-small`, 118M params but only 21M outside the 250k-token embedding
+table; fallback `jhu-clsp/mmBERT-small`; `jhu-clsp/ettin-encoder-150m` stays available via `--student`, see BENCHMARK.md) with mean pooling
 and ONE multi-head classifier: tier (3), effort (3), plan_first (2), delegate_explore (2). One forward pass answers all four
 questions; the input is the daemon's text (`textin.render(INPUT_TEMPLATE, prompt, context)`), there is no per-question head as in Laya.
 
@@ -50,8 +51,9 @@ from .metrics import (
 from .questions import HEAD_OPTIONS, HEAD_SIZES, HEADS
 from .textin import HEAD_FRAC, INPUT_TEMPLATE, head_tail
 
-DEFAULT_STUDENT = "jhu-clsp/ettin-encoder-150m"
-FALLBACK_STUDENT = "answerdotai/ModernBERT-base"
+DEFAULT_STUDENT = "intfloat/multilingual-e5-small"  # p50 ~35 ms at seq 256 / 4 threads on an M-series Mac, ~280 MB, Russian-capable tokenizer
+FALLBACK_STUDENT = "jhu-clsp/mmBERT-small"  # same budget class, a bit slower (~60 ms at seq 256), ~370 MB
+DEFAULT_MAX_LEN = 256
 OPSET = 17
 MIN_AGREEMENT_FP32 = 0.99  # ONNX fp32 vs torch: argmax agreement
 MIN_AGREEMENT_INT8 = 0.98  # INT8 vs fp32 student
@@ -336,6 +338,43 @@ def export_onnx(model, path: Path, opset: int = OPSET) -> None:
                           dynamic_shapes={"input_ids": {0: "batch", 1: "seq"}, "attention_mask": {0: "batch", 1: "seq"}})
 
 
+def shrink_embeddings_fp16(path: Path, min_elems: int = 5_000_000) -> dict:
+    """Store the big word-embedding table(s) as fp16 and `Cast` the Gather output back to fp32, in place.
+
+    Multilingual encoders spend most of their weights on a 250k-token embedding matrix (mmBERT-small: 98M of 140M params), which
+    is a lookup, not compute: fp16 storage halves those bytes (-190 MB for mmBERT-small) at no latency cost, and the rounding
+    (fp16 has 11 mantissa bits) is far below fine-tuning noise; the ONNX-vs-torch parity gate still runs on the result.
+    Only Gather tables with >= `min_elems` elements whose every consumer is a Gather are touched. Returns the byte saving.
+    """
+    import onnx
+    from onnx import TensorProto, helper, numpy_helper
+
+    m = onnx.load(str(path))
+    inits = {i.name: i for i in m.graph.initializer}
+    users: dict[str, list] = {}
+    for n in m.graph.node:
+        for x in n.input:
+            users.setdefault(x, []).append(n)
+    done, saved = [], 0
+    for name, init in inits.items():
+        if init.data_type != TensorProto.FLOAT or int(np.prod(init.dims)) < min_elems or len(init.dims) != 2:
+            continue
+        if not users.get(name) or any(n.op_type != "Gather" or n.input[0] != name for n in users[name]):
+            continue
+        arr = numpy_helper.to_array(init)
+        init.CopyFrom(numpy_helper.from_array(arr.astype(np.float16), name))
+        saved += arr.nbytes - arr.nbytes // 2
+        for n in users[name]:
+            idx = list(m.graph.node).index(n)
+            out = n.output[0]
+            n.output[0] = out + "_fp16"
+            m.graph.node.insert(idx + 1, helper.make_node("Cast", [out + "_fp16"], [out], to=TensorProto.FLOAT, name=n.name + "_cast_fp32"))
+        done.append(name)
+    if done:
+        onnx.save(m, str(path))
+    return {"tables": done, "saved_mb": round(saved / 1e6, 1)}
+
+
 def ort_session(path: Path, threads: Optional[int] = None):
     import onnxruntime as ort
 
@@ -440,11 +479,12 @@ def latency(path: Path, vocab_size: int, seq_len: int = 512, warmup: int = 10, r
 
 
 def run(data_dir: Path, teacher_dir: Optional[Path], out_dir: Path, student: str = DEFAULT_STUDENT, epochs: int = 12,
-        batch_size: int = 16, lr: float = 5e-5, alpha: float = 0.5, tau: float = 2.0, max_len: int = 512, device: str = "auto",
-        max_steps: Optional[int] = None, int8: bool = True, latency_runs: int = 100, latency_seq: int = 512, seed: int = 0,
-        threads: Optional[int] = None, run_id: str = "local", log=print) -> dict:
+        batch_size: int = 16, lr: float = 5e-5, alpha: float = 0.5, tau: float = 2.0, max_len: int = DEFAULT_MAX_LEN, device: str = "auto",
+        max_steps: Optional[int] = None, int8: bool = True, latency_runs: int = 100, latency_seq: Optional[int] = None, seed: int = 0,
+        threads: Optional[int] = None, run_id: str = "local", shrink_embeddings: bool = True, log=print) -> dict:
     import torch
 
+    latency_seq = latency_seq or max_len
     out_dir.mkdir(parents=True, exist_ok=True)
     data = load_examples(data_dir, teacher_dir)
     for need in ("train", "calibration", "test"):
@@ -505,6 +545,10 @@ def run(data_dir: Path, teacher_dir: Optional[Path], out_dir: Path, student: str
     # ONNX fp32 + parity against torch, on every non-train example.
     fp32 = out_dir / "student.fp32.onnx"
     export_onnx(model, fp32)
+    if shrink_embeddings:
+        sh = shrink_embeddings_fp16(fp32)
+        if sh["tables"]:
+            log("distill: word-embedding table stored as fp16 (-%.0f MB; compute stays fp32)" % sh["saved_mb"])
     parity_set = data["calibration"] + data["test"] + data.get("holdout", [])
     sess = ort_session(fp32, threads)
     ort_fp32 = ort_logits(sess, tok, parity_set, max_len)
@@ -630,13 +674,14 @@ def brain_check(model_dir: Path, log=print) -> dict:
 
 
 def add_args(ap: argparse.ArgumentParser) -> None:
-    ap.add_argument("--student", default=DEFAULT_STUDENT, help="encoder id/path (falls back to %s if the default cannot load)" % FALLBACK_STUDENT)
+    ap.add_argument("--student", default=DEFAULT_STUDENT, help="encoder id/path (falls back to %s if the default cannot load); e.g. jhu-clsp/ettin-encoder-150m with --student-max-len 512 for the old 150m setup" % FALLBACK_STUDENT)
     ap.add_argument("--student-epochs", type=int, default=12)
     ap.add_argument("--student-batch", type=int, default=16)
     ap.add_argument("--student-lr", type=float, default=5e-5)
     ap.add_argument("--alpha", type=float, default=0.5, help="weight of the KD term (0 = labels only)")
     ap.add_argument("--tau", type=float, default=2.0)
-    ap.add_argument("--student-max-len", type=int, default=512)
+    ap.add_argument("--student-max-len", type=int, default=DEFAULT_MAX_LEN, help="tokens incl. special tokens; head 75%% / tail 25%% truncation (150m or 512 cost ~3x the latency)")
+    ap.add_argument("--no-shrink-embeddings", action="store_true", help="keep the word-embedding table fp32 in the ONNX (default: fp16 storage, fp32 compute)")
     ap.add_argument("--student-device", default="auto")
     ap.add_argument("--student-max-steps", type=int, default=None)
     ap.add_argument("--no-int8", action="store_true")
@@ -647,7 +692,7 @@ def add_args(ap: argparse.ArgumentParser) -> None:
 def run_from_args(a: argparse.Namespace, data_dir: Path, teacher_dir: Optional[Path], out_dir: Path, run_id: str = "local",
                   log=print) -> dict:
     return run(data_dir, teacher_dir, out_dir, a.student, a.student_epochs, a.student_batch, a.student_lr, a.alpha, a.tau,
-               a.student_max_len, a.student_device, a.student_max_steps, not a.no_int8, a.latency_runs, 512, 0, a.threads, run_id, log)
+               a.student_max_len, a.student_device, a.student_max_steps, not a.no_int8, a.latency_runs, None, 0, a.threads, run_id, not a.no_shrink_embeddings, log)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
