@@ -1,0 +1,22 @@
+{
+  "name": "agento-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": ["cli"],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run build -w agento-cc",
+    "audit": "node cli/dist/agento.mjs audit",
+    "plugin:validate": "claude plugin validate plugin",
+    "plugin:test": "claude plugin test plugin"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": { "node": ">=20" }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "agento",
+  "owner": {
+    "name": "agento contributors"
+  },
+  "plugins": [
+    {
+      "name": "agento",
+      "source": "./plugin",
+      "description": "Spend less of your Claude Code budget without losing quality: right-sized models, cheap subagents, plan-to-code handoff, loop guard."
+    }
+  ],
+  "description": "agento — spend less of your Claude Code budget without losing quality"
+}
