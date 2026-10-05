@@ -1,5 +1,3 @@
-<!-- Владелец репозитория на GitHub ещё не выбран: замените все <owner> ниже (команда маркетплейса, адрес сайта, ссылки) после публикации. -->
-
 <div align="center">
 
 # ◆ agento
@@ -15,7 +13,7 @@
 [![Claude Code ≥ 2.1.287](https://img.shields.io/badge/Claude%20Code-%E2%89%A5%202.1.287-D97757)](https://code.claude.com/docs/en/plugins/mods/overview)
 [![Статус: альфа](https://img.shields.io/badge/status-alpha-b4532f)](#дорожная-карта)
 
-[Сайт](https://<owner>.github.io/agento/ru/) · [Как работает](https://<owner>.github.io/agento/ru/how-it-works.html) · [Бенчмарки](https://<owner>.github.io/agento/ru/benchmarks.html) · [English](README.md)
+[Сайт](https://regksemx.github.io/agento/ru/) · [Как работает](https://regksemx.github.io/agento/ru/how-it-works.html) · [Бенчмарки](https://regksemx.github.io/agento/ru/benchmarks.html) · [English](README.md)
 
 </div>
 
@@ -87,11 +85,11 @@ flowchart TD
     L -.->|"еженедельная перекалибровка порогов (в планах)"| B
 ```
 
-agento — плагин Claude Code с хуками внутри процесса (`prompt.submit`, `turn.step`, `agent.spawn`, `tool.call`, `ui`). Он принимает **одно решение на задачу, в чистой точке**, где смена модели ничего не стоит, а в остальное время не мешает. Подробная механика со схемами: [Как работает](https://<owner>.github.io/agento/ru/how-it-works.html).
+agento — плагин Claude Code с хуками внутри процесса (`prompt.submit`, `turn.step`, `agent.spawn`, `tool.call`, `ui`). Он принимает **одно решение на задачу, в чистой точке**, где смена модели ничего не стоит, а в остальное время не мешает. Подробная механика со схемами: [Как работает](https://regksemx.github.io/agento/ru/how-it-works.html).
 
 ## Почему: экономика
 
-- **Счёт — это кэш, а не вывод инструментов.** В независимом исследовании на SWE-bench 87% счёта Claude Code пришлось на кэш промптов (44% запись, 35% чтение); output — 10%, вывод инструментов и чтение файлов — около 6% ([docs/research.md](docs/research.md) §1).
+- **Счёт — это кэш, а не вывод инструментов.** В независимом исследовании на SWE-bench 87% счёта Claude Code пришлось на кэш промптов (44% запись, 35% чтение); output — 10%, вывод инструментов и чтение файлов — около 6% («Token Reduction Is Not Cost Reduction», [arXiv](https://arxiv.org/abs/2607.12161)).
 - **Смена модели посреди задачи переписывает весь кэш.** Кэш не переносится между моделями. На контексте 100k переход Opus 5.5 → Sonnet 5.5 пишет 100k × $2.50/M = $0.25 вместо чтения за $0.02: **+$0.23 разово**. Opus 5.5 и Sonnet 5.5 читают кэш по одной цене, поэтому Sonnet экономит лишь ~$0.0225 за шаг, и смена окупается через **~10 шагов** — если Sonnet не понадобятся лишние.
 - **«Сжатие токенов» может повышать счёт.** В том же исследовании один компрессор поднял итоговую стоимость на 48%, другой — на 6.8%: сжатый контекст ломал якоря правок, агенты перечитывали файлы, а каждый лишний шаг снова читает весь префикс.
 
@@ -109,7 +107,7 @@ npx agento-cc audit --since all --md report.md
 Установить плагин (Claude Code ≥ 2.1.287):
 
 ```text
-/plugin marketplace add <owner>/agento
+/plugin marketplace add regksemx/agento
 /plugin install agento@agento
 ```
 
@@ -152,7 +150,7 @@ npx agento-cc audit --since all --md report.md
 - **Судья Opus**, читая законченные задачи, решил, что **303 из 560 (54%)** задач на Opus/Fable справились бы на Sonnet или Haiku. Это мнение судьи, а не повторный прогон — и против ручной разметки автора тот же судья **недооценивает в 41%** случаев (n = 34).
 - **Первый прогон обучения (`opus-v1`).** По одному промпту ученик не может безопасно выбрать модель (ни один порог не удерживает недооценку в пределах 5%), поэтому выбор тира он сам никогда не применяет. Головы plan_first (92%) и delegate_explore (76%) пригодны к делу. Дальше — решать после первых шагов, когда появятся сигналы траектории.
 
-Все графики с оговорками: [Бенчмарки](https://<owner>.github.io/agento/ru/benchmarks.html) (данные: [`site/data/`](site/data/); картинка: `node scripts/bench-svg.ts ru > docs/assets/bench.ru.svg`). Открытый бенчмарк стоимости решённой задачи — в [дорожной карте](#дорожная-карта).
+Все графики с оговорками: [Бенчмарки](https://regksemx.github.io/agento/ru/benchmarks.html) (данные: [`site/data/`](site/data/); картинка: `node scripts/bench-svg.ts ru > docs/assets/bench.ru.svg`). Открытый бенчмарк стоимости решённой задачи — в [дорожной карте](#дорожная-карта).
 
 ## Принципы
 
@@ -165,7 +163,7 @@ npx agento-cc audit --since all --md report.md
 5. **Доллары, а не токены.** Независимые замеры показывают, что «сжатие токенов» может *повышать* счёт.
    Поэтому мы меряем стоимость решённой задачи.
 
-Почему так: [docs/research.md](docs/research.md). 87% счёта Claude Code — это кэш промптов, а не вывод инструментов. Все семь принципов с примерами: [Как работает](https://<owner>.github.io/agento/ru/how-it-works.html#principles).
+Почему так: [независимое исследование](https://arxiv.org/abs/2607.12161). 87% счёта Claude Code — это кэш промптов, а не вывод инструментов. Все семь принципов с примерами: [Как работает](https://regksemx.github.io/agento/ru/how-it-works.html#principles).
 
 ## Приватность
 
@@ -219,7 +217,7 @@ npx agento-cc audit --since all --md report.md
 
 ## Участие
 
-Issues и pull requests приветствуются. Проектная документация: [исследование](docs/research.md), [спецификация](docs/spec-phase-0-1.md), [план обучения](docs/spec-phase-2-training.md). Не нарушайте [принципы](#принципы) и никогда не коммитьте реальные транскрипты: картинки в README и на сайте сделаны из синтетических данных.
+Issues и pull requests приветствуются. Как устроены части: [Как работает](https://regksemx.github.io/agento/ru/how-it-works.html). Не нарушайте [принципы](#принципы) и никогда не коммитьте реальные транскрипты: картинки в README и на сайте сделаны из синтетических данных.
 
 ```sh
 npm install

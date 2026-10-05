@@ -1,7 +1,7 @@
 # agento training (phase 2: T33, T34, T35)
 
 Turns the owner's `tasks.jsonl` into a router: a **Laya teacher** (RLCD, calibrated) and a small **ONNX student** that the
-daemon (`brain/`) serves. Spec: `docs/spec-phase-2-training.md`; dataset: `docs/dataset-schema.md`; artifact contract:
+daemon (`brain/`) serves. Dataset: `docs/dataset-schema.md`; artifact contract:
 `brain/CONTRACT.md`.
 
 ```

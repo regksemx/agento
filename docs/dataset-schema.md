@@ -1,6 +1,6 @@
 # agento dataset: `tasks.jsonl` schema (v1)
 
-Produced by `agento dataset build` (task T30, `docs/spec-phase-2-training.md`). One JSON object per line, one line per task.
+Produced by `agento dataset build` (task T30). One JSON object per line, one line per task.
 Code: `cli/src/dataset/`. The file contains **scrubbed** prompt text and derived numbers only; it is still private data of
 the owner and must never leave the machine unscrubbed or be published.
 

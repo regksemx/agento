@@ -1,5 +1,3 @@
-<!-- The GitHub owner is not decided yet: replace every <owner> below (marketplace command, site URL, links) once the repo is published. -->
-
 <div align="center">
 
 # ◆ agento
@@ -15,7 +13,7 @@ Everything is measured in dollars (or % of your weekly limit), locally.
 [![Claude Code ≥ 2.1.287](https://img.shields.io/badge/Claude%20Code-%E2%89%A5%202.1.287-D97757)](https://code.claude.com/docs/en/plugins/mods/overview)
 [![Status: alpha](https://img.shields.io/badge/status-alpha-b4532f)](#roadmap)
 
-[Website](https://<owner>.github.io/agento/) · [How it works](https://<owner>.github.io/agento/how-it-works.html) · [Benchmarks](https://<owner>.github.io/agento/benchmarks.html) · [Русская версия](README.ru.md)
+[Website](https://regksemx.github.io/agento/) · [How it works](https://regksemx.github.io/agento/how-it-works.html) · [Benchmarks](https://regksemx.github.io/agento/benchmarks.html) · [Русская версия](README.ru.md)
 
 </div>
 
@@ -87,11 +85,11 @@ flowchart TD
     L -.->|"weekly recalibration of thresholds (planned)"| B
 ```
 
-agento is a Claude Code plugin with in-process hooks (`prompt.submit`, `turn.step`, `agent.spawn`, `tool.call`, `ui`). It makes **one decision per task, at a clean point**, where changing the model costs nothing, and otherwise stays out of the way. The full mechanics, with diagrams: [How it works](https://<owner>.github.io/agento/how-it-works.html).
+agento is a Claude Code plugin with in-process hooks (`prompt.submit`, `turn.step`, `agent.spawn`, `tool.call`, `ui`). It makes **one decision per task, at a clean point**, where changing the model costs nothing, and otherwise stays out of the way. The full mechanics, with diagrams: [How it works](https://regksemx.github.io/agento/how-it-works.html).
 
 ## Why: the economics
 
-- **The bill is cache, not tool output.** In an independent SWE-bench study, 87% of a Claude Code bill was prompt cache (44% writes, 35% reads); output was 10%, tool output and file reads about 6% ([docs/research.md](docs/research.md) §1, in Russian).
+- **The bill is cache, not tool output.** In an independent SWE-bench study, 87% of a Claude Code bill was prompt cache (44% writes, 35% reads); output was 10%, tool output and file reads about 6% (["Token Reduction Is Not Cost Reduction"](https://arxiv.org/abs/2607.12161)).
 - **A mid-task switch rewrites the whole cache.** The cache does not carry over between models. On a 100k context, Opus 5.5 → Sonnet 5.5 writes 100k × $2.50/M = $0.25 instead of a $0.02 read: **+$0.23 once**. Opus 5.5 and Sonnet 5.5 read the cache at the same price, so Sonnet saves only ~$0.0225 a step and the switch pays off after **~10 steps**, if Sonnet needs no extra ones.
 - **“Token compression” can raise the bill.** In the same study one compressor raised the total cost by 48% and another by 6.8%: compressed context broke edit anchors, agents re-read files, and every extra step re-reads the whole prefix.
 
@@ -109,7 +107,7 @@ npx agento-cc audit --since all --md report.md
 Install the plugin (Claude Code ≥ 2.1.287):
 
 ```text
-/plugin marketplace add <owner>/agento
+/plugin marketplace add regksemx/agento
 /plugin install agento@agento
 ```
 
@@ -152,7 +150,7 @@ Optional: **train your own System 1** on your history — dataset → judge on y
 - An **Opus judge** reading finished tasks said **303 of 560 (54%)** Opus/Fable tasks would have been fine on Sonnet or Haiku. That is the judge's opinion, not a replay — and against the author's hand labels the same judge **under-routes 41%** of the time (n = 34).
 - **First training run (`opus-v1`).** From the prompt alone the student cannot pick the model safely (no threshold keeps under-routing ≤ 5%), so it never acts on its own for the tier. Its plan-first (92%) and delegate-explore (76%) heads are usable. Next: decide after the first steps, when trajectory signals exist.
 
-All charts with their caveats: [Benchmarks](https://<owner>.github.io/agento/benchmarks.html) (data: [`site/data/`](site/data/); chart: `node scripts/bench-svg.ts > docs/assets/bench.svg`). A public benchmark of cost per resolved task is on the [roadmap](#roadmap).
+All charts with their caveats: [Benchmarks](https://regksemx.github.io/agento/benchmarks.html) (data: [`site/data/`](site/data/); chart: `node scripts/bench-svg.ts > docs/assets/bench.svg`). A public benchmark of cost per resolved task is on the [roadmap](#roadmap).
 
 ## Principles
 
@@ -162,7 +160,7 @@ All charts with their caveats: [Benchmarks](https://<owner>.github.io/agento/ben
 4. **Fail-open.** If agento errors or times out, Claude Code behaves as if it were not installed.
 5. **Dollars, not tokens.** Independent studies show "token compression" can *raise* the bill; we measure billed cost per resolved task.
 
-Why: [docs/research.md](docs/research.md) — 87% of a Claude Code bill is prompt cache, not tool output. All seven principles with examples: [How it works](https://<owner>.github.io/agento/how-it-works.html#principles).
+Why: [an independent study](https://arxiv.org/abs/2607.12161) — 87% of a Claude Code bill is prompt cache, not tool output. All seven principles with examples: [How it works](https://regksemx.github.io/agento/how-it-works.html#principles).
 
 ## Privacy
 
@@ -215,7 +213,7 @@ Nothing: Apache-2.0. The rules and the local student make no API calls. Judging 
 
 ## Contributing
 
-Issues and pull requests are welcome. The design docs are in Russian: [research](docs/research.md), [spec](docs/spec-phase-0-1.md), [training plan](docs/spec-phase-2-training.md). Keep the [principles](#principles) intact, and never commit real transcripts: the README and site images come from synthetic data.
+Issues and pull requests are welcome. How the pieces fit: [How it works](https://regksemx.github.io/agento/how-it-works.html). Keep the [principles](#principles) intact, and never commit real transcripts: the README and site images come from synthetic data.
 
 ```sh
 npm install

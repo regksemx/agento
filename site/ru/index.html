@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Владелец репозитория на GitHub ещё не выбран: замените все "<owner>" (в HTML это &lt;owner&gt;) после публикации. -->
+<!-- Владелец репозитория на GitHub ещё не выбран: замените все "regksemx" (в HTML это regksemx) после публикации. -->
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -38,7 +38,7 @@
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       </button>
-      <a class="tool gh" href="https://github.com/&lt;owner&gt;/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
+      <a class="tool gh" href="https://github.com/regksemx/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
     </div>
   </div>
   <nav class="subnav" aria-label="Страницы">
@@ -128,7 +128,7 @@
           <div class="term-bar"><i></i><i></i><i></i><span>npx agento-cc audit</span></div>
           <div class="term-body scroll"><img src="../assets/audit-switch.ru.bare.svg" width="754" height="270" alt="Блок аудита «Переключение модели»: переход opus-5.5 → sonnet-5.5 на префиксе 100k стоит $0.23 и окупается через 11 шагов; обратный переход не окупается никогда."></div>
         </div>
-        <figcaption class="term-cap">Блок «Переключение модели» из аудита, синтетический пример. Цены и источники: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/research.md">docs/research.md</a>.</figcaption>
+        <figcaption class="term-cap">Блок «Переключение модели» из аудита, синтетический пример. Цены: прайс Anthropic на 2026-10-05.</figcaption>
       </figure>
     </div>
   </div>
@@ -198,7 +198,7 @@
         <span class="tag">2 · установить плагин</span>
         <h3>Добавить в Claude Code</h3>
         <p>Claude Code ≥ 2.1.287. Подсказки включены, автопилот выключен, главная модель посреди задачи не меняется.</p>
-        <div class="term"><div class="term-body"><pre><span class="ps">&gt;</span> /plugin marketplace add &lt;owner&gt;/agento
+        <div class="term"><div class="term-body"><pre><span class="ps">&gt;</span> /plugin marketplace add regksemx/agento
 <span class="ps">&gt;</span> /plugin install agento@agento
 <span class="ps">&gt;</span> /agento</pre></div></div>
       </div>
@@ -272,7 +272,7 @@
       <li><b>ученик e5-small</b><span><code>multilingual-e5-small</code>, ONNX: <strong>35 мс</strong> p50 на CPU, 279 МБ.</span></li>
       <li><b>agento-brain</b><span>Локальный демон на unix-сокете. Любая ошибка или нет ответа за 400 мс — решают правила.</span></li>
     </ol>
-    <div class="callout"><strong>Модель ставится, только если она честна.</strong> На отложенных задачах она должна недооценивать (выбирать модель дешевле нужной) не чаще чем в 5% случаев при выбранном пороге, давать хоть какую-то экономию и обходить правила. Иначе плагин остаётся на правилах. Первый прогон, <code>opus-v1</code>, для выбора модели проверку не прошёл, поэтому здесь он только подсказывает; головы plan_first и delegate_explore пригодны (<a href="benchmarks.html#training">результаты</a>). <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">Инструкция для GPU</a>.</div>
+    <div class="callout"><strong>Модель ставится, только если она честна.</strong> На отложенных задачах она должна недооценивать (выбирать модель дешевле нужной) не чаще чем в 5% случаев при выбранном пороге, давать хоть какую-то экономию и обходить правила. Иначе плагин остаётся на правилах. Первый прогон, <code>opus-v1</code>, для выбора модели проверку не прошёл, поэтому здесь он только подсказывает; головы plan_first и delegate_explore пригодны (<a href="benchmarks.html#training">результаты</a>). <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">Инструкция для GPU</a>.</div>
   </div>
 </section>
 
@@ -382,10 +382,10 @@
     <div>
       <h4>Репозиторий</h4>
       <ul>
-        <li><a href="https://github.com/&lt;owner&gt;/agento">GitHub</a></li>
-        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/research.md">Исследование</a></li>
-        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">Инструкция для GPU</a></li>
-        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/LICENSE">Лицензия</a></li>
+        <li><a href="https://github.com/regksemx/agento">GitHub</a></li>
+        <li><a href="https://arxiv.org/abs/2607.12161">Token Reduction Is Not Cost Reduction (arXiv)</a></li>
+        <li><a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">Инструкция для GPU</a></li>
+        <li><a href="https://github.com/regksemx/agento/blob/main/LICENSE">Лицензия</a></li>
       </ul>
     </div>
   </div>

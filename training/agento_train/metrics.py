@@ -30,7 +30,7 @@ import numpy as np
 
 from .questions import EFFORTS, HEAD_SIZES, HEADS, TIERS
 
-# Output list price, USD per MTok (docs/research.md section 1.1, checked 2026-10-05).
+# Output list price, USD per MTok (Anthropic list prices, checked 2026-10-05).
 PRICE_OUT = {"haiku": 5.0, "sonnet": 10.0, "opus": 20.0, "fable": 50.0}
 COST_SCALE = {"upper": 1.0, "conservative": 0.5}
 UNDER_ALPHA = 0.05  # spec section 6: under-routing <= 5% ...

@@ -3,7 +3,7 @@
 Why: replays (L2) on the owner's own history turned out impractical (6 of 581 tasks replayable, about $20 per run). TwinRouterBench
 (https://github.com/CommonstackAI/TwinRouterBench, paper https://arxiv.org/abs/2605.18859, **Apache-2.0**, `LICENSE` in the repository root,
 dataset mirror https://huggingface.co/datasets/Amorph/TwinRouterBench) ships ~970 router-visible step prefixes with execution-verified minimum
-tiers. We use it (a) as public training data for the general model (`docs/spec-phase-2-training.md` §2.2, §3) and (b) to **validate the L1 judge
+tiers. We use it (a) as public training data for the general model and (b) to **validate the L1 judge
 for free**: judge predictions against verified tiers (`agento dataset validate-judge`).
 
 Inspected: commit `7cbb0deac8` (shallow clone, 2026-10-05).

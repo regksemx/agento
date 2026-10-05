@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- The GitHub owner is not decided yet: replace every "<owner>" (escaped as &lt;owner&gt;) once the repo is published. -->
+<!-- The GitHub owner is not decided yet: replace every "regksemx" (escaped as regksemx) once the repo is published. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -39,7 +39,7 @@
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       </button>
-      <a class="tool gh" href="https://github.com/&lt;owner&gt;/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
+      <a class="tool gh" href="https://github.com/regksemx/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
     </div>
   </div>
   <nav class="subnav" aria-label="Pages">
@@ -193,7 +193,7 @@
         <h3>Latency per candidate encoder</h3>
         <p class="sub">p50 in ms, sequence length 256, 4 CPU threads, ONNX Runtime. The plugin asks once per task start; the bar for the student was ≤ 60 ms with a multilingual tokenizer.</p>
         <div class="chart" id="ch-latency" data-chart="latency"></div>
-        <p class="caveat" data-for="ch-latency">Apple M5, random-init weights: latency and size only, nothing about accuracy. The Ettin models are English-only. Details: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/training/BENCHMARK.md">training/BENCHMARK.md</a>.</p>
+        <p class="caveat" data-for="ch-latency">Apple M5, random-init weights: latency and size only, nothing about accuracy. The Ettin models are English-only. Details: <a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">training/BENCHMARK.md</a>.</p>
       </div>
       <div class="panel t-ready">
         <h3>The student in run <span data-tbind="run">opus-v1</span></h3>
@@ -211,7 +211,7 @@
       <div class="panel t-pending">
         <h3>Training run</h3>
         <p class="sub">No training run published yet: <code>data/training.json</code> is missing. Until a model passes its gate, the plugin decides with rules.</p>
-        <p class="caveat">How a run is made and gated: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">GPU runbook</a> (in Russian).</p>
+        <p class="caveat">How a run is made and gated: <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">GPU runbook</a> (in Russian).</p>
       </div>
     </div>
   </div>
@@ -246,7 +246,7 @@
     </div>
     <p class="caveat">The labels are the Opus judge's opinions (L1), the same judge that under-routes 41% against hand labels above: the student learned the judge, not the ground truth. That is one more reason the tier head only ever hints.</p>
     <p class="caveat"><span data-tnote="labels">Claude Opus as judge of finished tasks (L1), 576 of the author's tasks; time split train 407 / calibration 87 / test 87</span>. <span data-tnote="teacher">Laya multilingual (mmBERT 322M), RLCD, 6 epochs, 236 s on one RTX PRO 4000</span>.</p>
-    <p class="caveat">How a run is made and gated: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">GPU runbook</a> (in Russian).</p>
+    <p class="caveat">How a run is made and gated: <a href="https://github.com/regksemx/agento/blob/main/docs/runbook-gpu.md">GPU runbook</a> (in Russian).</p>
   </div>
 </section>
 </div>
@@ -272,10 +272,10 @@
     <div>
       <h4>Repository</h4>
       <ul>
-        <li><a href="https://github.com/&lt;owner&gt;/agento">GitHub</a></li>
-        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/research.md">Research (RU)</a></li>
-        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/training/BENCHMARK.md">Student benchmark</a></li>
-        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/LICENSE">License</a></li>
+        <li><a href="https://github.com/regksemx/agento">GitHub</a></li>
+        <li><a href="https://arxiv.org/abs/2607.12161">Token Reduction Is Not Cost Reduction (arXiv)</a></li>
+        <li><a href="https://github.com/regksemx/agento/blob/main/training/BENCHMARK.md">Student benchmark</a></li>
+        <li><a href="https://github.com/regksemx/agento/blob/main/LICENSE">License</a></li>
       </ul>
     </div>
   </div>

@@ -5,7 +5,7 @@ import { repriceAs, type Usage } from './cost.ts';
 import { tierOf, type Tier } from './pricing.ts';
 import type { TaskVerdict } from './task.ts';
 
-// The reference step of docs/spec-phase-0-1.md §1 and §5.2: 100k read from the cache, 3k written, 1.5k out.
+// The reference step: 100k read from the cache, 3k written, 1.5k out.
 export const REFERENCE_STEP: Usage = {
   input_tokens: 0,
   output_tokens: 1500,

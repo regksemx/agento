@@ -81,5 +81,7 @@
       "description": "The longest agento waits for the brain daemon before the built-in rules answer instead.",
       "default": 400
     }
-  }
+  },
+  "homepage": "https://regksemx.github.io/agento/",
+  "repository": "https://github.com/regksemx/agento"
 }

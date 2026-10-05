@@ -15,5 +15,14 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/regksemx/agento.git",
+    "directory": "cli"
+  },
+  "homepage": "https://regksemx.github.io/agento/",
+  "bugs": {
+    "url": "https://github.com/regksemx/agento/issues"
   }
 }

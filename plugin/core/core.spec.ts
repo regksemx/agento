@@ -42,7 +42,7 @@ describe('costOf', () => {
     output_tokens: 1_500,
   });
 
-  it('matches the reference step from docs/spec-phase-0-1.md §5.2', () => {
+  it('matches the reference step (100k cache read, 3k written, 1.5k out)', () => {
     expect(costOf('claude-opus-5-5', step)!.total).toBeCloseTo(0.065, 9);
     expect(costOf('claude-sonnet-5-5', step)!.total).toBeCloseTo(0.0425, 9);
     expect(costOf('claude-haiku-4-5', step)!.total).toBeCloseTo(0.02125, 9);

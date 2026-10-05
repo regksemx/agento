@@ -1,6 +1,6 @@
 // L0 weak labels: a transparent heuristic over the observed trajectory. It measures how hard the task turned out to be,
-// not what would have been sufficient. Thresholds are placeholders to be calibrated against L2 replays
-// (docs/spec-phase-2-training.md §2). Every number lives in L0_THRESHOLDS and is documented in docs/dataset-schema.md.
+// not what would have been sufficient. Thresholds are placeholders to be calibrated against L2 replays.
+// Every number lives in L0_THRESHOLDS and is documented in docs/dataset-schema.md.
 
 import type { TaskEffort, TaskTier } from '../../../plugin/core/task.ts';
 import type { TaskObserved } from './types.ts';

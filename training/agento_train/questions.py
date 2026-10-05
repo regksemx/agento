@@ -1,4 +1,4 @@
-"""The four decisions agento's System 1 makes (docs/spec-phase-2-training.md section 4) and their label encodings.
+"""The four decisions agento's System 1 makes and their label encodings.
 
 Pure Python, no third-party imports: export, metrics and tests use it without torch.
 """
