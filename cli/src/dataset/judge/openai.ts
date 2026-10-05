@@ -28,7 +28,8 @@ export function buildRequestBody(model: string, p: JudgePrompt, structured: bool
       { role: 'user', content: p.user },
     ],
     temperature: 0,
-    max_tokens: 600,
+    // Room for a reasoning model's thinking (local servers often budget ~512 tokens) plus the JSON verdict.
+    max_tokens: 1500,
     ...(structured ? { response_format: { type: 'json_schema', json_schema: { name: 'agento_judge', strict: true, schema: JUDGE_JSON_SCHEMA } } } : {}),
   };
 }
