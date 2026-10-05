@@ -38,14 +38,18 @@ def detect_source() -> str:
 def create_venv(venv_dir: Path, source: str, *, run=subprocess.run) -> None:
     venv_dir.parent.mkdir(parents=True, exist_ok=True)
     py = venv_dir / "bin" / "python"
+    # Installing again (a newer checkout, a changed unit) keeps the venv and replaces the package, even at the same version.
+    again = py.exists()
     uv = shutil.which("uv")
     if uv:
-        run([uv, "venv", "--python", f"{sys.version_info.major}.{sys.version_info.minor}", str(venv_dir)], check=True)
-        run([uv, "pip", "install", "--python", str(py), source], check=True)
+        if not again:
+            run([uv, "venv", "--python", f"{sys.version_info.major}.{sys.version_info.minor}", str(venv_dir)], check=True)
+        run([uv, "pip", "install", "--python", str(py), *(["--reinstall-package", "agento-brain"] if again else []), source], check=True)
     else:
-        run([sys.executable, "-m", "venv", str(venv_dir)], check=True)
-        run([str(py), "-m", "pip", "install", "--upgrade", "pip"], check=True)
-        run([str(py), "-m", "pip", "install", source], check=True)
+        if not again:
+            run([sys.executable, "-m", "venv", str(venv_dir)], check=True)
+            run([str(py), "-m", "pip", "install", "--upgrade", "pip"], check=True)
+        run([str(py), "-m", "pip", "install", *(["--force-reinstall", "--no-deps"] if again else []), source], check=True)
 
 
 def _serve_args(exe: Path, model_dir: Path | None) -> list[str]:
@@ -66,7 +70,8 @@ def render_plist(args: list[str], home: Path, log: Path) -> bytes:
             "ProgramArguments": args,
             "RunAtLoad": True,
             "KeepAlive": True,
-            "ProcessType": "Background",
+            # Not "Background": macOS keeps such a process on efficiency cores and a 5 ms answer takes 40 ms. Idle, it costs nothing.
+            "ProcessType": "Standard",
             "EnvironmentVariables": {"AGENTO_HOME": str(home)},
             "StandardOutPath": str(log),
             "StandardErrorPath": str(log),
