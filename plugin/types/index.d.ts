@@ -76,6 +76,23 @@ export type AgentoHandoffRecord = {
 
 export type AgentoModelTotals = { steps: number; cost: number };
 
+// One task-start classification and what it led to: who decided (`rules-v1` or `brain:<run_id>`), and why a trained
+// classifier's answer was not used when it was asked and the rules answered.
+export type AgentoRoute = {
+  ts: number;
+  classifier: string;
+  fallback?: string;
+  tier: string;
+  effort: string;
+  confidence: number;
+  // Asked of the trained classifier only; `delegateExplore` is recorded and nothing acts on it yet.
+  planFirst?: boolean;
+  delegateExplore?: boolean;
+  latencyMs?: number;
+  // `autopilot`, `S1`, `S2a`, `S4` or `none`.
+  action: string;
+};
+
 export type AgentoLedger = {
   startedAt: number;
   // The model the user started on: what savings are measured against. Empty until the first main step.
@@ -102,6 +119,8 @@ export type AgentoLedger = {
   // Subagents that agento routed: agentId -> decision. Kept so their steps can be credited.
   routed: Record<string, AgentoSpawnDecision>;
   decisions: AgentoSpawnDecision[];
+  // Classifications at task starts, newest last (capped). Absent in a ledger an older version wrote.
+  routes?: AgentoRoute[];
   signals: AgentoLoopSignalRecord[];
   // The most recent steps, newest last (capped).
   recent: AgentoStep[];
@@ -185,6 +204,17 @@ export type AgentoSession = {
   startedAt: number;
 };
 
+// What the plugin knows of the local classifier daemon (`agento-brain`), from the probe at session start and the calls since.
+export type AgentoBrain = {
+  // `up`: the daemon answered; `down`: it did not (not asked again until `checkedAt` + 5 min); `off`: the `brain` setting.
+  status: 'up' | 'down' | 'off';
+  runId: string | null;
+  backend: string | null;
+  p50Ms: number | null;
+  checkedAt: number;
+  socket: string | null;
+};
+
 export type AgentoPaneRange = 'session' | 'today' | '7d' | 'all';
 
 declare module 'claude-code' {
@@ -194,6 +224,7 @@ declare module 'claude-code' {
       banner: AgentoBanner | null;
       task: AgentoTask;
       session: AgentoSession;
+      brain: AgentoBrain;
       range: AgentoPaneRange;
     };
   }

@@ -1,7 +1,7 @@
 // The view-model of the `/agento` pane (spec §7.7). Pure: the hook turns these rows into `Text` and `Button`.
 // Every dollar figure is marked `факт` (measured) or `оценка` (estimate), as P6 asks.
 
-import type { AgentoLedger, AgentoPaneRange } from '../types';
+import type { AgentoBrain, AgentoLedger, AgentoPaneRange } from '../types';
 import { isWarm, warmRemainingMs, type LineageState } from '../core/cache.ts';
 import { tierOf } from '../core/pricing.ts';
 import { fmtPct, formatUsd } from './status.ts';
@@ -42,6 +42,8 @@ export interface PanelData {
   lastSignal: string | null;
   cache: LineageState | undefined;
   handoff: AgentoLedger['handoff'];
+  // What is known of the local classifier daemon; absent before the probe has run.
+  brain?: AgentoBrain | undefined;
 }
 
 export interface PanelModel {
@@ -85,6 +87,15 @@ export function cacheHit(t: PanelData['tokens']): number | null {
 
 function savedTotal(s: PanelData['saved']): number {
   return s.spawnRouting + s.suggestions + s.handoff + s.autopilot;
+}
+
+// Who classifies the task at a clean point: the local rules, or the trained model the daemon serves.
+export function classifierText(b: AgentoBrain | undefined, lang: Lang): Seg[] {
+  const ru = lang === 'ru';
+  const rules = ru ? 'rules-v1 · локально' : 'rules-v1 · local';
+  if (!b || b.status === 'off' || (b.status === 'up' && b.runId === 'rules-v1')) return [{ text: rules }];
+  if (b.status === 'down') return [{ text: rules }, { text: ru ? '  (brain недоступен)' : '  (brain unavailable)', tone: 'dim' }];
+  return [{ text: `brain ${b.runId ?? '?'}`, tone: 'success' }, { text: b.p50Ms !== null ? ` · p50 ${b.p50Ms < 10 ? b.p50Ms.toFixed(1) : Math.round(b.p50Ms)} ms` : '', tone: 'dim' }];
 }
 
 export function buildPanel(d: PanelData, lang: Lang): PanelModel {
@@ -153,6 +164,9 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
     label: ru ? 'Буксование' : 'Loops',
     segs: d.loopSignals > 0 ? [{ text: `${d.loopSignals}`, tone: 'warning' }, ...(d.lastSignal ? [{ text: ` (${d.lastSignal})`, tone: 'dim' as Tone }] : [])] : [{ text: ru ? 'нет' : 'none', tone: 'dim' }],
   });
+
+  // Classifier
+  rows.push({ label: ru ? 'Классификатор' : 'Classifier', segs: classifierText(d.brain, lang) });
 
   // Handoff
   if (d.handoff && d.range === 'session') {

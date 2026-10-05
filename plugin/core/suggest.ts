@@ -6,7 +6,8 @@
 import { COLD_MARGIN_MS, isWarm, TTL_MS, type LineageState } from './cache.ts';
 import { modelIdForTier, tierOf, tierRank, TIER_ALIAS, type Tier } from './pricing.ts';
 import type { Mode } from './spawn-policy.ts';
-import { classifyRules, extractFeatures, isTaskStart, topicShift, type TaskEffort, type TaskFeatures, type TaskStartReason, type TaskVerdict } from './task.ts';
+import { startKindOf } from './brain.ts';
+import { classifyRules, extractFeatures, isTaskStart, topicShift, type TaskContext, type TaskEffort, type TaskFeatures, type TaskStartReason, type TaskVerdict } from './task.ts';
 
 export type Scenario = 'S1' | 'S2a' | 'S2b' | 'S4' | 'S7' | 'AP';
 
@@ -122,6 +123,9 @@ export interface PromptFacts extends TaskStartFacts {
   current: Current;
   // The main conversation's size now (before this prompt).
   contextTokens: number;
+  // A trained classifier's verdict for this prompt, asked for only where this prompt starts a task (a clean point);
+  // it goes through every guard below exactly as the rules' does. Absent: the local rules decide.
+  verdict?: TaskVerdict;
   dismissed: readonly DismissKey[];
   // Scenarios already shown for the task in progress.
   shown: readonly string[];
@@ -143,6 +147,11 @@ export interface PromptDecision {
   action: PromptAction;
 }
 
+// What a classifier is told of a task that starts here.
+export function taskContextOf(start: StartInfo, contextTokens: number): TaskContext {
+  return { contextTokens, isSessionStart: start.reason === 'first-prompt', startKind: startKindOf(start.reason) };
+}
+
 export function decidePrompt(f: PromptFacts): PromptDecision {
   const none: PromptDecision = { start: null, features: null, verdict: null, action: { kind: 'none' } };
   if (f.mode === 'off') return none;
@@ -161,8 +170,8 @@ export function decidePrompt(f: PromptFacts): PromptDecision {
     return none;
   }
 
-  const features = extractFeatures(f.prompt, { contextTokens: ctx, isSessionStart: start.reason === 'first-prompt' });
-  const verdict = classifyRules(features);
+  const features = extractFeatures(f.prompt, taskContextOf(start, ctx));
+  const verdict = f.verdict ?? classifyRules(features);
   const base: PromptDecision = { start, features, verdict, action: { kind: 'none' } };
 
   // `/agento new` on a warm, long conversation: the switch is not free, the clean start is /clear.
@@ -172,7 +181,7 @@ export function decidePrompt(f: PromptFacts): PromptDecision {
 
   // Heavy or planning work on a cheaper model: offer the architect → executor handoff (S2).
   const curTier = tierOf(f.current.model);
-  const planning = verdict.tier === 'opus' || features.keywords.plan >= 1;
+  const planning = verdict.tier === 'opus' || features.keywords.plan >= 1 || verdict.planFirst === true;
   if (f.suggestions && !is('S2') && planning && verdict.confidence >= CONFIDENCE_HANDOFF && curTier !== null && tierRank(curTier) < tierRank('opus')) {
     return { ...base, action: { kind: 'S2a' } };
   }

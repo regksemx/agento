@@ -5,6 +5,7 @@ import type {
   AgentoLedger,
   AgentoLoopSignalRecord,
   AgentoMechanism,
+  AgentoRoute,
   AgentoSpawnDecision,
   AgentoStep,
   AgentoTokens,
@@ -18,6 +19,7 @@ export const KEEP_DAYS = 90;
 const MAX_RECENT = 100;
 const MAX_DECISIONS = 50;
 const MAX_SIGNALS = 20;
+const MAX_ROUTES = 50;
 // Subagents come and go: a long session spawns hundreds. Their cache lines and routing decisions are kept for the most
 // recent ones only, so the session state (copied on every step) stays small. The main line is always kept.
 export const MAX_AGENT_LINEAGES = 50;
@@ -212,6 +214,12 @@ export function applyDecision(prev: AgentoLedger | undefined, d: AgentoSpawnDeci
   const l: AgentoLedger = prev ? { ...prev } : emptyLedger(d.ts, mode, isSubscription);
   l.routed = setCapped(l.routed, d.agentId, d, MAX_ROUTED);
   l.decisions = [...l.decisions, d].slice(-MAX_DECISIONS);
+  return l;
+}
+
+export function applyRoute(prev: AgentoLedger | undefined, r: AgentoRoute, mode: Mode, isSubscription: boolean): AgentoLedger {
+  const l: AgentoLedger = prev ? { ...prev } : emptyLedger(r.ts, mode, isSubscription);
+  l.routes = [...(l.routes ?? []), r].slice(-MAX_ROUTES);
   return l;
 }
 

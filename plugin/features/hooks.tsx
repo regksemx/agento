@@ -1,5 +1,6 @@
 import { update } from 'claude-code';
 import type { AgentSpawnInput, Hook, MatchedHook } from 'claude-code';
+import { BRAIN_REPROBE_MS, createBrainClassifier, localVerdict, parseBrainMode, parseBrainTimeout, parseHealth, brainSocketPath, BRAIN_TIMEOUT_MS, type BrainCall, type BrainMode } from '../core/brain.ts';
 import { LoopGuard } from '../core/loop-guard.ts';
 import { decideSpawnModel, parseMode, type Mode } from '../core/spawn-policy.ts';
 import { isWarm } from '../core/cache.ts';
@@ -8,9 +9,9 @@ import { classKey, classOf, DEFAULT_TASK_STEPS, estimateSaving, foldClassStats, 
 import { MAX_PLAN_CHARS, handoffPrompt, planDocument, planPath } from '../core/handoff.ts';
 import { langFromEnv, orchestrateSection } from '../core/orchestrate.ts';
 import { tierOf, TIER_ALIAS, type Tier } from '../core/pricing.ts';
-import { canReplace, decidePrompt, dismissKeyOf, dismissStoreKey, makeOverride, overrideFor, S4_CONTEXT_TOKENS, type DismissKey, type Downgrade, type PromptFacts } from '../core/suggest.ts';
-import type { TaskEffort } from '../core/task.ts';
-import type { AgentoBanner, AgentoLedger, AgentoLoopSignalRecord, AgentoPaneRange, AgentoSpawnDecision, AgentoStep, AgentoTask } from '../types';
+import { canReplace, decidePrompt, detectTaskStart, dismissKeyOf, dismissStoreKey, makeOverride, overrideFor, S4_CONTEXT_TOKENS, taskContextOf, type DismissKey, type Downgrade, type PromptFacts } from '../core/suggest.ts';
+import { RULES_ID, rulesClassifier, type TaskContext, type TaskEffort, type TaskVerdict } from '../core/task.ts';
+import type { AgentoBanner, AgentoBrain, AgentoLedger, AgentoLoopSignalRecord, AgentoPaneRange, AgentoSpawnDecision, AgentoStep, AgentoTask } from '../types';
 import { agentHint, autopilotBanner, autopilotToast, s1Banner, s2aBanner, s2bBanner, s4Banner, s7Banner, type BannerBase, type MoneyCtx } from './banner.ts';
 import { nextMode, parseAgentoArgs, parseAutopilot, parseOnOff, type Autopilot } from './command.ts';
 import {
@@ -18,6 +19,7 @@ import {
   applyDecision,
   applyHandoff,
   applyHint,
+  applyRoute,
   applySignal,
   applyStep,
   dayKey,
@@ -48,6 +50,7 @@ const bannerRef = { plugin: 'agento', key: 'banner' } as const;
 const taskRef = { plugin: 'agento', key: 'task' } as const;
 const sessionRef = { plugin: 'agento', key: 'session' } as const;
 const rangeRef = { plugin: 'agento', key: 'range' } as const;
+const brainRef = { plugin: 'agento', key: 'brain' } as const;
 
 const PANE_ID = 'agento';
 
@@ -58,6 +61,9 @@ let autopilot: Autopilot = 'off';
 let suggestionsOn = true;
 let orchestrateOn = false;
 let langOption: 'ru' | 'en' | 'auto' = 'auto';
+let brainMode: BrainMode = 'auto';
+let brainSocketOption: unknown;
+let brainTimeoutMs = BRAIN_TIMEOUT_MS;
 let guard = new LoopGuard();
 // The id of the model turn that is running, so a banner's [Stop] can end it. Only ever used to abort.
 let runningTurn: string | null = null;
@@ -68,6 +74,9 @@ export function configure(options: Readonly<Record<string, unknown>>): void {
   autopilot = parseAutopilot(options.autopilot);
   suggestionsOn = options.suggestions !== 'off';
   orchestrateOn = parseOnOff(options.orchestrate) === 'on';
+  brainMode = parseBrainMode(options.brain);
+  brainSocketOption = options.brainSocket;
+  brainTimeoutMs = parseBrainTimeout(options.brainTimeoutMs);
   langOption = options.lang === 'ru' || options.lang === 'en' ? options.lang : 'auto';
   guard = new LoopGuard();
 }
@@ -190,6 +199,88 @@ async function dismissedFor($: Dollar, cwd: string): Promise<DismissKey[]> {
   return out;
 }
 
+// ---- the local classifier daemon (agento-brain) ----
+
+// Every call to it is bounded by `brainTimeoutMs`, and whatever goes wrong the rules answer (P5). Only asked at a clean
+// point (a task's start), so a trained verdict is never acted on mid-task (P1), and what it says goes through every
+// guard the rules' verdict does (confidence by mode, downward only, the task's hold).
+const HEALTH_URL = 'http://localhost/healthz';
+const ROUTE_URL = 'http://localhost/v1/route';
+let probing: Promise<AgentoBrain> | null = null;
+
+async function socketOf($: Dollar): Promise<string | null> {
+  return brainSocketPath(brainSocketOption, await safe(() => $.env.get('AGENTO_HOME'), undefined), await safe(() => $.env.get('HOME'), undefined));
+}
+
+async function probe($: Dollar): Promise<AgentoBrain> {
+  const checkedAt = await $.clock.now();
+  const socket = await socketOf($);
+  let st: AgentoBrain = { status: 'down', runId: null, backend: null, p50Ms: null, checkedAt, socket };
+  if (socket) {
+    const res = await safe(() => within($, $.http.fetch(HEALTH_URL, { socketPath: socket }), brainTimeoutMs), undefined);
+    const h = res && res.ok ? parseHealth(res.text) : null;
+    if (h) st = { status: 'up', runId: h.runId, backend: h.backend, p50Ms: h.p50Ms, checkedAt, socket };
+  }
+  try {
+    await update($, brainRef, () => st);
+    $.ui.invalidate('ui.render');
+  } catch {
+    // the answer still holds for this call
+  }
+  return st;
+}
+
+function startProbe($: Dollar): Promise<AgentoBrain> {
+  if (!probing) {
+    const p = probe($).finally(() => {
+      if (probing === p) probing = null;
+    });
+    probing = p;
+  }
+  return probing;
+}
+
+// The daemon's state when it can be asked now, else null: no call is made to one that was down until it is probed again.
+async function brainReady($: Dollar): Promise<AgentoBrain | null> {
+  if (brainMode === 'off') return null;
+  if (probing) await safe(() => within($, probing as Promise<AgentoBrain>, brainTimeoutMs + 100), undefined);
+  const now = await $.clock.now();
+  const socket = await socketOf($);
+  let { value: st } = await $.state.get(brainRef);
+  if (!st || st.status === 'off' || st.socket !== socket || (st.status === 'down' && now - st.checkedAt >= BRAIN_REPROBE_MS)) st = await startProbe($);
+  return st.status === 'up' ? st : null;
+}
+
+async function markBrainDown($: Dollar): Promise<void> {
+  const now = await $.clock.now();
+  await update($, brainRef, (b) => (b ? { ...b, status: 'down' as const, checkedAt: now } : b));
+}
+
+// The verdict for a task starting at this prompt: the trained classifier's when it answers well, else the rules'.
+// Undefined only when the daemon is switched off (the rules decide, as before).
+async function classifyAtStart($: Dollar, text: string, ctx: TaskContext): Promise<TaskVerdict | undefined> {
+  if (brainMode === 'off') return undefined;
+  const st = await brainReady($);
+  if (!st?.socket) return localVerdict(text, ctx, 'unavailable');
+  const socketPath = st.socket;
+  const classifier = createBrainClassifier({
+    fallback: rulesClassifier,
+    call: async (body): Promise<BrainCall> => {
+      try {
+        const res = await within($, $.http.fetch(ROUTE_URL, { method: 'POST', socketPath, headers: { 'content-type': 'application/json' }, body }), brainTimeoutMs);
+        if (!res) return { ok: false, reason: 'timeout' };
+        if (!res.ok) return { ok: false, reason: `http-${res.status}` };
+        return { ok: true, text: res.text };
+      } catch {
+        return { ok: false, reason: 'error' };
+      }
+    },
+  });
+  const v = await classifier.classify(text, ctx);
+  if (v.fallback === 'timeout' || v.fallback === 'error') await safe(() => markBrainDown($), undefined);
+  return v;
+}
+
 // ---- session ----
 
 export const onSessionStart: Hook<'session.start'> = async ($, e, next) => {
@@ -231,6 +322,10 @@ export const onSessionStart: Hook<'session.start'> = async ($, e, next) => {
     await update($, taskRef, (t) => t ?? emptyTask());
     await update($, bannerRef, (b) => b ?? null);
     await update($, rangeRef, (x) => x ?? ('session' as AgentoPaneRange));
+    // Is the classifier daemon there? Asked in the background: the session does not wait for it, and the first
+    // prompt that needs the answer waits for it for as long as the timeout allows.
+    if (brainMode === 'off') await update($, brainRef, () => ({ status: 'off' as const, runId: null, backend: null, p50Ms: null, checkedAt: now, socket: null }));
+    else void startProbe($).catch(() => undefined);
     await enqueue($, async () => {
       await update($, ledgerRef, (prev) => (prev ? { ...prev, mode, isSubscription: isSub } : emptyLedger(now, mode, isSub)));
     });
@@ -567,7 +662,14 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<void
     dismissed: await dismissedFor($, cwd),
     shown: task.shown,
   };
-  const dec = task.quiet ? null : decidePrompt(facts);
+  // A trained classifier is asked only where the prompt starts a task (a clean point); mid-task the rules' verdict is
+  // all that is ever computed, and nothing of it is acted on (P1).
+  let asked: TaskVerdict | undefined;
+  if (!task.quiet && (mode === 'balanced' || mode === 'eco')) {
+    const start = detectTaskStart(facts);
+    if (start) asked = await safe(() => classifyAtStart($, text, taskContextOf(start, start.contextTokens)), undefined);
+  }
+  const dec = task.quiet ? null : decidePrompt(asked ? { ...facts, verdict: asked } : facts);
 
   // A new task closes the old one's books before anything else.
   if (dec?.start) await closeTask($);
@@ -590,6 +692,19 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<void
       current: dec?.start && dec.verdict ? { class: classOf(dec.verdict), tier: null, cost: 0, steps: 0 } : base.current,
     };
   });
+  if (dec?.start && dec.verdict) {
+    const v = dec.verdict;
+    const action = dec.action.kind;
+    await safe(
+      () =>
+        enqueue($, async () => {
+          await update($, ledgerRef, (prev) =>
+            applyRoute(prev, { ts: now, classifier: v.classifier ?? RULES_ID, ...(v.fallback ? { fallback: v.fallback } : {}), tier: v.tier, effort: v.effort, confidence: v.confidence, ...(v.planFirst !== undefined ? { planFirst: v.planFirst } : {}), ...(v.delegateExplore !== undefined ? { delegateExplore: v.delegateExplore } : {}), ...(v.latencyMs !== undefined ? { latencyMs: v.latencyMs } : {}), action }, mode, subscription ?? false),
+          );
+        }),
+      undefined,
+    );
+  }
   if (!dec || dec.action.kind === 'none') return;
 
   const money = await moneyOf($);
@@ -974,6 +1089,7 @@ async function panelData($: Dollar, range: AgentoPaneRange): Promise<PanelData> 
     lastSignal: last ? `${last.detail}` : null,
     cache: l.lineages.main,
     handoff: l.handoff ?? null,
+    brain: (await $.state.get(brainRef)).value,
   };
 }
 
@@ -984,7 +1100,7 @@ export const onRenderPane: MatchedHook<'ui.render', { component: 'Pane'; request
     const model = buildPanel(await panelData($, range), lang);
     const { Box, Text, Button } = $.ui.resolve(e);
     const width = Math.max(20, Math.min(e.props.bodyColumns, 76));
-    const label = (r: Row) => r.label.padEnd(11);
+    const label = (r: Row) => r.label.padEnd(14);
     return (
       <Box flexDirection="column">
         <Box justifyContent="space-between">

@@ -28,7 +28,21 @@ export interface RigOptions {
   hangOn?: string[];
   // User prompts the conversation already holds (`$.session.turns`): a resumed or continued session has some.
   turns?: number;
+  // Environment variables beyond LANG (`$.env.get`); `brain` alone sets HOME so the daemon's default socket is known.
+  env?: Record<string, string>;
+  // The local classifier daemon: answers each request it is sent. `'hang'` never answers, `'refuse'` fails at once
+  // (nobody listening), a string is the raw body of a 200. Without it every call fails as if there were no daemon.
+  brain?: (req: HttpCall) => BrainReply;
 }
+
+export interface HttpCall {
+  url: string;
+  method: string;
+  socketPath?: string;
+  body?: string;
+}
+
+export type BrainReply = 'hang' | 'refuse' | string | { status?: number; json: unknown };
 
 // What the test's engine saw beneath agento, and what agento displayed.
 export interface Rig {
@@ -62,6 +76,8 @@ export interface Rig {
   // The banner above the prompt as last written (null once cleared) and the task state.
   banner: AgentoBanner | null | undefined;
   task: AgentoTask | undefined;
+  // Requests that reached the bottom of http.fetch, in order.
+  http: HttpCall[];
   // What the bottom of tool.call answers per tool, instead of the plain `ok`: the tool's `result`.
   results: Record<string, unknown>;
 }
@@ -75,6 +91,7 @@ export function rig(on: On, o: RigOptions = {}): Rig {
     steps: [],
     spawns: [],
     tools: [],
+    http: [],
     usage: { in: 0, out: 1500, read: 100_000, write: 3000 },
     toolIsError: false,
     store: new Map(),
@@ -118,7 +135,17 @@ export function rig(on: On, o: RigOptions = {}): Rig {
     }
     return res;
   });
-  mock.env(on, { LANG: o.lang ?? 'en_US.UTF-8' });
+  mock.env(on, { LANG: o.lang ?? 'en_US.UTF-8', ...(o.brain ? { HOME: '/home/u' } : {}), ...(o.env ?? {}) });
+  on('http.fetch', async (_$, e, _next) => {
+    const call: HttpCall = { url: e.url, method: e.init?.method ?? 'GET', ...(e.init?.socketPath ? { socketPath: e.init.socketPath } : {}), ...(e.init?.body !== undefined ? { body: e.init.body } : {}) };
+    r.http.push(call);
+    const reply = o.brain ? o.brain(call) : 'refuse';
+    if (reply === 'hang') await new Promise(() => undefined);
+    if (reply === 'refuse') return { deny: 'connect ENOENT' };
+    const status = typeof reply === 'string' ? 200 : (reply.status ?? 200);
+    const text = typeof reply === 'string' ? reply : JSON.stringify(reply.json);
+    return { value: { status, ok: status >= 200 && status < 300, headers: {}, text } };
+  });
   const boom = (name: string): void => {
     if (o.throwOn?.includes(name)) throw new Error(`boom: ${name}`);
   };

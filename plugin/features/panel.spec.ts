@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LineageState } from '../core/cache.ts';
-import { bar, buildPanel, cacheHit, duration, foldDays, tierSteps, type PanelData } from './panel.ts';
+import { bar, buildPanel, classifierText, cacheHit, duration, foldDays, tierSteps, type PanelData } from './panel.ts';
 
 const NOW = 1_760_000_000_000;
 const cache: LineageState = { model: 'claude-opus-5-5', prefixTokens: 100_000, lastAt: NOW - 60_000, ttl: '1h' };
@@ -128,5 +128,22 @@ describe('panel helpers', () => {
     expect(f.saved).toEqual({ spawnRouting: 1, suggestions: 0.2, handoff: 0, autopilot: 0.4 });
     expect(f.hints).toEqual({ shown: 4, accepted: 2, dismissed: 0, auto: 2 });
     expect(f.loopSignals).toBe(2);
+  });
+});
+
+describe('classifierText: who classifies', () => {
+  const up = { status: 'up' as const, runId: 'run-7', backend: 'onnx', p50Ms: 3.2, checkedAt: NOW, socket: '/s' };
+  const text = (b: Parameters<typeof classifierText>[0], lang: 'ru' | 'en') => classifierText(b, lang).map((s) => s.text).join('');
+  it('the daemon, with its run and p50', () => {
+    expect(text(up, 'en')).toBe('brain run-7 · p50 3.2 ms');
+    expect(text({ ...up, p50Ms: 12.6 }, 'ru')).toBe('brain run-7 · p50 13 ms');
+  });
+  it('rules-v1, local: no daemon, off, or a daemon that serves only the rules', () => {
+    expect(text(undefined, 'ru')).toBe('rules-v1 · локально');
+    expect(text({ ...up, status: 'off' }, 'ru')).toBe('rules-v1 · локально');
+    expect(text({ ...up, runId: 'rules-v1' }, 'en')).toBe('rules-v1 · local');
+  });
+  it('a daemon that is down is said so', () => {
+    expect(text({ ...up, status: 'down' }, 'en')).toBe('rules-v1 · local  (brain unavailable)');
   });
 });

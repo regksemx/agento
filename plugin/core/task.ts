@@ -18,11 +18,27 @@ export interface TaskVerdict {
   effort: TaskEffort;
   confidence: number;
   reasons: string[];
+  // Who decided: `rules-v1` (the local rules; also what an absent value means) or `brain:<model_run_id>`.
+  classifier?: string;
+  // Why a trained classifier's answer was not used (`timeout`, `error`, `invalid`, `abstain`, `rules-v1`, `unavailable`).
+  fallback?: string;
+  // Only a trained classifier answers these: plan before coding; hand the exploring to a cheap subagent.
+  planFirst?: boolean;
+  delegateExplore?: boolean;
+  latencyMs?: number;
 }
+
+export const RULES_ID = 'rules-v1';
+
+// How the task began, in the training data's words: a new session, after /clear (or a compaction), after the cache went cold.
+export type StartKind = 'session' | 'clear' | 'cold';
 
 export interface TaskContext {
   contextTokens: number;
   isSessionStart: boolean;
+  startKind?: StartKind;
+  // Languages of the repository, when cheaply known.
+  languages?: readonly string[];
 }
 
 export interface TaskClassifier {

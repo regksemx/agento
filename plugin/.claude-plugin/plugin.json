@@ -59,6 +59,27 @@
         "ru",
         "en"
       ]
+    },
+    "brain": {
+      "type": "string",
+      "title": "Local classifier (brain)",
+      "description": "auto: at a task's start, ask the local agento-brain daemon which model and effort fit, if its socket answers; any problem and the built-in rules decide. off: always the built-in rules.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "off"
+      ]
+    },
+    "brainSocket": {
+      "type": "string",
+      "title": "Brain socket",
+      "description": "Path of the agento-brain unix socket. Empty: $AGENTO_HOME/brain.sock (AGENTO_HOME defaults to ~/.agento)."
+    },
+    "brainTimeoutMs": {
+      "type": "number",
+      "title": "Brain timeout (ms)",
+      "description": "The longest agento waits for the brain daemon before the built-in rules answer instead.",
+      "default": 400
     }
   }
 }
