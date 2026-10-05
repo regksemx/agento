@@ -3,6 +3,7 @@ import { loadCorpus, resolveProjectsDir } from './transcripts.ts';
 import { buildReport } from './audit/index.ts';
 import { detectColor, renderJson, renderMarkdown, renderTerminal } from './report/index.ts';
 import { buildDataset, renderDatasetSummary } from './dataset/index.ts';
+import { datasetJudgeCmd } from './dataset/judge/index.ts';
 
 const VERSION = '0.1.0';
 
@@ -11,6 +12,7 @@ const HELP = `agento — spend less of your Claude Code budget without losing qu
 Usage
   agento audit [options]     analyze local Claude Code transcripts
   agento dataset build [options]   build the training dataset (tasks.jsonl) from local transcripts
+  agento dataset judge [options]   L1 labels: a judge model reads each finished task (resumable)
   agento --version
 
 Audit options
@@ -25,6 +27,23 @@ Audit options
 Dataset build options (--dir, --project, --lang, --no-color as above)
   --since <all|30d|2w|YYYY-MM-DD>   default: all
   --out <file>        default: $AGENTO_HOME/dataset/tasks.jsonl (AGENTO_HOME defaults to ~/.agento)
+
+Dataset judge options (--lang, --no-color as above); input: $AGENTO_HOME/dataset/tasks.jsonl, output: $AGENTO_HOME/dataset/judge/<backend>-<model>.jsonl
+  --backend <openai|claude>   openai: any OpenAI-compatible chat endpoint (e.g. vLLM); claude: \`claude -p\` (spends your subscription limit)
+  --model <name>      model name for openai; haiku, sonnet or opus for claude
+  --base-url <url>    openai only, e.g. http://gpu-box:8000/v1
+  --api-key-env <VAR> openai only: environment variable that holds the API key
+  --structured        openai only: response_format json_schema (vLLM guided JSON); default: ask for JSON and parse it
+  --concurrency <N>   parallel requests (default: 8 for openai, 2 for claude)
+  --threshold <p>     L1 label = cheapest configuration with p >= threshold (default: 0.7), else opus·medium
+  --max-tasks <N>     judge at most N pending tasks (required for claude)
+  --timeout <sec>     per-request timeout (default: 120)
+  --retries <N>       openai: retries with backoff on network errors, 429 and 5xx (default: 3)
+  --tasks <file>      input file (default: $AGENTO_HOME/dataset/tasks.jsonl)
+  --out <file>        output file (default: see above)
+  --force             judge again tasks that already have a verdict
+  --yes               claude: do not ask for confirmation
+  --dry-run           print task count, token and cost estimates; call nothing
 `;
 
 interface Args {
@@ -53,7 +72,7 @@ function parseArgs(argv: string[]): Args {
   return { cmd, sub, flags };
 }
 
-const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out']);
+const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out', 'backend', 'base-url', 'model', 'api-key-env', 'concurrency', 'threshold', 'max-tasks', 'timeout', 'retries', 'tasks']);
 
 export function parseSince(v: string | undefined, now = Date.now()): number | undefined {
   if (v === undefined) return now - 30 * 86_400_000;
@@ -138,8 +157,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     await datasetBuildCmd(flags);
     return 0;
   }
+  if (cmd === 'dataset' && sub === 'judge') {
+    return datasetJudgeCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
+  }
   if (cmd === 'dataset') {
-    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build)\n\n${HELP}`);
+    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build, judge)\n\n${HELP}`);
     return 1;
   }
   process.stderr.write(`agento: unknown command "${cmd}"\n\n${HELP}`);
