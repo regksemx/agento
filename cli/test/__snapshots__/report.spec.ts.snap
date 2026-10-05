@@ -1,0 +1,1107 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderMarkdown > snapshot en 1`] = `
+"# ◆ agento audit
+
+> 30 days · 412 sessions · 12,408 requests  
+> \`~/.claude2/projects\` · API prices as of 2026-10-05 · 2026-10-05 17:02
+>
+> ⎿ Amounts are API-equivalent: a subscription charges nothing, the real constraint is the weekly limit.
+
+## Spend · **$317.20** *fact*
+
+*What your tokens cost at API list prices.*
+
+main thread: $272.80 · subagents: $44.40 (14%)
+
+| Model | Requests | Cost | Share |  |
+| --- | ---: | ---: | ---: | --- |
+| \`opus-5.5\` | 7,940 | $255.40 | 81% | \`████████████████████\` |
+| \`opus-5\` | 1,380 | $35.30 | 11% | \`██▊\` |
+| \`sonnet-5.5\` | 1,610 | $17.05 | 5% | \`█▍\` |
+| \`haiku-4.5\` | 1,478 | $9.45 | 3% | \`▊\` |
+
+daily: \`▁▃▃▄▄▄▁▁▃▄▅▅▃▁▁▄▅▅▄▃▁▁▄▆█▆▄▂▃▄\` Sep 6 → Oct 5
+
+**weekly** — on a subscription, watch your heaviest week
+
+| Week of | Cost |  |
+| --- | ---: | --- |
+| Aug 31 | $2.27 | \`▌\` |
+| Sep 7 | $60.26 | \`███████████▋\` |
+| Sep 14 | $65.94 | \`████████████▊\` |
+| Sep 21 | $71.62 | \`█████████████▉\` |
+| Sep 28 | $103.47 | \`████████████████████\` peak |
+| Oct 5 | $13.64 | \`██▋\` |
+
+**Projects**
+
+| Project | Sessions | Cost | Share |
+| --- | ---: | ---: | ---: |
+| \`~/Projects/agento\` | 131 | $118.40 | 37% |
+| \`~/Projects/billing-api\` | 88 | $74.20 | 23% |
+| \`~/Projects/web-dashboard\` | 74 | $52.90 | 17% |
+| \`~/Work/infra-terraform\` | 52 | $31.50 | 10% |
+| \`~/Projects/dotfiles\` | 38 | $21.30 | 7% |
+
+*2 more*
+
+**Effort by spend:** \`max\` 38% · \`xhigh\` 30% · \`high\` 22% · \`medium\` 8% · \`low\` 2%
+
+- fast mode: $12.80 (4%)
+- cost-state check: 288 of 301 sessions within ±10%, median deviation 2%, worst 17%
+
+## Buckets
+
+*What the bill is made of. Cache writes cost several times a read.*
+
+| Bucket | Cost | Share |
+| --- | ---: | ---: |
+| cache write | $131.50 | 41% |
+| cache read | $117.20 | 37% |
+| output | $62.40 | 20% |
+| input | $6.10 | 2% |
+
+## Cache
+
+*Share of context served from cache, and what misses cost.*
+
+**hit ratio:** 91% (main)
+
+**Losses from misses:** $27.10 *estimate*
+
+| Cause | Events | Cost |
+| --- | ---: | ---: |
+| TTL expired | 212 | $14.20 |
+| model switch | 48 | $6.30 |
+| compaction | 61 | $4.90 |
+| effort change | 9 | $0.90 |
+| unclear cause | 14 | $0.80 |
+
+## Cache TTL
+
+*How long the cache lives and how often your pauses outlast it.*
+
+- ● now: **5 minutes**
+- ○ suggested: **1 hour** — ≈ $11.40/mo *estimate*
+
+**gaps between requests**
+
+| Gap | Requests |  |
+| --- | ---: | --- |
+| <1m | 6,120 | \`████████████████████\` |
+| 1–5m | 2,980 | \`█████████▊\` |
+| 5–15m | 1,010 | \`███▎\` |
+| 15–60m | 640 | \`██▏\` |
+| >60m | 380 | \`█▎\` |
+
+> The 2× write premium pays for itself: 1,020 pauses of 5 to 60 minutes cost more.
+
+## Tasks
+
+*Light tasks on expensive models, and effort you did not need.*
+
+1,034 tasks, 540 of them light (52%)
+
+- light tasks on Opus/Fable: **392** · $71.80
+- on Sonnet this would be ≈ $33.60, difference **−$38.20** *estimate*
+- effort max/xhigh on light tasks: **112**
+
+**costliest light tasks**
+
+| Task | Model | Cost |
+| --- | --- | ---: |
+| fix the typo in the README heading and update the build badge, the link broke a… | \`opus-5.5·max\` | $4.62 |
+| rename the userId variable to accountId across the billing module | \`opus-5.5·xhigh\` | $3.87 |
+| which node version does CI use and where is it set? | \`opus-5·max\` | $3.31 |
+
+## Subagents
+
+*Background agents: own cache, so any model is safe to pick.*
+
+14% of spend · 2,204 calls · $44.40
+
+\`opus-5.5\` $20.10 · \`sonnet-5.5\` $15.00 · \`haiku-4.5\` $9.30
+
+**by type**
+
+| Type | Requests | Cost |
+| --- | ---: | ---: |
+| \`general-purpose\` | 1,210 | $27.80 |
+| \`Explore\` | 640 | $9.40 |
+| \`workflow-subagent\` | 310 | $5.90 |
+| \`fork\` | 44 | $1.30 |
+
+- 640 Explore (or read-only) subagents on pricey models cost $25.60, on haiku ≈ $5.60 — difference **−$20.00** *estimate*
+- 95 general-purpose subagents on Opus/Fable cost $18.40, on Sonnet ≈ $9.10 — upper bound, difference **−$9.30** *estimate*
+
+## Dead context
+
+*Re-reading old context after the topic changed.*
+
+37 times old context was re-read after a topic change: up to ≈ **$14.60** if you had started with /clear after each topic change *estimate*
+
+- /clear or a new session before a new topic, once the prefix passes 60k
+
+## Setup
+
+*The fixed prefix you pay for at every session start.*
+
+startup prefix ≈ 23.4k tokens · **$41.30** over the period *fact*
+
+| File | Size | Tokens | Read per month |
+| --- | ---: | ---: | ---: |
+| \`~/Projects/billing-api/CLAUDE.md\` | 60.4 KB | ≈ 17.2k | $29.40/mo |
+| \`~/Projects/agento/CLAUDE.md\` | 9.2 KB | ≈ 2.6k | $6.10/mo |
+| \`~/.claude2/CLAUDE.md\` | 1.1 KB | ≈ 306 | $0.70/mo |
+
+*tokens ≈ bytes / 3.6; right: cache-read cost per 30 days*
+
+## Model switch
+
+*What switching the model mid-task would have cost.*
+
+| switch | prefix | penalty | gain/step | break-even |
+| --- | ---: | ---: | ---: | ---: |
+| \`opus-5.5\` → \`sonnet-5.5\` | 100k | $0.23 | +$0.022 | 11 steps |
+| \`opus-5.5\` → \`haiku-4.5\` | 100k | $0.11 | +$0.031 | 4 steps |
+| \`sonnet-5.5\` → \`opus-5.5\` | 60k | $0.15 | −$0.022 | never |
+| \`opus-5.5\` → \`opus-5\` | 60k | $0.36 | −$0.010 | never |
+
+> agento never switches the model mid-task: the cache does not carry over, so the penalty is a full prefix rewrite. The model is picked at task start, after /clear and in subagents.
+
+## Top actions
+
+1. **Light tasks on Sonnet·medium instead of Opus** — ≈ $38.20/mo *estimate*  
+   392 tasks fit into 8 requests and 2 edited files. Upper bound: Sonnet will not handle every one.
+2. **Explore subagents on haiku** — ≈ $20.00/mo *estimate*  
+   640 code searches ran on Opus and Sonnet: reading files does not need a strong model.
+3. **1-hour cache instead of 5 minutes** — ≈ $11.40/mo *estimate*  
+   You had 380 pauses over an hour and 640 over 15 minutes: each one paid for a context rewrite.
+4. **/clear before a new topic (prefix over 60k)** — ≈ $11.00/mo *estimate*  
+   37 times a new topic started in a long context: up to ≈ $14.60/mo if you had started with /clear after each change.
+5. **general-purpose subagents on Sonnet** — ≈ $9.30/mo *estimate*  
+   95 general-purpose subagents ran on Opus/Fable; upper bound: Sonnet will not handle every such task.
+
+*together up to ≈ $89.90/mo (28% of monthly spend); estimates overlap, so this is an upper bound.*
+
+---
+
+<sub>14,902 duplicate rows dropped · 3 malformed lines · 21 requests on unknown models not counted · Computed locally, nothing was sent anywhere.</sub>
+"
+`;
+
+exports[`renderMarkdown > snapshot ru 1`] = `
+"# ◆ agento audit
+
+> 30 дней · 412 сессий · 12 408 запросов  
+> \`~/.claude2/projects\` · цены API на 2026-10-05 · 2026-10-05 17:02
+>
+> ⎿ Суммы в API-эквиваленте: по подписке деньги не списываются, реальный предел — недельный лимит.
+
+## Расход · **$317.20** *факт*
+
+*Во что обошлись токены по прайсу API.*
+
+основной поток: $272.80 · субагенты: $44.40 (14%)
+
+| Модель | Запросов | Расход | Доля |  |
+| --- | ---: | ---: | ---: | --- |
+| \`opus-5.5\` | 7 940 | $255.40 | 81% | \`████████████████████\` |
+| \`opus-5\` | 1 380 | $35.30 | 11% | \`██▊\` |
+| \`sonnet-5.5\` | 1 610 | $17.05 | 5% | \`█▍\` |
+| \`haiku-4.5\` | 1 478 | $9.45 | 3% | \`▊\` |
+
+по дням: \`▁▃▃▄▄▄▁▁▃▄▅▅▃▁▁▄▅▅▄▃▁▁▄▆█▆▄▂▃▄\` 6 сен → 5 окт
+
+**по неделям** — для подписки смотрите на самую тяжёлую неделю
+
+| Неделя с | Расход |  |
+| --- | ---: | --- |
+| 31 авг | $2.27 | \`▌\` |
+| 7 сен | $60.26 | \`███████████▋\` |
+| 14 сен | $65.94 | \`████████████▊\` |
+| 21 сен | $71.62 | \`█████████████▉\` |
+| 28 сен | $103.47 | \`████████████████████\` пик |
+| 5 окт | $13.64 | \`██▋\` |
+
+**Проекты**
+
+| Проект | Сессий | Расход | Доля |
+| --- | ---: | ---: | ---: |
+| \`~/Projects/agento\` | 131 | $118.40 | 37% |
+| \`~/Projects/billing-api\` | 88 | $74.20 | 23% |
+| \`~/Projects/web-dashboard\` | 74 | $52.90 | 17% |
+| \`~/Work/infra-terraform\` | 52 | $31.50 | 10% |
+| \`~/Projects/dotfiles\` | 38 | $21.30 | 7% |
+
+*ещё 2*
+
+**Effort по расходу:** \`max\` 38% · \`xhigh\` 30% · \`high\` 22% · \`medium\` 8% · \`low\` 2%
+
+- fast mode: $12.80 (4%)
+- сверка с cost-state: 288 из 301 сессий в пределах ±10%, медианное отклонение 2%, худшее 17%
+
+## Корзины
+
+*Из чего складывается счёт. Запись в кэш дороже чтения в разы.*
+
+| Корзина | Расход | Доля |
+| --- | ---: | ---: |
+| запись кэша | $131.50 | 41% |
+| чтение кэша | $117.20 | 37% |
+| output | $62.40 | 20% |
+| ввод | $6.10 | 2% |
+
+## Кэш
+
+*Доля контекста, прочитанного из кэша, и цена промахов.*
+
+**hit ratio:** 91% (main)
+
+**Потери на промахах:** $27.10 *оценка*
+
+| Причина | Случаев | Расход |
+| --- | ---: | ---: |
+| истёк TTL | 212 | $14.20 |
+| смена модели | 48 | $6.30 |
+| компакция | 61 | $4.90 |
+| смена effort | 9 | $0.90 |
+| причина неясна | 14 | $0.80 |
+
+## TTL кэша
+
+*Как долго живёт кэш и как часто вы делаете паузы дольше.*
+
+- ● сейчас: **5 минут**
+- ○ предлагаем: **1 час** — ≈ $11.40/мес *оценка*
+
+**паузы между запросами**
+
+| Пауза | Запросов |  |
+| --- | ---: | --- |
+| <1m | 6 120 | \`████████████████████\` |
+| 1–5m | 2 980 | \`█████████▊\` |
+| 5–15m | 1 010 | \`███▎\` |
+| 15–60m | 640 | \`██▏\` |
+| >60m | 380 | \`█▎\` |
+
+> Наценка 2× на запись окупается: 1 020 пауз от 5 до 60 минут стоили больше.
+
+## Задачи
+
+*Лёгкие задачи на дорогих моделях и лишний effort.*
+
+1 034 задачи, из них лёгких 540 (52%)
+
+- лёгкие на Opus/Fable: **392** · $71.80
+- на Sonnet вышло бы ≈ $33.60, разница **−$38.20** *оценка*
+- effort max/xhigh на лёгких: **112**
+
+**самые дорогие лёгкие**
+
+| Задача | Модель | Расход |
+| --- | --- | ---: |
+| поправь опечатку в заголовке README и обнови бейдж сборки, ссылка поехала после… | \`opus-5.5·max\` | $4.62 |
+| переименуй переменную userId в accountId во всём модуле биллинга | \`opus-5.5·xhigh\` | $3.87 |
+| какая версия node в CI и где это задаётся? | \`opus-5·max\` | $3.31 |
+
+## Субагенты
+
+*Фоновые агенты: у них свой кэш, модель выбирается свободно.*
+
+14% расхода · 2 204 вызова · $44.40
+
+\`opus-5.5\` $20.10 · \`sonnet-5.5\` $15.00 · \`haiku-4.5\` $9.30
+
+**по типам**
+
+| Тип | Запросов | Расход |
+| --- | ---: | ---: |
+| \`general-purpose\` | 1 210 | $27.80 |
+| \`Explore\` | 640 | $9.40 |
+| \`workflow-subagent\` | 310 | $5.90 |
+| \`fork\` | 44 | $1.30 |
+
+- 640 Explore-субагентов (или только чтение) на дорогих моделях стоили $25.60, на haiku ≈ $5.60 — разница **−$20.00** *оценка*
+- 95 general-purpose субагентов на Opus/Fable стоили $18.40, на Sonnet ≈ $9.10 — верхняя оценка, разница **−$9.30** *оценка*
+
+## Мёртвый контекст
+
+*Перечитывание старого контекста после смены темы.*
+
+37 раз старый контекст перечитывался после смены темы: до ≈ **$14.60**, если бы после смены темы начинали с /clear *оценка*
+
+- /clear или новая сессия перед новой темой, пока префикс больше 60k
+
+## Настройка
+
+*Фиксированный префикс, который платится на каждом старте.*
+
+стартовый префикс ≈ 23.4k токенов · **$41.30** за период *факт*
+
+| Файл | Размер | Токенов | Чтение в месяц |
+| --- | ---: | ---: | ---: |
+| \`~/Projects/billing-api/CLAUDE.md\` | 60.4 КБ | ≈ 17.2k | $29.40/мес |
+| \`~/Projects/agento/CLAUDE.md\` | 9.2 КБ | ≈ 2.6k | $6.10/мес |
+| \`~/.claude2/CLAUDE.md\` | 1.1 КБ | ≈ 306 | $0.70/мес |
+
+*токены ≈ байты / 3,6; справа цена чтения из кэша за 30 дней*
+
+## Переключение модели
+
+*Что стоило бы переключение модели посреди задачи.*
+
+| переход | префикс | штраф | за шаг | окупится |
+| --- | ---: | ---: | ---: | ---: |
+| \`opus-5.5\` → \`sonnet-5.5\` | 100k | $0.23 | +$0.022 | 11 шагов |
+| \`opus-5.5\` → \`haiku-4.5\` | 100k | $0.11 | +$0.031 | 4 шага |
+| \`sonnet-5.5\` → \`opus-5.5\` | 60k | $0.15 | −$0.022 | никогда |
+| \`opus-5.5\` → \`opus-5\` | 60k | $0.36 | −$0.010 | никогда |
+
+> agento не меняет модель посреди задачи: кэш не переносится, штраф это полная перезапись префикса. Модель выбирается на старте задачи, после /clear и в субагентах.
+
+## Топ действий
+
+1. **Лёгкие задачи на Sonnet·medium вместо Opus** — ≈ $38.20/мес *оценка*  
+   392 задачи уложились в 8 запросов и 2 файла правок. Верхняя оценка: Sonnet справится не во всех.
+2. **Explore-субагенты на haiku** — ≈ $20.00/мес *оценка*  
+   640 поисков по коду шли на Opus и Sonnet: чтение файлов не требует сильной модели.
+3. **Кэш на 1 час вместо 5 минут** — ≈ $11.40/мес *оценка*  
+   У вас 380 пауз дольше часа и 640 от 15 минут: каждая стоила перезаписи контекста.
+4. **/clear перед новой темой (префикс больше 60k)** — ≈ $11.00/мес *оценка*  
+   37 раз новая тема начиналась в длинном контексте: до ≈ $14.60/мес, если бы после смены темы начинали с /clear.
+5. **Субагентов general-purpose — на Sonnet** — ≈ $9.30/мес *оценка*  
+   95 субагентов general-purpose работали на Opus/Fable; верхняя оценка: часть таких задач Sonnet не потянет.
+
+*вместе до ≈ $89.90/мес (28% месячного расхода); оценки пересекаются, это верхняя граница.*
+
+---
+
+<sub>14 902 дубля отброшено · 3 битые строки · 21 запрос неизвестных моделей не учтено · Всё посчитано локально, ничего не отправлялось.</sub>
+"
+`;
+
+exports[`renderTerminal > snapshot en none 64 1`] = `
+"  ◆ agento audit                              2026-10-05 17:02
+    30 days · 412 sessions · 12,408 requests
+    ~/.claude2/projects · API prices as of 2026-10-05
+
+    ⎿ Amounts are API-equivalent: a subscription charges
+      nothing, the real constraint is the weekly limit.
+
+  Spend ───────────────────────────────────────── $317.20 fact
+  What your tokens cost at API list prices.
+
+    main thread $272.80 · subagents $44.40 (14%)
+
+    opus-5.5   █████████████████████████████████ $255.40  81%
+    opus-5     ████▌                              $35.30  11%
+    sonnet-5.5 ██▎                                $17.05   5%
+    haiku-4.5  █▎                                  $9.45   3%
+
+    daily      ▁▃▃▄▄▄▁▁▃▄▅▅▃▁▁▄▅▅▄▃▁▁▄▆█▆▄▂▃▄  Sep 6 → Oct 5
+               peak $27.29 · Sep 30 · ⌀ $10.57/day
+
+    weekly · on a subscription, watch your heaviest week
+    Aug 31 ▉                                        $2.27
+    Sep 7  ██████████████████████▏                 $60.26
+    Sep 14 ████████████████████████▎               $65.94
+    Sep 21 ██████████████████████████▎             $71.62
+    Sep 28 ██████████████████████████████████████ $103.47 peak
+    Oct 5  █████                                   $13.64
+
+    Projects
+    ~/Projects/agento                            $118.40  37%
+    ~/Projects/billing-api                        $74.20  23%
+    ~/Projects/web-dashboard                      $52.90  17%
+    4 more                                        $71.70  23%
+
+    Effort by spend
+    max 38% · xhigh 30% · high 22% · medium 8% · low 2%
+
+    ⎿ fast mode: $12.80 (4%)
+    ⎿ cost-state check: 288 of 301 sessions within ±10%,
+      median deviation 2%, worst 17%
+
+  Buckets ────────────────────────────────────────────────────
+  What the bill is made of. Cache writes cost several times a
+  read.
+
+    ████████████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░
+
+    █ cache write  $131.50  41%
+    ▓ cache read   $117.20  37%
+    ▒ output        $62.40  20%
+    ░ input          $6.10   2%
+
+  Cache ──────────────────────────────────────────────────────
+  Share of context served from cache, and what misses cost.
+
+    hit ratio  91% ███████████████████████████████████████▎╌╌╌
+
+    Losses from misses                         $27.10 estimate
+    TTL expired   ×212  $14.20 ████████████████████████████
+    model switch   ×48   $6.30 ████████████▍
+    compaction     ×61   $4.90 █████████▋
+    effort change   ×9   $0.90 █▊
+    unclear cause  ×14   $0.80 █▋
+
+  Cache TTL ──────────────────────────────────────────────────
+  How long the cache lives and how often your pauses outlast
+  it.
+
+    ● now 5 minutes    ○ suggested 1 hour
+
+    gaps between requests
+    <1m    █████████████████████████████████████████████ 6,120
+    1–5m   █████████████████████▉                        2,980
+    5–15m  ███████▍                                      1,010
+    15–60m ████▊                                           640
+    >60m   ██▊                                             380
+
+    saving                                ≈ $11.40/mo estimate
+    ⎿ The 2× write premium pays for itself: 1,020 pauses of 5
+      to 60 minutes cost more.
+
+  Tasks ──────────────────────────────────────────────────────
+  Light tasks on expensive models, and effort you did not
+  need.
+
+    1,034 tasks, 540 of them light (52%)
+
+    light tasks on Opus/Fable                      392  $71.80
+    ⎿ on Sonnet this would be ≈ $33.60, difference
+      −$38.20 estimate
+    effort max/xhigh on light tasks                        112
+
+    costliest light tasks
+    ⎿ “fix the typo in the README head…”  $4.62 · opus-5.5·max
+    ⎿ “rename the userId variable to…”  $3.87 · opus-5.5·xhigh
+    ⎿ “which node version does CI use an…”  $3.31 · opus-5·max
+
+  Subagents ──────────────────────────────────────────────────
+  Background agents: own cache, so any model is safe to pick.
+
+    14% of spend · 2,204 calls · $44.40
+    ● opus-5.5 $20.10   ● sonnet-5.5 $15.00
+    ● haiku-4.5 $9.30
+
+    by type
+    general-purpose                            1,210  $27.80
+    Explore                                      640   $9.40
+    workflow-subagent                            310   $5.90
+    fork                                          44   $1.30
+
+    ⎿ 640 Explore (or read-only) subagents on pricey models
+      cost $25.60, on haiku ≈ $5.60,
+      difference −$20.00 estimate
+    ⎿ 95 general-purpose subagents on Opus/Fable cost $18.40,
+      on Sonnet ≈ $9.10, upper bound,
+      difference −$9.30 estimate
+
+  Dead context ───────────────────────────────────────────────
+  Re-reading old context after the topic changed.
+
+    37 times old context was re-read after a topic change: up
+    to ≈ $14.60 if you had started with /clear after each
+    topic change estimate
+    ⎿ /clear or a new session before a new topic, once the
+      prefix passes 60k
+
+  Setup ──────────────────────────────────────────────────────
+  The fixed prefix you pay for at every session start.
+
+    startup prefix ≈ 23.4k tokens ·
+    $41.30 over the period fact
+
+    ⎿ …ects/billing-api/CLAUDE.md  60.4 KB  ≈ 17.2k  $29.40/mo
+    ⎿ ~/Projects/agento/CLAUDE.md   9.2 KB   ≈ 2.6k   $6.10/mo
+    ⎿ ~/.claude2/CLAUDE.md          1.1 KB    ≈ 306   $0.70/mo
+    ⎿ tokens ≈ bytes / 3.6; right: cache-read cost per 30 days
+    ⎿ CLAUDE.md is read on every request: after a cache miss
+      you pay for it again
+
+  Model switch ───────────────────────────────────────────────
+  What switching the model mid-task would have cost.
+
+    switch              prefix  penalty  gain/step  break-even
+    ──────────────────────────────────────────────────────────
+    opus-5.5 → sonnet…    100k    $0.23    +$0.022    11 steps
+    opus-5.5 → haiku-…    100k    $0.11    +$0.031     4 steps
+    sonnet-5.5 → opus…     60k    $0.15    −$0.022       never
+    opus-5.5 → opus-5      60k    $0.36    −$0.010       never
+
+    ⎿ agento never switches the model mid-task: the cache does
+      not carry over, so the penalty is a full prefix rewrite.
+      The model is picked at task start, after /clear and in
+      subagents.
+
+  ╭─ Top actions ────────────────────────────────────────────╮
+  │                                                          │
+  │ 1  Light tasks on Sonnet·medium instead of   ≈ $38.20/mo │
+  │    Opus                                         estimate │
+  │    392 tasks fit into 8 requests and 2 edited files.     │
+  │    Upper bound: Sonnet will not handle every one.        │
+  │                                                          │
+  │ 2  Explore subagents on haiku                ≈ $20.00/mo │
+  │    640 code searches ran on Opus and            estimate │
+  │    Sonnet: reading files does not need a strong model.   │
+  │                                                          │
+  │ 3  1-hour cache instead of 5 minutes         ≈ $11.40/mo │
+  │    You had 380 pauses over an hour and 640      estimate │
+  │    over 15 minutes: each one paid for a context rewrite. │
+  │                                                          │
+  │ 4  /clear before a new topic (prefix over    ≈ $11.00/mo │
+  │    60k)                                         estimate │
+  │    37 times a new topic started in a long context: up to │
+  │    ≈ $14.60/mo if you had started with /clear after each │
+  │    change.                                               │
+  │                                                          │
+  │ 5  general-purpose subagents on Sonnet        ≈ $9.30/mo │
+  │    95 general-purpose subagents ran on          estimate │
+  │    Opus/Fable; upper bound: Sonnet will not handle every │
+  │    such task.                                            │
+  │                                                          │
+  │ ──────────────────────────────────────────────────────── │
+  │ together up to ≈ $89.90/mo (28% of monthly spend) ·      │
+  │ estimates overlap, so this is an upper bound             │
+  │                                                          │
+  ╰──────────────────────────────────────────────────────────╯
+
+  14,902 duplicate rows dropped · 3 malformed lines · 21
+  requests on unknown models not counted
+  Computed locally, nothing was sent anywhere."
+`;
+
+exports[`renderTerminal > snapshot en none 100 1`] = `
+"  ◆ agento audit                                                                  2026-10-05 17:02
+    30 days · 412 sessions · 12,408 requests
+    ~/.claude2/projects · API prices as of 2026-10-05
+
+    ⎿ Amounts are API-equivalent: a subscription charges nothing, the real constraint is the
+      weekly limit.
+
+  Spend ───────────────────────────────────────────────────────────────────────────── $317.20 fact
+  What your tokens cost at API list prices.
+
+    main thread $272.80 · subagents $44.40 (14%)
+
+    opus-5.5   █████████████████████████████████████████████████████████████████████ $255.40  81%
+    opus-5     █████████▌                                                             $35.30  11%
+    sonnet-5.5 ████▋                                                                  $17.05   5%
+    haiku-4.5  ██▌                                                                     $9.45   3%
+
+    daily      ▁▃▃▄▄▄▁▁▃▄▅▅▃▁▁▄▅▅▄▃▁▁▄▆█▆▄▂▃▄  Sep 6 → Oct 5
+               peak $27.29 · Sep 30 · ⌀ $10.57/day
+
+    weekly · on a subscription, watch your heaviest week
+    Aug 31 █▋                                                                           $2.27
+    Sep 7  ███████████████████████████████████████████▏                                $60.26
+    Sep 14 ███████████████████████████████████████████████▏                            $65.94
+    Sep 21 ███████████████████████████████████████████████████▎                        $71.62
+    Sep 28 ██████████████████████████████████████████████████████████████████████████ $103.47 peak
+    Oct 5  █████████▊                                                                  $13.64
+
+    Projects
+    ~/Projects/agento                                                                $118.40  37%
+    ~/Projects/billing-api                                                            $74.20  23%
+    ~/Projects/web-dashboard                                                          $52.90  17%
+    4 more                                                                            $71.70  23%
+
+    Effort by spend
+    max 38% · xhigh 30% · high 22% · medium 8% · low 2%
+
+    ⎿ fast mode: $12.80 (4%)
+    ⎿ cost-state check: 288 of 301 sessions within ±10%, median deviation 2%, worst 17%
+
+  Buckets ────────────────────────────────────────────────────────────────────────────────────────
+  What the bill is made of. Cache writes cost several times a read.
+
+    ███████████████████████████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░
+
+    █ cache write  $131.50  41%
+    ▓ cache read   $117.20  37%
+    ▒ output        $62.40  20%
+    ░ input          $6.10   2%
+
+  Cache ──────────────────────────────────────────────────────────────────────────────────────────
+  Share of context served from cache, and what misses cost.
+
+    hit ratio  91% ████████████████████████████████████████████████████████████████████████▏╌╌╌╌╌╌
+
+    Losses from misses                                                             $27.10 estimate
+    TTL expired   ×212  $14.20 ████████████████████████████████████████████████████████████████
+    model switch   ×48   $6.30 ████████████████████████████▍
+    compaction     ×61   $4.90 ██████████████████████▏
+    effort change   ×9   $0.90 ████
+    unclear cause  ×14   $0.80 ███▋
+
+  Cache TTL ──────────────────────────────────────────────────────────────────────────────────────
+  How long the cache lives and how often your pauses outlast it.
+
+    ● now 5 minutes    ○ suggested 1 hour
+
+    gaps between requests
+    <1m    █████████████████████████████████████████████████████████████████████████████████ 6,120
+    1–5m   ███████████████████████████████████████▌                                          2,980
+    5–15m  █████████████▍                                                                    1,010
+    15–60m ████████▌                                                                           640
+    >60m   █████                                                                               380
+
+    saving                                                                    ≈ $11.40/mo estimate
+    ⎿ The 2× write premium pays for itself: 1,020 pauses of 5 to 60 minutes cost more.
+
+  Tasks ──────────────────────────────────────────────────────────────────────────────────────────
+  Light tasks on expensive models, and effort you did not need.
+
+    1,034 tasks, 540 of them light (52%)
+
+    light tasks on Opus/Fable                                                          392  $71.80
+    ⎿ on Sonnet this would be ≈ $33.60, difference −$38.20 estimate
+    effort max/xhigh on light tasks                                                            112
+
+    costliest light tasks
+    ⎿ “fix the typo in the README heading and update the build badge, the …”  $4.62 · opus-5.5·max
+    ⎿ “rename the userId variable to accountId across the billing module”   $3.87 · opus-5.5·xhigh
+    ⎿ “which node version does CI use and where is it set?”                     $3.31 · opus-5·max
+
+  Subagents ──────────────────────────────────────────────────────────────────────────────────────
+  Background agents: own cache, so any model is safe to pick.
+
+    14% of spend · 2,204 calls · $44.40
+    ● opus-5.5 $20.10   ● sonnet-5.5 $15.00   ● haiku-4.5 $9.30
+
+    by type
+    general-purpose                                                                1,210  $27.80
+    Explore                                                                          640   $9.40
+    workflow-subagent                                                                310   $5.90
+    fork                                                                              44   $1.30
+
+    ⎿ 640 Explore (or read-only) subagents on pricey models cost $25.60, on haiku ≈ $5.60,
+      difference −$20.00 estimate
+    ⎿ 95 general-purpose subagents on Opus/Fable cost $18.40, on Sonnet ≈ $9.10, upper bound,
+      difference −$9.30 estimate
+
+  Dead context ───────────────────────────────────────────────────────────────────────────────────
+  Re-reading old context after the topic changed.
+
+    37 times old context was re-read after a topic change: up to ≈ $14.60 if you had started with
+    /clear after each topic change estimate
+    ⎿ /clear or a new session before a new topic, once the prefix passes 60k
+
+  Setup ──────────────────────────────────────────────────────────────────────────────────────────
+  The fixed prefix you pay for at every session start.
+
+    startup prefix ≈ 23.4k tokens · $41.30 over the period fact
+
+    ⎿ ~/Projects/billing-api/CLAUDE.md                                 60.4 KB  ≈ 17.2k  $29.40/mo
+    ⎿ ~/Projects/agento/CLAUDE.md                                       9.2 KB   ≈ 2.6k   $6.10/mo
+    ⎿ ~/.claude2/CLAUDE.md                                              1.1 KB    ≈ 306   $0.70/mo
+    ⎿ tokens ≈ bytes / 3.6; right: cache-read cost per 30 days
+    ⎿ CLAUDE.md is read on every request: after a cache miss you pay for it again
+
+  Model switch ───────────────────────────────────────────────────────────────────────────────────
+  What switching the model mid-task would have cost.
+
+    switch                                                  prefix  penalty  gain/step  break-even
+    ──────────────────────────────────────────────────────────────────────────────────────────────
+    opus-5.5 → sonnet-5.5                                     100k    $0.23    +$0.022    11 steps
+    opus-5.5 → haiku-4.5                                      100k    $0.11    +$0.031     4 steps
+    sonnet-5.5 → opus-5.5                                      60k    $0.15    −$0.022       never
+    opus-5.5 → opus-5                                          60k    $0.36    −$0.010       never
+
+    ⎿ agento never switches the model mid-task: the cache does not carry over, so the penalty is a
+      full prefix rewrite. The model is picked at task start, after /clear and in subagents.
+
+  ╭─ Top actions ────────────────────────────────────────────────────────────────────────────────╮
+  │                                                                                              │
+  │ 1  Light tasks on Sonnet·medium instead of Opus                                  ≈ $38.20/mo │
+  │    392 tasks fit into 8 requests and 2 edited files. Upper bound: Sonnet will       estimate │
+  │    not handle every one.                                                                     │
+  │                                                                                              │
+  │ 2  Explore subagents on haiku                                                    ≈ $20.00/mo │
+  │    640 code searches ran on Opus and Sonnet: reading files does not need a          estimate │
+  │    strong model.                                                                             │
+  │                                                                                              │
+  │ 3  1-hour cache instead of 5 minutes                                             ≈ $11.40/mo │
+  │    You had 380 pauses over an hour and 640 over 15 minutes: each one paid for a     estimate │
+  │    context rewrite.                                                                          │
+  │                                                                                              │
+  │ 4  /clear before a new topic (prefix over 60k)                                   ≈ $11.00/mo │
+  │    37 times a new topic started in a long context: up to ≈ $14.60/mo if you had     estimate │
+  │    started with /clear after each change.                                                    │
+  │                                                                                              │
+  │ 5  general-purpose subagents on Sonnet                                            ≈ $9.30/mo │
+  │    95 general-purpose subagents ran on Opus/Fable; upper bound: Sonnet will not     estimate │
+  │    handle every such task.                                                                   │
+  │                                                                                              │
+  │ ──────────────────────────────────────────────────────────────────────────────────────────── │
+  │ together up to ≈ $89.90/mo (28% of monthly spend) · estimates overlap, so this is an upper   │
+  │ bound                                                                                        │
+  │                                                                                              │
+  ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  14,902 duplicate rows dropped · 3 malformed lines · 21 requests on unknown models not counted
+  Computed locally, nothing was sent anywhere."
+`;
+
+exports[`renderTerminal > snapshot ru none 64 1`] = `
+"  ◆ agento audit                              2026-10-05 17:02
+    30 дней · 412 сессий · 12 408 запросов
+    ~/.claude2/projects · цены API на 2026-10-05
+
+    ⎿ Суммы в API-эквиваленте: по подписке деньги не
+      списываются, реальный предел — недельный лимит.
+
+  Расход ──────────────────────────────────────── $317.20 факт
+  Во что обошлись токены по прайсу API.
+
+    основной поток $272.80 · субагенты $44.40 (14%)
+
+    opus-5.5   █████████████████████████████████ $255.40  81%
+    opus-5     ████▌                              $35.30  11%
+    sonnet-5.5 ██▎                                $17.05   5%
+    haiku-4.5  █▎                                  $9.45   3%
+
+    по дням    ▁▃▃▄▄▄▁▁▃▄▅▅▃▁▁▄▅▅▄▃▁▁▄▆█▆▄▂▃▄  6 сен → 5 окт
+               пик $27.29 · 30 сен · ⌀ $10.57/день
+
+    по неделям · для подписки смотрите на самую тяжёлую неделю
+    31 авг ▉                                         $2.27
+    7 сен  ██████████████████████▊                  $60.26
+    14 сен ████████████████████████▉                $65.94
+    21 сен ███████████████████████████              $71.62
+    28 сен ███████████████████████████████████████ $103.47 пик
+    5 окт  █████▏                                   $13.64
+
+    Проекты
+    ~/Projects/agento                            $118.40  37%
+    ~/Projects/billing-api                        $74.20  23%
+    ~/Projects/web-dashboard                      $52.90  17%
+    ещё 4                                         $71.70  23%
+
+    Effort по расходу
+    max 38% · xhigh 30% · high 22% · medium 8% · low 2%
+
+    ⎿ fast mode: $12.80 (4%)
+    ⎿ сверка с cost-state: 288 из 301 сессий в пределах ±10%,
+      медианное отклонение 2%, худшее 17%
+
+  Корзины ────────────────────────────────────────────────────
+  Из чего складывается счёт. Запись в кэш дороже чтения в
+  разы.
+
+    ████████████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒░
+
+    █ запись кэша  $131.50  41%
+    ▓ чтение кэша  $117.20  37%
+    ▒ output        $62.40  20%
+    ░ ввод           $6.10   2%
+
+  Кэш ────────────────────────────────────────────────────────
+  Доля контекста, прочитанного из кэша, и цена промахов.
+
+    hit ratio  91% ███████████████████████████████████████▎╌╌╌
+
+    Потери на промахах                           $27.10 оценка
+    истёк TTL      ×212  $14.20 ███████████████████████████
+    смена модели    ×48   $6.30 ████████████
+    компакция       ×61   $4.90 █████████▍
+    смена effort     ×9   $0.90 █▊
+    причина неясна  ×14   $0.80 █▌
+
+  TTL кэша ───────────────────────────────────────────────────
+  Как долго живёт кэш и как часто вы делаете паузы дольше.
+
+    ● сейчас 5 минут    ○ предлагаем 1 час
+
+    паузы между запросами
+    <1m    █████████████████████████████████████████████ 6 120
+    1–5m   █████████████████████▉                        2 980
+    5–15m  ███████▍                                      1 010
+    15–60m ████▊                                           640
+    >60m   ██▊                                             380
+
+    экономия                               ≈ $11.40/мес оценка
+    ⎿ Наценка 2× на запись окупается: 1 020 пауз от 5 до 60
+      минут стоили больше.
+
+  Задачи ─────────────────────────────────────────────────────
+  Лёгкие задачи на дорогих моделях и лишний effort.
+
+    1 034 задачи, из них лёгких 540 (52%)
+
+    лёгкие на Opus/Fable                           392  $71.80
+    ⎿ на Sonnet вышло бы ≈ $33.60, разница −$38.20 оценка
+    effort max/xhigh на лёгких                             112
+
+    самые дорогие лёгкие
+    ⎿ «поправь опечатку в заголовке RE…»  $4.62 · opus-5.5·max
+    ⎿ «переименуй переменную userId …»  $3.87 · opus-5.5·xhigh
+    ⎿ «какая версия node в CI и где это …»  $3.31 · opus-5·max
+
+  Субагенты ──────────────────────────────────────────────────
+  Фоновые агенты: у них свой кэш, модель выбирается свободно.
+
+    14% расхода · 2 204 вызова · $44.40
+    ● opus-5.5 $20.10   ● sonnet-5.5 $15.00
+    ● haiku-4.5 $9.30
+
+    по типам
+    general-purpose                            1 210  $27.80
+    Explore                                      640   $9.40
+    workflow-subagent                            310   $5.90
+    fork                                          44   $1.30
+
+    ⎿ 640 Explore-субагентов (или только чтение) на дорогих
+      моделях стоили $25.60, на haiku ≈ $5.60,
+      разница −$20.00 оценка
+    ⎿ 95 general-purpose субагентов на Opus/Fable стоили
+      $18.40, на Sonnet ≈ $9.10, верхняя оценка,
+      разница −$9.30 оценка
+
+  Мёртвый контекст ───────────────────────────────────────────
+  Перечитывание старого контекста после смены темы.
+
+    37 раз старый контекст перечитывался после смены темы: до
+    ≈ $14.60, если бы после смены темы начинали с /clear
+    оценка
+    ⎿ /clear или новая сессия перед новой темой, пока префикс
+      больше 60k
+
+  Настройка ──────────────────────────────────────────────────
+  Фиксированный префикс, который платится на каждом старте.
+
+    стартовый префикс ≈ 23.4k токенов · $41.30 за период факт
+
+    ⎿ …cts/billing-api/CLAUDE.md  60.4 КБ  ≈ 17.2k  $29.40/мес
+    ⎿ …Projects/agento/CLAUDE.md   9.2 КБ   ≈ 2.6k   $6.10/мес
+    ⎿ ~/.claude2/CLAUDE.md         1.1 КБ    ≈ 306   $0.70/мес
+    ⎿ токены ≈ байты / 3,6; справа цена чтения из кэша за 30
+      дней
+    ⎿ CLAUDE.md читается в каждом запросе: после промаха кэша
+      он оплачивается заново
+
+  Переключение модели ────────────────────────────────────────
+  Что стоило бы переключение модели посреди задачи.
+
+    переход                  префикс  штраф   за шаг  окупится
+    ──────────────────────────────────────────────────────────
+    opus-5.5 → sonnet-5.5       100k  $0.23  +$0.022  11 шагов
+    opus-5.5 → haiku-4.5        100k  $0.11  +$0.031    4 шага
+    sonnet-5.5 → opus-5.5        60k  $0.15  −$0.022   никогда
+    opus-5.5 → opus-5            60k  $0.36  −$0.010   никогда
+
+    ⎿ agento не меняет модель посреди задачи: кэш не
+      переносится, штраф это полная перезапись префикса.
+      Модель выбирается на старте задачи, после /clear и в
+      субагентах.
+
+  ╭─ Топ действий ───────────────────────────────────────────╮
+  │                                                          │
+  │ 1  Лёгкие задачи на Sonnet·medium вместо    ≈ $38.20/мес │
+  │    Opus                                           оценка │
+  │    392 задачи уложились в 8 запросов и 2 файла правок.   │
+  │    Верхняя оценка: Sonnet справится не во всех.          │
+  │                                                          │
+  │ 2  Explore-субагенты на haiku               ≈ $20.00/мес │
+  │    640 поисков по коду шли на Opus и              оценка │
+  │    Sonnet: чтение файлов не требует сильной модели.      │
+  │                                                          │
+  │ 3  Кэш на 1 час вместо 5 минут              ≈ $11.40/мес │
+  │    У вас 380 пауз дольше часа и 640 от 15         оценка │
+  │    минут: каждая стоила перезаписи контекста.            │
+  │                                                          │
+  │ 4  /clear перед новой темой (префикс        ≈ $11.00/мес │
+  │    больше 60k)                                    оценка │
+  │    37 раз новая тема начиналась в длинном контексте: до  │
+  │    ≈ $14.60/мес, если бы после смены темы начинали с     │
+  │    /clear.                                               │
+  │                                                          │
+  │ 5  Субагентов general-purpose — на Sonnet    ≈ $9.30/мес │
+  │    95 субагентов general-purpose работали         оценка │
+  │    на Opus/Fable; верхняя оценка: часть таких задач      │
+  │    Sonnet не потянет.                                    │
+  │                                                          │
+  │ ──────────────────────────────────────────────────────── │
+  │ вместе до ≈ $89.90/мес (28% месячного расхода) · оценки  │
+  │ пересекаются, это верхняя граница                        │
+  │                                                          │
+  ╰──────────────────────────────────────────────────────────╯
+
+  14 902 дубля отброшено · 3 битые строки · 21 запрос
+  неизвестных моделей не учтено
+  Всё посчитано локально, ничего не отправлялось."
+`;
+
+exports[`renderTerminal > snapshot ru none 100 1`] = `
+"  ◆ agento audit                                                                  2026-10-05 17:02
+    30 дней · 412 сессий · 12 408 запросов
+    ~/.claude2/projects · цены API на 2026-10-05
+
+    ⎿ Суммы в API-эквиваленте: по подписке деньги не списываются, реальный предел — недельный
+      лимит.
+
+  Расход ──────────────────────────────────────────────────────────────────────────── $317.20 факт
+  Во что обошлись токены по прайсу API.
+
+    основной поток $272.80 · субагенты $44.40 (14%)
+
+    opus-5.5   █████████████████████████████████████████████████████████████████████ $255.40  81%
+    opus-5     █████████▌                                                             $35.30  11%
+    sonnet-5.5 ████▋                                                                  $17.05   5%
+    haiku-4.5  ██▌                                                                     $9.45   3%
+
+    по дням    ▁▃▃▄▄▄▁▁▃▄▅▅▃▁▁▄▅▅▄▃▁▁▄▆█▆▄▂▃▄  6 сен → 5 окт
+               пик $27.29 · 30 сен · ⌀ $10.57/день
+
+    по неделям · для подписки смотрите на самую тяжёлую неделю
+    31 авг █▋                                                                            $2.27
+    7 сен  ███████████████████████████████████████████▋                                 $60.26
+    14 сен ███████████████████████████████████████████████▊                             $65.94
+    21 сен ███████████████████████████████████████████████████▉                         $71.62
+    28 сен ███████████████████████████████████████████████████████████████████████████ $103.47 пик
+    5 окт  █████████▉                                                                   $13.64
+
+    Проекты
+    ~/Projects/agento                                                                $118.40  37%
+    ~/Projects/billing-api                                                            $74.20  23%
+    ~/Projects/web-dashboard                                                          $52.90  17%
+    ещё 4                                                                             $71.70  23%
+
+    Effort по расходу
+    max 38% · xhigh 30% · high 22% · medium 8% · low 2%
+
+    ⎿ fast mode: $12.80 (4%)
+    ⎿ сверка с cost-state: 288 из 301 сессий в пределах ±10%, медианное отклонение 2%, худшее 17%
+
+  Корзины ────────────────────────────────────────────────────────────────────────────────────────
+  Из чего складывается счёт. Запись в кэш дороже чтения в разы.
+
+    ███████████████████████████████████████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░
+
+    █ запись кэша  $131.50  41%
+    ▓ чтение кэша  $117.20  37%
+    ▒ output        $62.40  20%
+    ░ ввод           $6.10   2%
+
+  Кэш ────────────────────────────────────────────────────────────────────────────────────────────
+  Доля контекста, прочитанного из кэша, и цена промахов.
+
+    hit ratio  91% ████████████████████████████████████████████████████████████████████████▏╌╌╌╌╌╌
+
+    Потери на промахах                                                               $27.10 оценка
+    истёк TTL      ×212  $14.20 ███████████████████████████████████████████████████████████████
+    смена модели    ×48   $6.30 ████████████████████████████
+    компакция       ×61   $4.90 █████████████████████▊
+    смена effort     ×9   $0.90 ████
+    причина неясна  ×14   $0.80 ███▌
+
+  TTL кэша ───────────────────────────────────────────────────────────────────────────────────────
+  Как долго живёт кэш и как часто вы делаете паузы дольше.
+
+    ● сейчас 5 минут    ○ предлагаем 1 час
+
+    паузы между запросами
+    <1m    █████████████████████████████████████████████████████████████████████████████████ 6 120
+    1–5m   ███████████████████████████████████████▌                                          2 980
+    5–15m  █████████████▍                                                                    1 010
+    15–60m ████████▌                                                                           640
+    >60m   █████                                                                               380
+
+    экономия                                                                   ≈ $11.40/мес оценка
+    ⎿ Наценка 2× на запись окупается: 1 020 пауз от 5 до 60 минут стоили больше.
+
+  Задачи ─────────────────────────────────────────────────────────────────────────────────────────
+  Лёгкие задачи на дорогих моделях и лишний effort.
+
+    1 034 задачи, из них лёгких 540 (52%)
+
+    лёгкие на Opus/Fable                                                               392  $71.80
+    ⎿ на Sonnet вышло бы ≈ $33.60, разница −$38.20 оценка
+    effort max/xhigh на лёгких                                                                 112
+
+    самые дорогие лёгкие
+    ⎿ «поправь опечатку в заголовке README и обнови бейдж сборки, ссылка п…»  $4.62 · opus-5.5·max
+    ⎿ «переименуй переменную userId в accountId во всём модуле биллинга»    $3.87 · opus-5.5·xhigh
+    ⎿ «какая версия node в CI и где это задаётся?»                              $3.31 · opus-5·max
+
+  Субагенты ──────────────────────────────────────────────────────────────────────────────────────
+  Фоновые агенты: у них свой кэш, модель выбирается свободно.
+
+    14% расхода · 2 204 вызова · $44.40
+    ● opus-5.5 $20.10   ● sonnet-5.5 $15.00   ● haiku-4.5 $9.30
+
+    по типам
+    general-purpose                                                                1 210  $27.80
+    Explore                                                                          640   $9.40
+    workflow-subagent                                                                310   $5.90
+    fork                                                                              44   $1.30
+
+    ⎿ 640 Explore-субагентов (или только чтение) на дорогих моделях стоили $25.60, на haiku ≈
+      $5.60, разница −$20.00 оценка
+    ⎿ 95 general-purpose субагентов на Opus/Fable стоили $18.40, на Sonnet ≈ $9.10, верхняя
+      оценка, разница −$9.30 оценка
+
+  Мёртвый контекст ───────────────────────────────────────────────────────────────────────────────
+  Перечитывание старого контекста после смены темы.
+
+    37 раз старый контекст перечитывался после смены темы: до ≈ $14.60, если бы после смены темы
+    начинали с /clear оценка
+    ⎿ /clear или новая сессия перед новой темой, пока префикс больше 60k
+
+  Настройка ──────────────────────────────────────────────────────────────────────────────────────
+  Фиксированный префикс, который платится на каждом старте.
+
+    стартовый префикс ≈ 23.4k токенов · $41.30 за период факт
+
+    ⎿ ~/Projects/billing-api/CLAUDE.md                                60.4 КБ  ≈ 17.2k  $29.40/мес
+    ⎿ ~/Projects/agento/CLAUDE.md                                      9.2 КБ   ≈ 2.6k   $6.10/мес
+    ⎿ ~/.claude2/CLAUDE.md                                             1.1 КБ    ≈ 306   $0.70/мес
+    ⎿ токены ≈ байты / 3,6; справа цена чтения из кэша за 30 дней
+    ⎿ CLAUDE.md читается в каждом запросе: после промаха кэша он оплачивается заново
+
+  Переключение модели ────────────────────────────────────────────────────────────────────────────
+  Что стоило бы переключение модели посреди задачи.
+
+    переход                                                      префикс  штраф   за шаг  окупится
+    ──────────────────────────────────────────────────────────────────────────────────────────────
+    opus-5.5 → sonnet-5.5                                           100k  $0.23  +$0.022  11 шагов
+    opus-5.5 → haiku-4.5                                            100k  $0.11  +$0.031    4 шага
+    sonnet-5.5 → opus-5.5                                            60k  $0.15  −$0.022   никогда
+    opus-5.5 → opus-5                                                60k  $0.36  −$0.010   никогда
+
+    ⎿ agento не меняет модель посреди задачи: кэш не переносится, штраф это полная перезапись
+      префикса. Модель выбирается на старте задачи, после /clear и в субагентах.
+
+  ╭─ Топ действий ───────────────────────────────────────────────────────────────────────────────╮
+  │                                                                                              │
+  │ 1  Лёгкие задачи на Sonnet·medium вместо Opus                                   ≈ $38.20/мес │
+  │    392 задачи уложились в 8 запросов и 2 файла правок. Верхняя оценка: Sonnet         оценка │
+  │    справится не во всех.                                                                     │
+  │                                                                                              │
+  │ 2  Explore-субагенты на haiku                                                   ≈ $20.00/мес │
+  │    640 поисков по коду шли на Opus и Sonnet: чтение файлов не требует сильной         оценка │
+  │    модели.                                                                                   │
+  │                                                                                              │
+  │ 3  Кэш на 1 час вместо 5 минут                                                  ≈ $11.40/мес │
+  │    У вас 380 пауз дольше часа и 640 от 15 минут: каждая стоила перезаписи             оценка │
+  │    контекста.                                                                                │
+  │                                                                                              │
+  │ 4  /clear перед новой темой (префикс больше 60k)                                ≈ $11.00/мес │
+  │    37 раз новая тема начиналась в длинном контексте: до ≈ $14.60/мес, если бы         оценка │
+  │    после смены темы начинали с /clear.                                                       │
+  │                                                                                              │
+  │ 5  Субагентов general-purpose — на Sonnet                                        ≈ $9.30/мес │
+  │    95 субагентов general-purpose работали на Opus/Fable; верхняя оценка: часть        оценка │
+  │    таких задач Sonnet не потянет.                                                            │
+  │                                                                                              │
+  │ ──────────────────────────────────────────────────────────────────────────────────────────── │
+  │ вместе до ≈ $89.90/мес (28% месячного расхода) · оценки пересекаются, это верхняя граница    │
+  │                                                                                              │
+  ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  14 902 дубля отброшено · 3 битые строки · 21 запрос неизвестных моделей не учтено
+  Всё посчитано локально, ничего не отправлялось."
+`;

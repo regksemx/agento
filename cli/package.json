@@ -1,0 +1,19 @@
+{
+  "name": "agento-cc",
+  "version": "0.1.0",
+  "description": "Spend less of your Claude Code budget without losing quality: audit, model right-sizing, cache-aware hints.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "agento": "dist/agento.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
