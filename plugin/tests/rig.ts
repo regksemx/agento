@@ -24,6 +24,10 @@ export interface RigOptions {
   store?: Record<string, unknown>;
   // Make a call on $ fail, to prove agento fails open: the event's name, `command.run:model` for one command.
   throwOn?: string[];
+  // Make a call on $ never answer: the event's name.
+  hangOn?: string[];
+  // User prompts the conversation already holds (`$.session.turns`): a resumed or continued session has some.
+  turns?: number;
 }
 
 // What the test's engine saw beneath agento, and what agento displayed.
@@ -100,6 +104,7 @@ export function rig(on: On, o: RigOptions = {}): Rig {
   });
   on('store.set', async (_$, e, _next) => {
     boom('store.set');
+    if (o.hangOn?.includes('store.set')) await new Promise(() => undefined);
     r.store.set(e.key, JSON.parse(JSON.stringify(e.value)));
     return { value: undefined };
   });
@@ -137,6 +142,7 @@ export function rig(on: On, o: RigOptions = {}): Rig {
     return { value: { startedAt: T0, context: {}, rateLimits: o.rateLimits ?? [] } as never };
   });
   const ALIAS: Record<string, string> = { opus: OPUS, sonnet: SONNET, haiku: HAIKU };
+  on('session.turns', async (_$, _e, _next) => ({ value: o.turns ?? 0 }));
   on('session.cwd', async (_$, _e, _next) => ({ value: o.cwd ?? '/work/app' }));
   on('session.model', async (_$, _e, _next) => {
     boom('session.model');

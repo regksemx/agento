@@ -53,20 +53,24 @@ describe('autopilot: clean-points', () => {
     expect(r.steps).toEqual([{ model: SONNET, effort: 'medium', agentId: undefined }, { model: SONNET, effort: 'medium', agentId: undefined }]);
   });
 
-  test('once the turn is complete, /model and /effort make it the session\'s own; later requests are left alone', AUTO, async ($, on) => {
+  test('the session itself is never moved: no /model or /effort (they would become the default of every new session)', AUTO, async ($, on) => {
     const r = rig(on);
     await idleOnOpus($, r);
     r.steps.length = 0;
     await prompt($, LIGHT);
     await turn($, 't2', () => request($, r));
-    expect(r.commands).toEqual([{ command: 'model', args: 'sonnet' }, { command: 'effort', args: 'medium' }]);
-    expect(r.model).toBe(SONNET);
-    expect(r.task?.override?.persisted).toBe(true);
-    // The next turn of the same task: the session is on sonnet, nothing is rewritten, nothing is re-run.
-    await request($, r, 0, 'medium');
-    expect(r.steps[1]).toEqual({ model: SONNET, effort: 'medium', agentId: undefined });
-    await turn($, 't3', () => request($, r));
-    expect(r.commands).toHaveLength(2);
+    expect(r.commands).toEqual([]);
+    expect(r.model).toBe(OPUS);
+    // The next turn of the same task: still the task's setup, from its first request to its last.
+    await turn($, 't3', () => request($, r, 0));
+    expect(r.steps).toEqual([{ model: SONNET, effort: 'medium', agentId: undefined }, { model: SONNET, effort: 'medium', agentId: undefined }]);
+    expect(r.commands).toEqual([]);
+    // The next clean point decides again, from the user's own setup.
+    await r.clock.advance(6 * 60_000);
+    await prompt($, 'Спроектируй архитектуру нового сервиса уведомлений');
+    expect(r.task?.override ?? null).toBeNull();
+    await request($, r, 0);
+    expect(r.steps.at(-1)).toEqual({ model: OPUS, effort: 'high', agentId: undefined });
   });
 
   test('the ledger records the mechanism: steps on the cheaper model are credited to autopilot, as an estimate', AUTO, async ($, on) => {
@@ -107,18 +111,19 @@ describe('autopilot: clean-points', () => {
     expect(r.steps[0]).toEqual({ model: OPUS, effort: 'high', agentId: undefined });
   });
 
-  test('[Back to opus·high] after the turn: /model and /effort with what the user had', AUTO, async ($, on) => {
+  test('[Back to opus·high] after the turn: still only the override goes, no command is run', AUTO, async ($, on) => {
     const r = rig(on);
     await idleOnOpus($, r);
     await prompt($, LIGHT);
     await turn($, 't2', () => request($, r));
-    r.commands.length = 0;
+    r.steps.length = 0;
     const ui = await mountBand($);
     await ui.press({ key: 'undo' });
-    expect(r.commands).toEqual([{ command: 'model', args: OPUS }, { command: 'effort', args: 'high' }]);
-    expect(r.model).toBe(OPUS);
+    expect(r.commands).toEqual([]);
     expect(r.task?.override).toBeNull();
     expect(r.ledger?.credit).toBeNull();
+    await request($, r);
+    expect(r.steps[0]).toEqual({ model: OPUS, effort: 'high', agentId: undefined });
   });
 
   test('[Turn autopilot off] switches the setting and leaves the task as it is', AUTO, async ($, on) => {
@@ -168,7 +173,7 @@ describe('autopilot: clean-points', () => {
     expect(r.steps[0]?.model).toBe(OPUS);
   });
 
-  test('every request of the task is on the cheaper model until it is persisted — never half and half', AUTO, async ($, on) => {
+  test('every request of the task is on the cheaper model — never half and half', AUTO, async ($, on) => {
     const r = rig(on, { throwOn: ['command.run:model'] });
     await start($);
     await prompt($, LIGHT);
@@ -275,5 +280,129 @@ describe('autopilot: clean-points', () => {
     await prompt($, LIGHT);
     expect(r.submitted).toEqual([{ text: LIGHT, context: undefined }]);
     expect(r.task?.override ?? null).toBeNull();
+  });
+
+  test('a reload of the module (a setting changed, /reload-plugins) runs session.start again: the task goes on as it was', AUTO, async ($, on) => {
+    const r = rig(on);
+    await start($);
+    await prompt($, FIRST);
+    r.usage = { in: 0, out: 1500, read: 20_000, write: 3000 };
+    await request($, r);
+    await start($);
+    r.steps.length = 0;
+    // Not a first prompt: the conversation is warm, the model stays.
+    await prompt($, LIGHT);
+    expect(r.task?.override ?? null).toBeNull();
+    expect(r.banner?.scenario).not.toBe('AP');
+    await request($, r, 1);
+    expect(r.steps[0]?.model).toBe(OPUS);
+  });
+
+  test('a reload keeps the override of the task in progress', AUTO, async ($, on) => {
+    const r = rig(on);
+    await start($);
+    await prompt($, LIGHT);
+    await start($);
+    expect(r.task?.override?.model).toBe('sonnet');
+    await request($, r);
+    expect(r.steps[0]?.model).toBe(SONNET);
+  });
+
+  test('a resumed or continued conversation (claude -c): its first prompt here is no clean point', AUTO, async ($, on) => {
+    const r = rig(on, { turns: 4 });
+    await start($);
+    await prompt($, LIGHT);
+    expect(r.task?.override ?? null).toBeNull();
+    expect(r.toasts).toEqual([]);
+    await request($, r);
+    expect(r.steps[0]?.model).toBe(OPUS);
+  });
+
+  test('/resume in the session: the conversation that takes its place gets no autopilot on its first prompt', AUTO, async ($, on) => {
+    const r = rig(on);
+    await idleOnOpus($, r);
+    await $.session.end({ reason: 'resume', sessionId: 's', resume: {} } as never);
+    r.steps.length = 0;
+    await prompt($, LIGHT);
+    expect(r.task?.override ?? null).toBeNull();
+    await request($, r);
+    expect(r.steps[0]?.model).toBe(OPUS);
+  });
+
+  test('a compaction mid-turn and a prompt typed into the running turn change nothing under it (P1)', AUTO, async ($, on) => {
+    const r = rig(on);
+    await start($);
+    await prompt($, LIGHT);
+    await $.turn.start({ text: LIGHT, turnId: 't1' } as never);
+    await request($, r, 0);
+    await $.session.compact({ trigger: 'auto', messages: [{ role: 'user', text: 'x', toolUses: [] }] } as never);
+    expect(r.task?.override?.model).toBe('sonnet');
+    await $.prompt.submit({ text: 'Спроектируй заодно архитектуру кэша', wait: false, origin: { kind: 'composer' }, turnId: 't1' } as never);
+    expect(r.task?.override?.model).toBe('sonnet');
+    expect(r.banner?.scenario).toBe('AP');
+    await request($, r, 1);
+    expect(r.steps.map((s) => s.model)).toEqual([SONNET, SONNET]);
+    // The next prompt of its own after the compaction is the clean point, and decides again.
+    await $.turn.complete({ turnId: 't1', answer: 'done', durationMs: 1, isAborted: false, reason: 'answer' } as never);
+    await prompt($, 'Спроектируй архитектуру распределённого кэша');
+    expect(r.task?.override ?? null).toBeNull();
+  });
+
+  test('/agento new on a warm conversation keeps the setup: dropping it would move the conversation (P1)', AUTO, async ($, on) => {
+    const r = rig(on);
+    await start($);
+    await prompt($, LIGHT);
+    r.usage = { in: 0, out: 1500, read: 20_000, write: 3000 };
+    await request($, r);
+    await slash($, 'agento', 'new');
+    await prompt($, FIRST);
+    expect(r.task?.override?.model).toBe('sonnet');
+    await request($, r, 1);
+    expect(r.steps.at(-1)?.model).toBe(SONNET);
+  });
+
+  test('an /effort the person types drops only the effort half', AUTO, async ($, on) => {
+    const r = rig(on);
+    await idleOnOpus($, r);
+    await prompt($, LIGHT);
+    await slash($, 'effort', 'high');
+    expect(r.task?.override).toMatchObject({ model: 'sonnet' });
+    expect(r.task?.override?.effort).toBeUndefined();
+    r.steps.length = 0;
+    await request($, r, 0, 'high');
+    expect(r.steps[0]).toEqual({ model: SONNET, effort: 'high', agentId: undefined });
+  });
+
+  test('a model the person picked another way (not /model), or the engine fell back to, is not rewritten', AUTO, async ($, on) => {
+    const r = rig(on);
+    await start($);
+    await prompt($, LIGHT);
+    await step($, { model: 'claude-fable-5-1', effort: 'high' });
+    expect(r.steps[0]).toEqual({ model: 'claude-fable-5-1', effort: 'high', agentId: undefined });
+  });
+
+  test('a slash command is no prompt to judge a task by', AUTO, async ($, on) => {
+    const r = rig(on);
+    await start($);
+    await prompt($, '/rename typo-fix');
+    expect(r.task?.override ?? null).toBeNull();
+    expect(r.toasts).toEqual([]);
+    // The real first prompt still is the clean point.
+    await prompt($, LIGHT);
+    expect(r.task?.override?.model).toBe('sonnet');
+  });
+
+  test('a store that never answers holds a model request back by seconds at most (P5)', AUTO, async ($, on) => {
+    const r = rig(on, { hangOn: ['store.set'] });
+    await start($);
+    let done = false;
+    const p = request($, r).then((x) => {
+      done = true;
+      return x;
+    });
+    for (let i = 0; i < 10 && !done; i += 1) await r.clock.advance(1000);
+    const res = await p;
+    expect(res.usage?.model).toBe(OPUS);
+    expect(done).toBe(true);
   });
 });

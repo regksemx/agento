@@ -53,7 +53,7 @@ describe('T18: S1 at a clean point', () => {
     expect(r.fills).toEqual([]);
   });
 
-  test('[Sonnet] runs /model sonnet and only that; the change is credited afterwards as an estimate', async ($, on) => {
+  test('[Sonnet] holds sonnet for this task (no /model: it would become every new session\'s default); credited as an estimate', async ($, on) => {
     const r = rig(on);
     await start($);
     await begin($, r);
@@ -62,15 +62,17 @@ describe('T18: S1 at a clean point', () => {
     expect(r.banner?.scenario).toBe('S1');
     const ui = await mountBand($);
     await ui.press({ key: 'model' });
-    expect(r.commands).toEqual([{ command: 'model', args: 'sonnet' }]);
+    expect(r.commands).toEqual([]);
+    expect(r.task?.override).toMatchObject({ model: 'sonnet', modelId: SONNET, fromModel: OPUS });
+    expect(r.toasts.at(-1)).toBe('agento: sonnet for this task');
     // The effort button is still there for the other half of the verdict.
     expect(r.banner?.actions.map((a) => a.key)).toEqual(['effort', 'keep', 'never']);
     await ui.press({ key: 'keep' });
     expect(r.banner).toBeNull();
     expect(r.ledger?.hints).toMatchObject({ shown: 1, accepted: 1 });
     expect(r.ledger?.credit).toMatchObject({ mechanism: 'suggestion-accepted', fromModel: OPUS, model: 'sonnet' });
-    r.usage.model = SONNET;
-    await step($, { model: SONNET, effort: 'medium', index: 1 });
+    await step($, { model: OPUS, effort: 'high', index: 1 });
+    expect(r.steps.at(-1)?.model).toBe(SONNET);
     const s = r.ledger?.recent[r.ledger.recent.length - 1];
     expect(s?.mechanism).toBe('suggestion-accepted');
     expect(Math.abs((s?.savedEstimate ?? 0) - 0.0225)).toBeLessThan(1e-9);
@@ -87,11 +89,15 @@ describe('T18: S1 at a clean point', () => {
     expect(r.banner?.actions[1]?.label).toBe('Effort medium');
     const ui = await mountBand($);
     await ui.press({ key: 'effort' });
-    expect(r.commands).toEqual([{ command: 'effort', args: 'medium' }]);
+    expect(r.commands).toEqual([]);
+    expect(r.task?.override).toMatchObject({ effort: 'medium', fromEffort: 'max' });
     expect(r.banner?.actions.map((a) => a.key)).toEqual(['model', 'keep', 'never']);
     await ui.press({ key: 'model' });
-    expect(r.commands.map((c) => c.command)).toEqual(['effort', 'model']);
+    expect(r.commands).toEqual([]);
+    expect(r.task?.override).toMatchObject({ model: 'sonnet', effort: 'medium', fromModel: OPUS, fromEffort: 'max' });
     expect(r.banner).toBeNull();
+    await step($, { model: OPUS, effort: 'max', index: 2 });
+    expect(r.steps.at(-1)).toMatchObject({ model: SONNET, effort: 'medium' });
   });
 
   test('S6: effort alone on a light task (sonnet·max)', async ($, on) => {
@@ -633,7 +639,8 @@ describe('T18: fail-open (P5)', () => {
   });
 
   test('a button whose command fails leaves the banner in place and the session as it was', async ($, on) => {
-    const r = rig(on, { throwOn: ['command.run:model'] });
+    // A cloud id: no task-scoped hold can name its target, so the button falls back to /model, which fails here.
+    const r = rig(on, { model: 'us.anthropic.claude-opus-5-5-v1:0', throwOn: ['command.run:model'] });
     await start($);
     await prompt($, LIGHT);
     const ui = await mountBand($);

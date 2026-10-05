@@ -18,6 +18,22 @@ export const KEEP_DAYS = 90;
 const MAX_RECENT = 100;
 const MAX_DECISIONS = 50;
 const MAX_SIGNALS = 20;
+// Subagents come and go: a long session spawns hundreds. Their cache lines and routing decisions are kept for the most
+// recent ones only, so the session state (copied on every step) stays small. The main line is always kept.
+export const MAX_AGENT_LINEAGES = 50;
+export const MAX_ROUTED = 100;
+
+// The record with `key` set last; past `max` entries (`keep`'s aside) the oldest go (an object keeps insertion order).
+function setCapped<T>(rec: Record<string, T>, key: string, value: T, max: number, keep?: (k: string) => boolean): Record<string, T> {
+  const { [key]: _old, ...rest } = rec;
+  const keys = Object.keys(rest);
+  const droppable = keys.filter((k) => !keep?.(k));
+  const drop = new Set(droppable.slice(0, Math.max(0, droppable.length + (keep?.(key) ? 0 : 1) - max)));
+  const out: Record<string, T> = {};
+  for (const k of keys) if (!drop.has(k)) out[k] = rest[k] as T;
+  out[key] = value;
+  return out;
+}
 
 export function lineageOf(agentId: string | undefined): string {
   return agentId ? `agent:${agentId}` : 'main';
@@ -159,7 +175,7 @@ export function applyStep(prev: AgentoLedger | undefined, s: StepInput): AgentoL
   }
 
   const fallbackTtl: Ttl = s.isSubscription ? '1h' : '5m';
-  l.lineages = { ...l.lineages, [s.lineage]: nextLineageState(l.lineages[s.lineage], s.model, u, s.ts, fallbackTtl) };
+  l.lineages = setCapped(l.lineages, s.lineage, nextLineageState(l.lineages[s.lineage], s.model, u, s.ts, fallbackTtl), MAX_AGENT_LINEAGES, (k) => k === 'main');
   l.recent = [...l.recent, step].slice(-MAX_RECENT);
   return l;
 }
@@ -194,7 +210,7 @@ export function dropMainLineage(prev: AgentoLedger): AgentoLedger {
 
 export function applyDecision(prev: AgentoLedger | undefined, d: AgentoSpawnDecision, mode: Mode, isSubscription: boolean): AgentoLedger {
   const l: AgentoLedger = prev ? { ...prev } : emptyLedger(d.ts, mode, isSubscription);
-  l.routed = { ...l.routed, [d.agentId]: d };
+  l.routed = setCapped(l.routed, d.agentId, d, MAX_ROUTED);
   l.decisions = [...l.decisions, d].slice(-MAX_DECISIONS);
   return l;
 }

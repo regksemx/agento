@@ -235,6 +235,16 @@ describe('autopilot override: the clean-point task\'s requests', () => {
     expect(overrideFor(ov!, { model: 'gateway-x', effort: 4000 })).toBeNull();
   });
 
+  it('a request on another tier than the user had (their own pick, a fallback) is theirs: left alone', () => {
+    expect(overrideFor(ov!, { model: 'claude-fable-5-1', effort: 'high' })).toBeNull();
+    expect(overrideFor({ effort: 'low', fromModel: OPUS, persisted: false }, { model: 'claude-fable-5-1', effort: 'max' })).toBeNull();
+  });
+
+  it('a request whose own id is not plain first-party gets no first-party id (a cloud id, a [1m] variant)', () => {
+    expect(overrideFor(ov!, { model: 'us.anthropic.claude-opus-5-5-v1:0', effort: 'high' })).toEqual({ effort: 'medium' });
+    expect(overrideFor(ov!, { model: 'claude-opus-5-5[1m]', effort: 'medium' })).toBeNull();
+  });
+
   it('once persisted, nothing is rewritten', () => {
     expect(overrideFor({ ...ov!, persisted: true }, { model: OPUS, effort: 'high' })).toBeNull();
   });

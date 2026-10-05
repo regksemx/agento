@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AgentoLedger } from '../types';
-import { applyCredit, applyHandoff, applyHint, applyStep, dropMainLineage, emptyLedger, foldDay, hintsOf, normalizeDay, savedOf, type StepInput } from './ledger.ts';
+import { applyCredit, applyDecision, applyHandoff, applyHint, applyStep, dropMainLineage, emptyLedger, foldDay, hintsOf, MAX_AGENT_LINEAGES, MAX_ROUTED, normalizeDay, savedOf, type StepInput } from './ledger.ts';
 
 const T0 = 1_760_000_000_000;
 const OPUS = 'claude-opus-5-5';
@@ -102,5 +102,31 @@ describe('day aggregates', () => {
     expect(d.savedEstimate.autopilot).toBeCloseTo(0.0225, 9);
     expect(d.hintsShown).toBe(0);
     expect(normalizeDay('junk').autopilotActions).toBe(0);
+  });
+});
+
+describe('session state stays small in a long session (it is copied on every step)', () => {
+  it('keeps the cache lines of the most recent subagents only, and always the main one', () => {
+    let l = applyStep(undefined, step(OPUS));
+    for (let i = 0; i < MAX_AGENT_LINEAGES + 30; i += 1) l = applyStep(l, step(SONNET, { lineage: `agent:a${i}`, ts: T0 + i }));
+    const keys = Object.keys(l.lineages);
+    expect(keys).toHaveLength(MAX_AGENT_LINEAGES + 1);
+    expect(keys).toContain('main');
+    expect(keys).toContain(`agent:a${MAX_AGENT_LINEAGES + 29}`);
+    expect(keys).not.toContain('agent:a0');
+    // A line that steps again is the newest, and main is still where it was.
+    l = applyStep(l, step(SONNET, { lineage: 'agent:a30' }));
+    expect(Object.keys(l.lineages).at(-1)).toBe('agent:a30');
+    expect(l.lineages.main?.model).toBe(OPUS);
+  });
+
+  it('keeps the routing decisions of the most recent subagents only', () => {
+    let l: AgentoLedger | undefined;
+    for (let i = 0; i < MAX_ROUTED + 10; i += 1) {
+      l = applyDecision(l, { ts: T0 + i, agentId: `a${i}`, subagentType: 'Explore', parentModel: OPUS, model: 'haiku', reason: 'explore-agent', mechanism: 'spawn-routing' }, 'balanced', false);
+    }
+    expect(Object.keys(l?.routed ?? {})).toHaveLength(MAX_ROUTED);
+    expect(l?.routed.a0).toBeUndefined();
+    expect(l?.routed[`a${MAX_ROUTED + 9}`]?.model).toBe('haiku');
   });
 });

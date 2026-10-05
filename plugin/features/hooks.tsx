@@ -8,7 +8,8 @@ import { classKey, classOf, DEFAULT_TASK_STEPS, estimateSaving, foldClassStats, 
 import { MAX_PLAN_CHARS, handoffPrompt, planDocument, planPath } from '../core/handoff.ts';
 import { langFromEnv, orchestrateSection } from '../core/orchestrate.ts';
 import { tierOf, TIER_ALIAS, type Tier } from '../core/pricing.ts';
-import { canReplace, decidePrompt, dismissKeyOf, dismissStoreKey, makeOverride, overrideFor, S4_CONTEXT_TOKENS, type DismissKey, type PromptFacts } from '../core/suggest.ts';
+import { canReplace, decidePrompt, dismissKeyOf, dismissStoreKey, makeOverride, overrideFor, S4_CONTEXT_TOKENS, type DismissKey, type Downgrade, type PromptFacts } from '../core/suggest.ts';
+import type { TaskEffort } from '../core/task.ts';
 import type { AgentoBanner, AgentoLedger, AgentoLoopSignalRecord, AgentoPaneRange, AgentoSpawnDecision, AgentoStep, AgentoTask } from '../types';
 import { agentHint, autopilotBanner, autopilotToast, s1Banner, s2aBanner, s2bBanner, s4Banner, s7Banner, type BannerBase, type MoneyCtx } from './banner.ts';
 import { nextMode, parseAgentoArgs, parseAutopilot, parseOnOff, type Autopilot } from './command.ts';
@@ -86,14 +87,6 @@ export function chooseSpawnModel(m: Mode, e: AgentSpawnInput): { model?: string;
 
 // ---- small helpers ----
 
-// The store has no atomic update: writes to it go through one queue.
-let queue: Promise<unknown> = Promise.resolve();
-function enqueue<T>(job: () => Promise<T>): Promise<T> {
-  const run = queue.then(job, job);
-  queue = run.catch(() => undefined);
-  return run;
-}
-
 async function safe<T>(f: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await f();
@@ -113,6 +106,17 @@ async function within<T>($: Dollar, work: Promise<T>, ms: number): Promise<T | u
   } finally {
     timer?.cancel();
   }
+}
+
+// The store has no atomic update: writes to it go through one queue. A `$` wait never counts against a hook's budget,
+// so a job that never answers would hold every later one (and the model request awaiting it): each gets JOB_MS (P5).
+const JOB_MS = 3000;
+let queue: Promise<unknown> = Promise.resolve();
+function enqueue<T>($: Dollar, job: () => Promise<T>): Promise<T | undefined> {
+  const bounded = (): Promise<T | undefined> => within($, job(), JOB_MS);
+  const run = queue.then(bounded, bounded);
+  queue = run.catch(() => undefined);
+  return run;
 }
 
 let subscription: boolean | undefined;
@@ -148,7 +152,7 @@ async function bumpDay($: Dollar, ts: number, add: DayCounters): Promise<void> {
 async function countHint($: Dollar, kind: HintKind): Promise<void> {
   try {
     const now = await $.clock.now();
-    await enqueue(async () => {
+    await enqueue($, async () => {
       await update($, ledgerRef, (prev) => applyHint(prev, kind, now, mode, subscription ?? false));
       const field = { shown: 'hintsShown', accepted: 'hintsAccepted', dismissed: 'hintsDismissed', auto: 'autopilotActions' } as const;
       await bumpDay($, now, { [field[kind]]: 1 });
@@ -196,6 +200,16 @@ export const onSessionStart: Hook<'session.start'> = async ($, e, next) => {
   } catch {
     // no command is fine
   }
+  try {
+    // P7: what the system prompt carries is decided here, once, and read back from this value for the whole session.
+    // session.start runs again in the same session on every reload of the module (a /config or `/agento` setting change,
+    // /reload-plugins): what was fixed stays fixed, and the task in progress stays the task in progress (P1).
+    const now = await $.clock.now();
+    const lang: Lang = langOption !== 'auto' ? langOption : langFromEnv(await safe(() => $.env.get('LANG'), undefined));
+    await update($, sessionRef, (s) => s ?? { lang, orchestrate: orchestrateOn && mode !== 'off', startedAt: now });
+  } catch {
+    // fine
+  }
   if (mode === 'off') return r;
   try {
     // Subscription: a bearer (OAuth) credential, or rate-limit windows the account reports.
@@ -214,13 +228,10 @@ export const onSessionStart: Hook<'session.start'> = async ($, e, next) => {
     }
     subscription = isSub;
     const now = await $.clock.now();
-    // P7: what the system prompt carries is decided here, once, and read back from this value for the whole session.
-    const lang: Lang = langOption !== 'auto' ? langOption : langFromEnv(await safe(() => $.env.get('LANG'), undefined));
-    await update($, sessionRef, () => ({ lang, orchestrate: orchestrateOn, startedAt: now }));
-    await update($, taskRef, () => emptyTask());
-    await update($, bannerRef, () => null);
-    await update($, rangeRef, () => 'session' as AgentoPaneRange);
-    await enqueue(async () => {
+    await update($, taskRef, (t) => t ?? emptyTask());
+    await update($, bannerRef, (b) => b ?? null);
+    await update($, rangeRef, (x) => x ?? ('session' as AgentoPaneRange));
+    await enqueue($, async () => {
       await update($, ledgerRef, (prev) => (prev ? { ...prev, mode, isSubscription: isSub } : emptyLedger(now, mode, isSub)));
     });
     // The cache clock keeps running between steps: redraw the status line and the pane once a minute.
@@ -244,7 +255,7 @@ async function closeTask($: Dollar): Promise<void> {
   const { value: t } = await $.state.get(taskRef);
   const cur = t?.current;
   if (!cur || cur.steps === 0 || !cur.tier) return;
-  await enqueue(async () => {
+  await enqueue($, async () => {
     const key = classKey(cur.class as TaskClass);
     await $.store.set(key, foldClassStats(await $.store.get(key), cur.tier as Tier, cur.cost, cur.steps));
   });
@@ -254,12 +265,19 @@ export const onSessionEnd: Hook<'session.end'> = async ($, e, next) => {
   if (mode === 'off') return next(e);
   try {
     await closeTask($);
-    // After /clear the main thread starts with an empty cache, and the next prompt is a task start (§4.4).
-    if (e.reason === 'clear') {
+    // After /clear the main thread starts with an empty cache, and the next prompt is a task start (§4.4). A /resume
+    // puts another, older conversation in its place: its first prompt is no clean point (its cache may be warm), and
+    // what this ledger knew of the main cache was another conversation's.
+    if (e.reason === 'clear' || e.reason === 'resume') {
       guard.reset();
-      await update($, taskRef, (t) => ({ ...(t ?? emptyTask()), marker: 'clear' as const, current: null, override: null }));
+      // The handoff's /clear leaves the executor's setup in place for the task it fills the prompt box for.
+      await update($, taskRef, (t) =>
+        e.reason === 'clear'
+          ? { ...(t ?? emptyTask()), marker: 'clear' as const, current: null, override: t?.quiet ? (t.override ?? null) : null }
+          : { ...emptyTask(), prompts: 1 },
+      );
       await update($, bannerRef, () => null);
-      await enqueue(async () => {
+      await enqueue($, async () => {
         const { value } = await $.state.get(ledgerRef);
         if (!value?.lineages.main) return;
         const l = await update($, ledgerRef, (prev) => (prev ? dropMainLineage(prev) : value));
@@ -272,15 +290,16 @@ export const onSessionEnd: Hook<'session.end'> = async ($, e, next) => {
   return next(e);
 };
 
-// A compaction rewrites the conversation: the main cache starts over and the next prompt is a task start.
+// A compaction rewrites the conversation: the main cache starts over and the next prompt is a task start. An automatic
+// one may land mid-turn: the task's setup (an autopilot override) stays until that next prompt decides again (P1).
 export const onSessionCompact: Hook<'session.compact'> = async ($, e, next) => {
   const r = await next(e);
   if (mode === 'off') return r;
   try {
     if (r.skip === undefined && e.agentId === undefined && e.trigger !== 'precompute') {
       await closeTask($);
-      await update($, taskRef, (t) => ({ ...(t ?? emptyTask()), marker: 'compact' as const, current: null, override: null }));
-      await enqueue(async () => {
+      await update($, taskRef, (t) => ({ ...(t ?? emptyTask()), marker: 'compact' as const, current: null }));
+      await enqueue($, async () => {
         const { value } = await $.state.get(ledgerRef);
         if (value) await update($, ledgerRef, (prev) => (prev ? dropMainLineage(prev) : value));
       });
@@ -299,28 +318,8 @@ export const onTurnStart: Hook<'turn.start'> = async ($, e, next) => {
 
 export const onTurnComplete: Hook<'turn.complete'> = async ($, e, next) => {
   if (runningTurn === e.turnId) runningTurn = null;
-  const r = await next(e);
-  // The clean-point turn is over: make the cheaper setup the session's own choice, from the event the host allows it in.
-  if (e.agentId === undefined && mode !== 'off') await safe(() => persistOverride($), undefined);
-  return r;
+  return next(e);
 };
-
-// `/model` and `/effort` for the autopilot's setup, once the turn that ran on it is complete. If a command does not go
-// through, the override stays and keeps the rest of the task on the cheaper setup: the task never changes model midway.
-async function persistOverride($: Dollar): Promise<void> {
-  const { value: t } = await $.state.get(taskRef);
-  const o = t?.override;
-  if (!o || o.persisted) return;
-  if (o.model) {
-    const ok = await within($, $.command.run({ command: 'model', args: o.model }).then(() => true, () => false), 4000);
-    if (!ok) return;
-  }
-  if (o.effort) {
-    const ok = await within($, $.command.run({ command: 'effort', args: o.effort }).then(() => true, () => false), 4000);
-    if (!ok && !o.model) return;
-  }
-  await update($, taskRef, (x) => (x?.override ? { ...x, override: { ...x.override, persisted: true } } : (x ?? emptyTask())));
-}
 
 // P1: observes only — `e` goes down as it came and the result comes back as it came — except for one case the user
 // switched on (autopilot) and only at a clean point: the main requests of a task that began there go out on the
@@ -372,7 +371,7 @@ export const onTurnStep: Hook<'turn.step'> = async function* ($, e, next) {
       isSubscription: isSub,
       sevenDayPct,
     };
-    await enqueue(async () => {
+    await enqueue($, async () => {
       let step: AgentoStep | undefined;
       const l = await update($, ledgerRef, (prev) => {
         const folded = applyStep(prev, input);
@@ -427,7 +426,7 @@ export const onAgentSpawn: Hook<'agent.spawn'> = async ($, e, next) => {
         reason,
         mechanism: 'spawn-routing',
       };
-      await enqueue(async () => {
+      await enqueue($, async () => {
         await update($, ledgerRef, (prev) => applyDecision(prev, d, mode, subscription ?? false));
         await bumpDay($, d.ts, { routedSpawns: 1 });
       });
@@ -456,7 +455,7 @@ export const onToolCall: Hook<'tool.call'> = async ($, e, next) => {
       // S7 outranks every other banner: the agent is burning the whole prefix on every extra step.
       await showBanner($, s7Banner({ sig, lineage, stepUsd: last?.cost ?? null, money }), cwd);
       const rec: AgentoLoopSignalRecord = { ts: at, lineage, kind: sig.kind, count: sig.count, detail: sig.detail };
-      await enqueue(async () => {
+      await enqueue($, async () => {
         await update($, ledgerRef, (prev) => applySignal(prev, rec, mode, subscription ?? false));
         await bumpDay($, at, { loopSignals: 1 });
       });
@@ -521,14 +520,20 @@ export const onPromptSubmit: Hook<'prompt.submit'> = async ($, e, next) => {
     // no hint is fine
   }
   try {
-    await onPrompt($, e.text);
+    await onPrompt($, e.text, e.turnId !== undefined);
   } catch {
     // fail-open: the prompt goes on as typed
   }
   return next(ctx === e.context ? e : { ...e, context: ctx });
 };
 
-async function onPrompt($: Dollar, text: string): Promise<void> {
+// `/name args`: a slash command (a skill, a custom command) is no prompt to judge a task by. A path is not one.
+const SLASH_COMMAND_RE = /^\/[A-Za-z][\w:-]*(?:\s|$)/;
+
+async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<void> {
+  // A prompt typed while a turn runs joins that turn: never a task start, and nothing of the task's is changed under
+  // the running turn (its setup least of all, P1). A /clear or compaction marker waits for the next prompt of its own.
+  if (midTurn || SLASH_COMMAND_RE.test(text.trimStart())) return;
   const now = await $.clock.now();
   const { value: t0 } = await $.state.get(taskRef);
   const task = t0 ?? emptyTask();
@@ -537,18 +542,22 @@ async function onPrompt($: Dollar, text: string): Promise<void> {
   const mainCache = l?.lineages.main;
   const current = {
     model: await safe(() => $.session.model(), l?.main?.model ?? ''),
-    effort: l?.main?.effort ?? (await safe(async () => {
+    // The last request's effort is the override's while one holds: what the user has is what it came down from.
+    effort: task.override?.effort ? task.override.fromEffort : (l?.main?.effort ?? (await safe(async () => {
       const s = (await $.settings.read()) as { effortLevel?: unknown };
       return typeof s.effortLevel === 'string' ? s.effortLevel : null;
-    }, null)),
+    }, null))),
   };
+  // The session's first prompt is a clean point only for a conversation that is really new: not a resumed or continued
+  // one (`claude -c`, `--resume`), whose cache may be warm, and not one where a command already ran a turn.
+  const isFirstPrompt = task.prompts === 0 && !mainCache && ((await safe(() => $.session.turns(), 0)) ?? 0) === 0;
   const facts: PromptFacts = {
     mode,
     autopilot,
     suggestions: suggestionsOn,
     prompt: text,
     prevPrompt: task.lastPrompt,
-    isFirstPrompt: task.prompts === 0,
+    isFirstPrompt,
     marker: task.marker,
     explicitNew: task.explicitNew,
     mainCache,
@@ -575,8 +584,9 @@ async function onPrompt($: Dollar, text: string): Promise<void> {
       explicitNew: false,
       quiet: false,
       shown: dec?.start ? [] : base.shown,
-      // A new task is a new decision; the old override belonged to the old one.
-      override: dec?.start ? null : base.override,
+      // A new task is a new decision; the old override belonged to the old one. Only where the switch is free, though:
+      // dropping it on a warm cache (`/agento new` mid-conversation) would move the conversation to another model.
+      override: dec?.start?.freeSwitch ? null : base.override,
       current: dec?.start && dec.verdict ? { class: classOf(dec.verdict), tier: null, cost: 0, steps: 0 } : base.current,
     };
   });
@@ -609,10 +619,10 @@ async function onPrompt($: Dollar, text: string): Promise<void> {
   if (action.kind === 'autopilot') {
     const override = makeOverride(action.down, current, now);
     if (override) {
-      // Decided here, applied from the task's first request (see onTurnStep); `/model` follows when the turn completes.
+      // Decided here, applied to every main request of the task (see onTurnStep); the session model is never changed.
       await update($, taskRef, (t) => ({ ...(t ?? emptyTask()), override }));
       if (override.model) {
-        await enqueue(async () => {
+        await enqueue($, async () => {
           await update($, ledgerRef, (prev) => applyCredit(prev, { mechanism: 'autopilot', fromModel: current.model, model: override.model as string, since: now }, now, mode, subscription ?? false));
         });
       }
@@ -653,28 +663,44 @@ async function dismiss($: Dollar, banner: AgentoBanner): Promise<void> {
 
 async function setCredit($: Dollar, mechanism: 'suggestion-accepted' | 'handoff', fromModel: string, model: string): Promise<void> {
   const now = await $.clock.now();
-  await enqueue(async () => {
+  await enqueue($, async () => {
     await update($, ledgerRef, (prev) => applyCredit(prev, { mechanism, fromModel, model, since: now }, now, mode, subscription ?? false));
   });
+}
+
+// A banner's [Sonnet] / [Effort …] holds for the task in progress, as autopilot's choice does (see onTurnStep): `/model`
+// and `/effort` would also save it as the default of every new session. Where no id can be named, false: the command.
+async function holdForTask($: Dollar, down: Downgrade, from: { model: string; effort: string | null }): Promise<boolean> {
+  const o = makeOverride(down, from, await $.clock.now());
+  if (!o) return false;
+  await update($, taskRef, (t) => {
+    const base = t ?? emptyTask();
+    const prev = base.override;
+    return { ...base, override: prev ? { ...prev, ...o, fromModel: prev.fromModel, fromEffort: prev.fromEffort } : o };
+  });
+  return true;
 }
 
 // The compaction brief for S4: keep what the next task may still need.
 const COMPACT_RU = 'Сохрани: цель текущей работы, принятые решения и их причины, пути изменённых файлов, нерешённые вопросы и последние ошибки. Остальное сожми.';
 const COMPACT_EN = 'Keep: the goal of the current work, decisions made and why, paths of changed files, open questions and the latest errors. Compress the rest.';
 
+// `banner` is the one the button was drawn for: if another took the band since, that one is left where it is.
 async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Promise<void> {
   try {
     const lang = await langOf($);
     const d = banner.data;
     switch (banner.scenario) {
       case 'S1': {
-        if (key === 'keep') return await clearBanner($);
+        if (key === 'keep') return await clearBanner($, (b) => b.id !== banner.id);
         if (key === 'never') {
           await dismiss($, banner);
-          return await clearBanner($);
+          return await clearBanner($, (b) => b.id !== banner.id);
         }
+        const from = { model: d.fromModel ?? '', effort: d.fromEffort ?? null };
         if (key === 'model' && d.model) {
-          await $.command.run({ command: 'model', args: d.model });
+          if (await holdForTask($, { model: d.model }, from)) $.ui.toast(lang === 'ru' ? `agento: ${d.model} для этой задачи` : `agento: ${d.model} for this task`, { timeoutMs: 6000 });
+          else await $.command.run({ command: 'model', args: d.model });
           if (d.fromModel) await setCredit($, 'suggestion-accepted', d.fromModel, d.model);
           await countHint($, 'accepted');
           if (d.effort) {
@@ -682,34 +708,29 @@ async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Pro
             return;
           }
         } else if (key === 'effort' && d.effort) {
-          await $.command.run({ command: 'effort', args: d.effort });
+          if (await holdForTask($, { effort: d.effort as TaskEffort }, from)) $.ui.toast(lang === 'ru' ? `agento: effort ${d.effort} для этой задачи` : `agento: effort ${d.effort} for this task`, { timeoutMs: 6000 });
+          else await $.command.run({ command: 'effort', args: d.effort });
           await countHint($, 'accepted');
           if (d.model) {
             await toBanner($, banner, { actions: banner.actions.filter((a) => a.key !== 'effort'), data: { ...d, effort: undefined } });
             return;
           }
         }
-        return await clearBanner($);
+        return await clearBanner($, (b) => b.id !== banner.id);
       }
       case 'AP': {
         if (key === 'undo') {
-          // Not yet persisted: dropping the override sends the task's next request on the user's own setup. Persisted:
-          // the session itself was moved, so it is moved back.
-          const { value: t } = await $.state.get(taskRef);
+          // The session itself was never moved: dropping the override sends the task's next request on the user's setup.
           await update($, taskRef, (x) => ({ ...(x ?? emptyTask()), override: null }));
-          if (t?.override?.persisted) {
-            if (d.model && d.fromModel) await $.command.run({ command: 'model', args: d.fromModel });
-            if (d.effort && d.fromEffort) await $.command.run({ command: 'effort', args: d.fromEffort });
-          }
           const now = await $.clock.now();
-          await enqueue(async () => {
+          await enqueue($, async () => {
             await update($, ledgerRef, (prev) => applyCredit(prev, null, now, mode, subscription ?? false));
           });
         } else if (key === 'disable') {
           autopilot = 'off';
           await $.config.set({ key: 'agento.autopilot', value: 'off' });
         }
-        return await clearBanner($);
+        return await clearBanner($, (b) => b.id !== banner.id);
       }
       case 'S2a': {
         if (key === 'never') {
@@ -722,7 +743,7 @@ async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Pro
           else $.ui.toast(lang === 'ru' ? 'Opus выбран. Включите plan mode: Shift+Tab' : 'Opus selected. Turn on plan mode: Shift+Tab', { timeoutMs: 6000 });
           await countHint($, 'accepted');
         }
-        return await clearBanner($);
+        return await clearBanner($, (b) => b.id !== banner.id);
       }
       case 'S2b': {
         if (key === 'never') {
@@ -733,7 +754,7 @@ async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Pro
           await $.prompt.fill({ text: lang === 'ru' ? 'Реализуй одобренный план: самодостаточные куски отдавай agento-builder, прогон тестов — agento-checker, поиск по коду — agento-scout.' : 'Implement the approved plan: hand self-contained pieces to agento-builder, test runs to agento-checker, code search to agento-scout.' });
           await countHint($, 'accepted');
         }
-        return await clearBanner($);
+        return await clearBanner($, (b) => b.id !== banner.id);
       }
       case 'S4': {
         if (key === 'never') {
@@ -748,7 +769,7 @@ async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Pro
           await countHint($, 'accepted');
           await $.command.run({ command: 'compact', args: lang === 'ru' ? COMPACT_RU : COMPACT_EN });
         }
-        return await clearBanner($);
+        return await clearBanner($, (b) => b.id !== banner.id);
       }
       case 'S7': {
         if (key === 'stop') {
@@ -759,7 +780,7 @@ async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Pro
           await update($, taskRef, (t) => ({ ...(t ?? emptyTask()), pendingHint: agentHint(lang, d.detail ?? '') }));
           $.ui.toast(lang === 'ru' ? 'Подсказка уйдёт агенту вместе с вашим следующим сообщением' : 'The hint goes to the agent with your next message', { timeoutMs: 6000 });
         }
-        return await clearBanner($);
+        return await clearBanner($, (b) => b.id !== banner.id);
       }
     }
   } catch {
@@ -778,20 +799,30 @@ async function handoff($: Dollar, banner: AgentoBanner, lang: Lang): Promise<boo
   const date = dayKey(now).slice('day:'.length);
   let path = planPath(date, plan);
   for (let attempt = 1; attempt < 20 && (await safe(() => $.fs.exists(path), false)); attempt += 1) path = planPath(date, plan, attempt);
+  // An existing file is never written over: twenty plans of one name in a day, and the person picks the path.
+  if (await safe(() => $.fs.exists(path), true)) {
+    $.ui.toast(lang === 'ru' ? `План не сохранён: ${path} уже существует` : `Plan not saved: ${path} already exists`, { timeoutMs: 8000 });
+    return false;
+  }
   await $.fs.write(path, planDocument(plan));
   const { value: l } = await $.state.get(ledgerRef);
   const plannerTokens = l?.lineages.main?.prefixTokens ?? null;
   const fromModel = l?.main?.model ?? '';
   // The plan is a new task's start: the model carrying on is the plan's reader, so the planning turn must end first.
   if (runningTurn) await safe(() => $.turn.abort({ turnId: runningTurn as string }), undefined);
+  const sessionModel = await safe(() => $.session.model(), fromModel);
   await $.command.run({ command: 'clear' });
-  // The plan is saved and the context is gone: if the switch fails, the person is told to make it themselves.
-  const switched = await safe(() => $.command.run({ command: 'model', args: 'sonnet' }).then(() => true), false);
-  if (!switched) $.ui.toast(lang === 'ru' ? 'Не удалось выбрать Sonnet: выполните /model sonnet' : 'Could not select Sonnet: run /model sonnet', { timeoutMs: 8000 });
-  // The next prompt is agento's own: it must not be met with suggestions.
-  await update($, taskRef, (t) => ({ ...(t ?? emptyTask()), quiet: true }));
+  // Sonnet for the executor's task, as its requests (see onTurnStep): `/model` would make it every new session's
+  // default. The next prompt is agento's own: it must not be met with suggestions (and keeps this setup, see session.end).
+  const executor = makeOverride({ model: TIER_ALIAS.sonnet }, { model: sessionModel, effort: null }, now);
+  await update($, taskRef, (t) => ({ ...(t ?? emptyTask()), quiet: true, ...(executor ? { override: executor } : {}) }));
+  if (!executor) {
+    // The plan is saved and the context is gone: if the switch fails, the person is told to make it themselves.
+    const switched = await safe(() => $.command.run({ command: 'model', args: 'sonnet' }).then(() => true), false);
+    if (!switched) $.ui.toast(lang === 'ru' ? 'Не удалось выбрать Sonnet: выполните /model sonnet' : 'Could not select Sonnet: run /model sonnet', { timeoutMs: 8000 });
+  }
   await $.prompt.fill({ text: handoffPrompt(path, lang) });
-  await enqueue(async () => {
+  await enqueue($, async () => {
     await update($, ledgerRef, (prev) => applyHandoff(prev, { ts: now, planPath: path, plannerTokens, executorTokens: null }, mode, subscription ?? false));
   });
   if (fromModel) await setCredit($, 'handoff', fromModel, TIER_ALIAS.sonnet);
@@ -855,10 +886,18 @@ export const onCommandRun: Hook<'command.run'> = async ($, e, next) => {
   }
 };
 
-// A `/model` the person types ends autopilot's hold on the task: their choice is theirs.
+// A `/model` the person types ends agento's hold on the task, an `/effort` its hold on the effort: their choice is theirs.
 export const onModelCommand: Hook<'command.run'> = async ($, e, next) => {
   try {
-    if (mode !== 'off' && e.origin.kind !== 'plugin') await update($, taskRef, (t) => (t?.override ? { ...t, override: null } : (t ?? emptyTask())));
+    if (mode !== 'off' && e.origin.kind !== 'plugin') {
+      await update($, taskRef, (t) => {
+        const o = t?.override;
+        if (!t || !o) return t ?? emptyTask();
+        if (e.command !== 'effort') return { ...t, override: null };
+        const { effort: _dropped, ...rest } = o;
+        return { ...t, override: rest.model ? rest : null };
+      });
+    }
   } catch {
     // fine
   }

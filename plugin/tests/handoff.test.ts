@@ -146,7 +146,7 @@ describe('T19 (b): ExitPlanMode approved', () => {
     }
   });
 
-  test('[Write the code on Sonnet]: plan file, then clear, then sonnet, then the text in the box — and nothing is sent', async ($, on) => {
+  test('[Write the code on Sonnet]: plan file, then clear, then sonnet for that task, then the text in the box — and nothing is sent', async ($, on) => {
     const r = rig(on);
     await planned($, r);
     const ui = await mountBand($);
@@ -154,13 +154,21 @@ describe('T19 (b): ExitPlanMode approved', () => {
     const path = PLAN_FILE();
     expect(r.files.get(path)).toBe(PLAN);
     expect([...r.files.keys()]).toEqual([path]);
-    expect(r.commands).toEqual([{ command: 'clear', args: '' }, { command: 'model', args: 'sonnet' }]);
+    // No /model: it would make sonnet the default of every new session. Sonnet holds for the executor's task.
+    expect(r.commands).toEqual([{ command: 'clear', args: '' }]);
+    expect(r.task?.override).toMatchObject({ model: 'sonnet', modelId: SONNET, fromModel: OPUS });
     expect(r.fills).toHaveLength(1);
     expect(r.fills[0]?.text.startsWith(`Implement the plan in ${path}.`)).toBe(true);
     // The person presses Enter: agento never submits for them (the one submit is the planning prompt).
     expect(r.submitted.map((s) => s.text)).toEqual([HEAVY]);
-    expect(r.model).toBe(SONNET);
     expect(r.banner).toBeNull();
+    // The /clear's own session.end may land after the press: the executor's setup survives it, and its task runs on sonnet.
+    await $.session.end({ reason: 'clear', sessionId: 's', resume: {} } as never);
+    await prompt($, r.fills[0]?.text ?? '');
+    r.steps.length = 0;
+    await step($, { model: OPUS, effort: 'high' });
+    expect(r.steps[0]?.model).toBe(SONNET);
+    expect(r.model).toBe(OPUS);
     expect(r.toasts.at(-1)).toBe(`Plan saved: ${path}. Press Enter to start on Sonnet`);
   });
 
@@ -179,8 +187,16 @@ describe('T19 (b): ExitPlanMode approved', () => {
     const ui = await mountBand($);
     await ui.press({ key: 'handoff' });
     expect([...r.files.keys()]).toEqual([PLAN_FILE()]);
-    expect(r.commands.map((c) => c.command)).toEqual(['clear', 'model']);
+    expect(r.commands.map((c) => c.command)).toEqual(['clear']);
     expect(r.fills).toHaveLength(1);
+  });
+
+  test('a model whose sonnet id is not ours to name (a cloud id): /model sonnet, as before', async ($, on) => {
+    const r = rig(on, { model: 'us.anthropic.claude-opus-5-5-v1:0' });
+    await planned($, r);
+    const ui = await mountBand($);
+    await ui.press({ key: 'handoff' });
+    expect(r.commands.map((c) => c.command)).toEqual(['clear', 'model']);
   });
 
   test('the next prompt (the person pressing Enter on the plan text) is met with no suggestion', async ($, on) => {
@@ -228,7 +244,7 @@ describe('T19 (b): ExitPlanMode approved', () => {
     const ui = await mountBand($);
     await ui.press({ key: 'handoff' });
     expect(r.aborts).toEqual(['t7']);
-    expect(r.commands.map((c) => c.command)).toEqual(['clear', 'model']);
+    expect(r.commands.map((c) => c.command)).toEqual(['clear']);
   });
 
   test('a name that is taken gets a numeric suffix; an existing plan is never overwritten', async ($, on) => {
@@ -240,6 +256,19 @@ describe('T19 (b): ExitPlanMode approved', () => {
     expect(r.files.get(PLAN_FILE())).toBe('older plan');
     expect(r.files.get(PLAN_FILE().replace('.md', '-2.md'))).toBe(PLAN);
     expect(r.fills[0]?.text).toContain('-2.md');
+  });
+
+  test('when every numbered name is taken, nothing is written over and the context is kept', async ($, on) => {
+    const r = rig(on);
+    r.files.set(PLAN_FILE(), 'older plan');
+    for (let i = 2; i <= 20; i += 1) r.files.set(PLAN_FILE().replace('.md', `-${i}.md`), `older plan ${i}`);
+    await planned($, r);
+    const ui = await mountBand($);
+    await ui.press({ key: 'handoff' });
+    expect(r.files.get(PLAN_FILE().replace('.md', '-20.md'))).toBe('older plan 20');
+    expect(r.commands).toEqual([]);
+    expect(r.fills).toEqual([]);
+    expect(r.toasts.at(-1)).toContain('already exists');
   });
 
   test('no plan text in the result: the file ExitPlanMode saved it to is read', async ($, on) => {

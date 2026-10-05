@@ -32,6 +32,7 @@ export const register: Register = (on, options) => {
   on('prompt.submit', onPromptSubmit);
   on('command.run', { command: 'agento' }, onCommandRun);
   on('command.run', { command: 'model' }, onModelCommand);
+  on('command.run', { command: 'effort' }, onModelCommand);
   on('ui.render', { component: 'AbovePrompt' }, onRenderBand);
   on('ui.render', { component: 'Pane', requestId: 'agento' }, onRenderPane);
 };

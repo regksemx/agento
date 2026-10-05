@@ -50,6 +50,25 @@ describe('T20: orchestrator mode (P7)', () => {
     expect(section(c)?.text).toBe(section(a)?.text);
   });
 
+  test('a reload mid-session (a setting changed, so session.start runs again) changes nothing the session started with', async ($, on) => {
+    rig(on);
+    await start($);
+    const a = await compose($);
+    await slash($, 'agento', 'orchestrate on');
+    await start($);
+    expect(JSON.stringify(await compose($))).toBe(JSON.stringify(a));
+    expect(section(await compose($))).toBeUndefined();
+  });
+
+  test('a session that started in mode off and was switched on mid-session gets no section either', { options: { mode: 'off', orchestrate: 'on' } }, async ($, on) => {
+    rig(on);
+    await start($);
+    const a = await compose($);
+    await slash($, 'agento', 'mode balanced');
+    await start($);
+    expect(JSON.stringify(await compose($))).toBe(JSON.stringify(a));
+  });
+
   test('other facts of the request (model, tools) do not change the text', { options: { orchestrate: 'on' } }, async ($, on) => {
     rig(on);
     await start($);

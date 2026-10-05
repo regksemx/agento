@@ -188,10 +188,10 @@ export function decidePrompt(f: PromptFacts): PromptDecision {
 
 // ───────────────────────── autopilot: the clean-point turn ─────────────────────────
 
-// `$.command.run` is refused inside `prompt.submit` (it would wait on the very turn that hook holds), so autopilot
-// cannot set `/model` before the first request. Instead the decision is kept for the task and the task's main
-// requests are sent on the cheaper setup; once the turn is complete `/model` and `/effort` are run to make it the
-// session's own choice. The task never changes model midway: it is on the cheaper one from its first request.
+// `$.command.run` is refused inside `prompt.submit` (it would wait on the very turn that hook holds), and `/model` and
+// `/effort` in an interactive session are saved as the user's default for every new session — not agento's to change.
+// So the decision is kept for the task alone and the task's main requests are sent on the cheaper setup, from its
+// first request to its last; the next clean point decides again. The session's own model is never touched.
 export interface Override {
   // A tier alias (`sonnet`) and the exact id to name in a request; absent when only effort comes down.
   model?: string;
@@ -200,7 +200,7 @@ export interface Override {
   // What the user had, for the undo.
   fromModel: string;
   fromEffort: string | null;
-  // `/model` and `/effort` have been run: the session itself is on the new setup and requests need no rewrite.
+  // Legacy (older versions ran `/model` and set this): a persisted override rewrites nothing.
   persisted: boolean;
   since: number;
 }
@@ -228,12 +228,16 @@ export interface StepRewrite {
 }
 
 // What to change in a main request of the task, only ever downward (P3): a model only if the request names a pricier
-// tier than the override's, an effort only if it asks for more than the override's.
-export function overrideFor(o: Pick<Override, 'model' | 'modelId' | 'effort' | 'persisted'>, step: { model: string; effort?: string | number }): StepRewrite | null {
+// tier than the override's, an effort only if it asks for more than the override's. A request on another tier than
+// the one the user had (they picked another model, the engine fell back) is theirs and left alone; the target id is
+// named only when the request's own id is a plain first-party one (never a gateway's, a cloud's or a `[1m]` one).
+export function overrideFor(o: Pick<Override, 'model' | 'modelId' | 'effort' | 'persisted'> & { fromModel?: string }, step: { model: string; effort?: string | number }): StepRewrite | null {
   if (o.persisted) return null;
   const out: StepRewrite = {};
   const tier = tierOf(step.model);
-  if (o.model && o.modelId && tier !== null && tierRank(tier) > tierRank(o.model as Tier)) out.model = o.modelId;
+  if (o.fromModel !== undefined && tier !== tierOf(o.fromModel)) return null;
+  const id = o.model ? modelIdForTier(o.model as Tier, step.model) : null;
+  if (o.model && id && tier !== null && tierRank(tier) > tierRank(o.model as Tier)) out.model = id;
   if (o.effort && typeof step.effort === 'string' && effortRank(step.effort) > effortRank(o.effort)) out.effort = o.effort as TaskEffort;
   return out.model || out.effort ? out : null;
 }
