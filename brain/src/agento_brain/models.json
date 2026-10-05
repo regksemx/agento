@@ -1,4 +1,10 @@
 {
-  "latest": null,
-  "models": {}
+  "latest": "opus-v1",
+  "models": {
+    "opus-v1": {
+      "url": "https://github.com/regksemx/agento/releases/download/brain-opus-v1/agento-brain-opus-v1.tar.gz",
+      "sha256": "64f370542dd069de61f526fcef6217e64eb922760564b66b8f0f709af908cdeb",
+      "size": 261544651
+    }
+  }
 }
