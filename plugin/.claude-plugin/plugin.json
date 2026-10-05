@@ -1,0 +1,64 @@
+{
+  "name": "agento",
+  "version": "0.1.0",
+  "description": "Spend less of your Claude Code budget without losing quality: right-sized models at task start, cheap subagents, plan-to-code handoff, loop guard.",
+  "author": {
+    "name": "agento"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Mode",
+      "description": "balanced: route cheap subagents and warn about loops. eco: same, plus more eager suggestions. quality: observe only, never change a model. off: do nothing.",
+      "default": "balanced",
+      "options": [
+        "balanced",
+        "eco",
+        "quality",
+        "off"
+      ]
+    },
+    "autopilot": {
+      "type": "string",
+      "title": "Autopilot",
+      "description": "off: only suggestions. clean-points: at a clean point (first prompt, after /clear or a compaction, cold cache) agento sets a cheaper model and effort itself when it is confident, and shows how to undo it. Never raises anything, never changes the model mid-task.",
+      "default": "off",
+      "options": [
+        "off",
+        "clean-points"
+      ]
+    },
+    "orchestrate": {
+      "type": "string",
+      "title": "Orchestrator mode",
+      "description": "on: adds one fixed section to the system prompt that tells the main model when to delegate to the agento-scout, agento-builder and agento-checker subagents. Applies from the next session.",
+      "default": "off",
+      "options": [
+        "off",
+        "on"
+      ]
+    },
+    "suggestions": {
+      "type": "string",
+      "title": "Suggestions",
+      "description": "on: show banners above the prompt (lighter model for a light task, new context for a new topic, plan handoff, stuck agent). off: no suggestion banners (the stuck-agent warning stays).",
+      "default": "on",
+      "options": [
+        "on",
+        "off"
+      ]
+    },
+    "lang": {
+      "type": "string",
+      "title": "Language",
+      "description": "Language of banners and of the orchestrator section. auto follows LANG.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "ru",
+        "en"
+      ]
+    }
+  }
+}
