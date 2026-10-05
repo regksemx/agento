@@ -15,7 +15,7 @@ Everything is measured in dollars (or % of your weekly limit), locally.
 <p align="center"><img src="docs/assets/audit.svg" alt="agento audit" width="760"></p>
 <p align="center"><img src="docs/assets/audit-actions.svg" alt="agento audit: top actions" width="760"></p>
 
-> **Status: alpha.** `agento audit` works today. The plugin (in-session hints, ledger, subagent routing) is in active development.
+> **Status: alpha.** `agento audit` and the plugin work today; the trained classifier is next.
 
 ## Quick start
 
@@ -62,8 +62,9 @@ Why: [docs/research.md](docs/research.md) — 87% of a Claude Code bill is promp
 
 - [x] Research and design
 - [x] `agento audit` — spend, cache misses, TTL, light tasks on expensive models, subagents, dead context, setup
-- [ ] Plugin MVP — ledger, status line, subagent routing, loop guard, hints, plan → code handoff
-- [ ] Trained System 1 ([Laya](https://github.com/NandhaKishorM/laya) teacher → small CPU student) instead of rules
+- [x] Plugin MVP — ledger, status line, subagent routing, loop guard, hints, plan → code handoff, `/agento` pane, autopilot at clean points
+- [x] Training pipeline — dataset from your history, L1 judge (any OpenAI-compatible server), replays, public TwinRouterBench labels, [Laya](https://github.com/NandhaKishorM/laya) teacher → multilingual-e5-small student (35 ms on CPU), `agento-brain` daemon
+- [ ] Trained System 1 shipped by default instead of rules ([runbook](docs/runbook-gpu.md))
 - [ ] Public benchmark: cost per resolved task vs always-Opus, opusplan, rule routers
 
 ## Development
