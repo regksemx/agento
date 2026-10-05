@@ -69,7 +69,7 @@ describe('T15: ledger observes turn.step', () => {
     await step($);
     const line = r.statuses[r.statuses.length - 1] ?? '';
     // 5m TTL less the 30 s margin, floored to whole minutes.
-    expect(line).toMatch(/^◆ agento · opus·high · \$0\.0[67] · cache ● 4m$/);
+    expect(line).toMatch(/^opus·high · \$0\.0[67] · cache ● 4m$/);
   });
 
   test('status line for a subscriber shows the 7-day limit instead of dollars', async ($, on) => {
@@ -77,7 +77,7 @@ describe('T15: ledger observes turn.step', () => {
     await step($, { model: SONNET, effort: 'medium' });
     const line = r.statuses[r.statuses.length - 1] ?? '';
     // Subscriptions cache for 1h: 60m less the 30 s margin.
-    expect(line).toBe('◆ agento · sonnet·med · 7d 63% · cache ● 59m');
+    expect(line).toBe('sonnet·med · 7d 63% · cache ● 59m');
     expect(r.ledger?.isSubscription).toBe(true);
     expect(r.ledger?.sevenDayPct).toBe(63.4);
   });

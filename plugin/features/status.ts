@@ -26,7 +26,8 @@ export function fmtPct(p: number): string {
 // `◆ agento · sonnet·med · $1.84 · cache ● 41m` (○ when the main cache went cold).
 // Subscribers get their 7-day limit use where the dollars would be.
 export function formatStatus(l: AgentoLedger, now: number): string {
-  const parts = ['◆ agento'];
+  // Claude Code already names the plugin in front of its status line (`agento: …`).
+  const parts: string[] = [];
   if (l.main) {
     const eff = shortEffort(l.main.effort);
     parts.push(eff ? `${shortModel(l.main.model)}·${eff}` : shortModel(l.main.model));

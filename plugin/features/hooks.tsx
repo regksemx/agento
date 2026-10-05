@@ -1108,19 +1108,16 @@ export const onRenderPane: MatchedHook<'ui.render', { component: 'Pane'; request
     const { value: range = 'session' } = await $.state.get(rangeRef);
     const model = buildPanel(await panelData($, range), lang);
     const { Box, Text, Button } = $.ui.resolve(e);
-    const width = Math.max(20, Math.min(e.props.bodyColumns, 76));
+    const width = Math.max(20, e.props.bodyColumns);
     const label = (r: Row) => r.label.padEnd(14);
     return (
       <Box flexDirection="column">
-        <Box justifyContent="space-between">
-          <Box key="title">
-            {model.title.map((t) => (
-              <Text bold={t.tone !== 'accent'} color={COLOR[t.tone ?? 'plain']}>
-                {t.text}
-              </Text>
-            ))}
-          </Box>
-          <Text dimColor>{model.modeText}</Text>
+        <Box key="title">
+          {model.title.map((t) => (
+            <Text bold={t.tone !== 'accent'} color={COLOR[t.tone ?? 'plain']}>
+              {t.text}
+            </Text>
+          ))}
         </Box>
         <Text dimColor>{'─'.repeat(width)}</Text>
         {model.rows.map((r) => (
@@ -1136,12 +1133,14 @@ export const onRenderPane: MatchedHook<'ui.render', { component: 'Pane'; request
           </Box>
         ))}
         <Text dimColor>{'─'.repeat(width)}</Text>
-        <Box gap={1}>
+        <Box key="settings" gap={1}>
+          <Text dimColor>{model.settingsLabel.padEnd(13)}</Text>
           <Button key="mode" label={`${model.buttons.mode}: ${model.modeText.slice('mode: '.length)}`} onPress={() => cycleMode($)} />
           <Button key="orchestrate" label={model.buttons.orchestrate} onPress={() => toggleOrchestrate($)} />
           <Button key="autopilot" label={model.buttons.autopilot} onPress={() => toggleAutopilot($)} />
         </Box>
-        <Box gap={1}>
+        <Box key="range" gap={1}>
+          <Text dimColor>{model.rangeLabel.padEnd(13)}</Text>
           {model.rangeOptions.map((o) => (
             <Button key={`range:${o.value}`} label={o.label} variant={o.value === range ? 'primary' : 'secondary'} onPress={() => setRange($, o.value)} />
           ))}

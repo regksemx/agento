@@ -49,6 +49,8 @@ export interface PanelData {
 export interface PanelModel {
   title: Seg[];
   modeText: string;
+  settingsLabel: string;
+  rangeLabel: string;
   rows: Row[];
   // What the footer buttons say.
   buttons: { mode: string; orchestrate: string; autopilot: string };
@@ -182,6 +184,8 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
   return {
     title: [{ text: '◆', tone: 'accent' }, { text: ` agento · ${rangeLabel}` }],
     modeText: `mode: ${d.mode}`,
+    settingsLabel: ru ? 'Настройки' : 'Settings',
+    rangeLabel: ru ? 'Период' : 'Period',
     rows,
     buttons: { mode: ru ? 'Режим' : 'Mode', orchestrate: `${ru ? 'Оркестр' : 'Orchestra'}: ${orch}`, autopilot: `${ru ? 'Автопилот' : 'Autopilot'}: ${d.autopilot === 'off' ? (ru ? 'выкл' : 'off') : d.autopilot}` },
     rangeOptions: [

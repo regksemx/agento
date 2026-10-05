@@ -1,6 +1,6 @@
 {
   "name": "agento",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spend less of your Claude Code budget without losing quality: right-sized models at task start, cheap subagents, plan-to-code handoff, loop guard.",
   "author": {
     "name": "agento"

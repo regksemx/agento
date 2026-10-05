@@ -122,7 +122,8 @@ describe('T21: the pane, on every surface', () => {
       const ui = await mountPane($, surface);
       expect((await ui.find({ type: 'Text', text: '◆' }))).toBeDefined();
       expect((await ui.find({ type: 'Text', text: /agento · session 0m/ }))).toBeDefined();
-      expect((await ui.find({ type: 'Text', text: 'mode: balanced' }))).toBeDefined();
+      expect((await ui.find({ key: 'mode' }))).toMatchObject({ props: { label: 'Mode: balanced' } });
+      expect((await ui.find({ type: 'Text', text: /^Settings/ }))).toBeDefined();
       for (const label of ['Spend', 'Models', 'Savings', 'Hints', 'Loops']) expect(await ui.find({ key: `val:${label}` })).toBeDefined();
       expect(await rowText(ui, 'Spend')).toMatch(/^\$0\.19 measured/);
       expect(await rowText(ui, 'Spend')).toContain('cache hit');
@@ -197,7 +198,7 @@ describe('T21: the pane, on every surface', () => {
     rig(on);
     await start($);
     const ui = await mountPane($);
-    expect(await ui.find({ type: 'Text', text: 'mode: off' })).toBeDefined();
+    expect(await ui.find({ key: 'mode' })).toMatchObject({ props: { label: 'Mode: off' } });
   });
 });
 
