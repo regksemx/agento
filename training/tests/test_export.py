@@ -336,3 +336,12 @@ def test_conservative_threshold_relabels_judge_lines():
         assert (out["l1Tier"], out["l1Effort"]) == ("opus", "medium")
     finally:
         ex.L1_THRESHOLD = None
+
+
+def test_split_stats_count_the_tier_label_source():
+    from agento_train.export import split_stats
+
+    row = lambda src: {"meta": {"labels": {"tier": 1, "effort": 1, "plan_first": 0, "delegate_explore": 0},
+                                "label_source": "L0", "sources": {"tier": src}, "startTs": 1, "project": "p"}}
+    stats = split_stats({"train": [row("L1"), row("L1"), row("L0")]})
+    assert stats["sources"]["train"] == {"L1": 2, "L0": 1}

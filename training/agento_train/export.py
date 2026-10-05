@@ -485,7 +485,8 @@ def split_stats(rows_by_split: dict[str, list[dict]]) -> dict:
         for r in rows:
             for h, idx in r["meta"]["labels"].items():
                 mix[h][HEAD_OPTIONS[h][idx]] += 1
-            src[r["meta"]["label_source"]] += 1
+            # The source that actually labeled the tier head (L2 > L1 > L0), not the dataset's own `labelSource` field.
+            src[(r["meta"].get("sources") or {}).get("tier") or r["meta"]["label_source"]] += 1
         stats["labels"][split] = {h: dict(c) for h, c in mix.items()}
         stats["sources"][split] = dict(src)
         ts = [r["meta"]["startTs"] for r in rows]
