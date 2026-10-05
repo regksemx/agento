@@ -7,7 +7,7 @@ import { isWarm } from '../core/cache.ts';
 import { fitPctPerUsd, isCalibration, recordStep, CALIBRATION_KEY } from '../core/calibration.ts';
 import { classKey, classOf, DEFAULT_TASK_STEPS, estimateSaving, foldClassStats, handoffSaving, isClassStats, readCostPerStep, stepSaving, type ClassStats, type TaskClass } from '../core/estimate.ts';
 import { MAX_PLAN_CHARS, handoffPrompt, planDocument, planPath } from '../core/handoff.ts';
-import { langFromEnv, orchestrateSection } from '../core/orchestrate.ts';
+import { exploreHint, langFromEnv, orchestrateSection } from '../core/orchestrate.ts';
 import { tierOf, TIER_ALIAS, type Tier } from '../core/pricing.ts';
 import { canReplace, decidePrompt, detectTaskStart, dismissKeyOf, dismissStoreKey, makeOverride, overrideFor, S4_CONTEXT_TOKENS, taskContextOf, type DismissKey, type Downgrade, type PromptFacts } from '../core/suggest.ts';
 import { RULES_ID, rulesClassifier, type TaskContext, type TaskEffort, type TaskVerdict } from '../core/task.ts';
@@ -615,7 +615,8 @@ export const onPromptSubmit: Hook<'prompt.submit'> = async ($, e, next) => {
     // no hint is fine
   }
   try {
-    await onPrompt($, e.text, e.turnId !== undefined);
+    const hint = await onPrompt($, e.text, e.turnId !== undefined);
+    if (hint) ctx = [...(ctx ?? []), hint];
   } catch {
     // fail-open: the prompt goes on as typed
   }
@@ -625,7 +626,8 @@ export const onPromptSubmit: Hook<'prompt.submit'> = async ($, e, next) => {
 // `/name args`: a slash command (a skill, a custom command) is no prompt to judge a task by. A path is not one.
 const SLASH_COMMAND_RE = /^\/[A-Za-z][\w:-]*(?:\s|$)/;
 
-async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<void> {
+// What it returns rides the prompt as context for the agent (the explore-first hint), or nothing.
+async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<string | undefined> {
   // A prompt typed while a turn runs joins that turn: never a task start, and nothing of the task's is changed under
   // the running turn (its setup least of all, P1). A /clear or compaction marker waits for the next prompt of its own.
   if (midTurn || SLASH_COMMAND_RE.test(text.trimStart())) return;
@@ -705,7 +707,13 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<void
       undefined,
     );
   }
-  if (!dec || dec.action.kind === 'none') return;
+  // Orchestrator mode, a task the trained model sees as exploration-first: the agent is told so with this prompt.
+  let hint: string | undefined;
+  if (dec?.start && dec.verdict?.delegateExplore === true) {
+    const { value: s } = await $.state.get(sessionRef);
+    if (s?.orchestrate) hint = exploreHint(s.lang);
+  }
+  if (!dec || dec.action.kind === 'none') return hint;
 
   const money = await moneyOf($);
   const verdict = dec.verdict;
@@ -717,16 +725,16 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<void
     const perStep = readCostPerStep(current.model, tokens);
     const shown = await showBanner($, s4Banner({ why: action.why, contextTokens: tokens, perStepUsd: perStep, taskSavingUsd: perStep === null ? null : perStep * DEFAULT_TASK_STEPS.default, prompt: text, money }), cwd);
     if (shown) await markShown($, 'S4');
-    return;
+    return hint;
   }
-  if (!verdict) return;
+  if (!verdict) return hint;
 
   if (action.kind === 'S2a') {
     // What a step costs more on Opus than on the model the user is on now.
     const extra = stepSaving('opus', current.model);
     await showBanner($, s2aBanner({ verdict, current, stepExtraUsd: extra !== null && extra > 0 ? extra : null, money }), cwd);
     await markShown($, 'S2');
-    return;
+    return hint;
   }
 
   const saving = action.down.model ? estimateSaving(classOf(verdict), current.model, action.down.model, stats) : null;
@@ -744,12 +752,13 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<void
       await countHint($, 'auto');
       $.ui.toast(autopilotToast(input), { timeoutMs: 8000 });
       await showBanner($, autopilotBanner(input), cwd);
-      return;
+      return hint;
     }
     // The target's id cannot be named safely: leave it to the person as an ordinary suggestion.
   }
   const shown = await showBanner($, s1Banner(input), cwd);
   if (shown) await markShown($, 'S1');
+  return hint;
 }
 
 async function classStatsOf($: Dollar, c: TaskClass): Promise<ClassStats | undefined> {

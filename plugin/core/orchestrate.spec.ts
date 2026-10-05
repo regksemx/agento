@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { langFromEnv, orchestrateSection, orchestrateText, ORCHESTRATE_SECTION_ID } from './orchestrate.ts';
+import { exploreHint, langFromEnv, orchestrateSection, orchestrateText, ORCHESTRATE_SECTION_ID } from './orchestrate.ts';
 
 describe('the orchestrator section (P7)', () => {
   for (const lang of ['ru', 'en'] as const) {
@@ -20,5 +20,14 @@ describe('the orchestrator section (P7)', () => {
     expect(langFromEnv('ru_RU.UTF-8')).toBe('ru');
     expect(langFromEnv('en_US.UTF-8')).toBe('en');
     expect(langFromEnv(undefined)).toBe('en');
+  });
+});
+
+describe('exploreHint', () => {
+  it('names the scout, in the session language, with no counters or clocks', () => {
+    expect(exploreHint('en')).toContain('agento-scout');
+    expect(exploreHint('ru')).toContain('agento-scout');
+    expect(exploreHint('ru')).toMatch(/разведк/);
+    expect(exploreHint('en')).toBe(exploreHint('en'));
   });
 });

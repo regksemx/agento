@@ -55,6 +55,10 @@ export function reasonsText(v: Pick<TaskVerdict, 'reasons'>, lang: Lang): string
     if (m) return lang === 'ru' ? `слова про архитектуру/сложность ×${m[1]}` : `architecture/complexity words ×${m[1]}`;
     m = /^planning keywords: (\d+)$/.exec(r);
     if (m) return lang === 'ru' ? `слова про план/подход ×${m[1]}` : `planning words ×${m[1]}`;
+    m = /^brain \S+: plan first$/.exec(r);
+    if (m) return lang === 'ru' ? 'обученная модель: сначала план' : 'trained model: plan first';
+    m = /^brain \S+: delegate exploring$/.exec(r);
+    if (m) return lang === 'ru' ? 'обученная модель: начать с разведки' : 'trained model: explore first';
     return r;
   });
   return out.join(', ');

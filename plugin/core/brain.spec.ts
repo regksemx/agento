@@ -113,6 +113,15 @@ describe('the classifier', () => {
     const v = await classifier(() => Promise.resolve(res)).classify(LIGHT, CTX);
     expect(v).toMatchObject({ ...local, classifier: 'rules-v1', fallback: why });
   });
+  it('an abstention keeps the brain\'s yes/no heads over the rules\' tier and effort', async () => {
+    const v = await replying(answer({ abstain: true, plan_first: true, delegate_explore: true })).classify(LIGHT, CTX);
+    expect(v).toMatchObject({ ...local, classifier: 'rules-v1', fallback: 'abstain', planFirst: true, delegateExplore: true, latencyMs: 2.5 });
+    expect(v.reasons).toEqual(expect.arrayContaining(['brain run-7: plan first', 'brain run-7: delegate exploring']));
+  });
+  it('a daemon serving rules-v1 has no heads to keep', async () => {
+    const v = await replying(answer({ model_run_id: 'rules-v1', plan_first: true })).classify(LIGHT, CTX);
+    expect(v.planFirst).toBeUndefined();
+  });
   it('a call that throws is the rules too (fail-open)', async () => {
     const v = await classifier(() => Promise.reject(new Error('boom'))).classify(LIGHT, CTX);
     expect(v).toMatchObject({ ...local, classifier: 'rules-v1', fallback: 'error' });
@@ -148,6 +157,10 @@ describe('through the guards (decidePrompt)', () => {
   });
   it('plan_first makes a planning task even when the tier is sonnet (S2)', () => {
     const d = decidePrompt(facts({ current: { model: 'claude-sonnet-5-5', effort: 'medium' }, verdict: brainVerdict({ tier: 'sonnet', effort: 'medium', confidence: 0.8, planFirst: true }) }));
+    expect(d.action.kind).toBe('S2a');
+  });
+  it('plan_first does not wait on the tier\'s confidence (an abstaining tier leaves the rules\' low one)', () => {
+    const d = decidePrompt(facts({ current: { model: 'claude-sonnet-5-5', effort: 'medium' }, verdict: brainVerdict({ tier: 'sonnet', effort: 'medium', confidence: 0.3, planFirst: true }) }));
     expect(d.action.kind).toBe('S2a');
   });
   it('autopilot at a clean point takes the brain\'s downgrade', () => {

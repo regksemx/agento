@@ -47,3 +47,11 @@ export function orchestrateSection(lang: OrchestrateLang): ComposeSection {
 export function langFromEnv(lang: string | undefined | null): OrchestrateLang {
   return /^ru/i.test(lang ?? '') ? 'ru' : 'en';
 }
+
+// Rides as context on the one prompt that starts a task the trained model sees as exploration-first, in orchestrator
+// mode only. Context of a user message, not of the system prompt: the cached prefix stays as it is (P7).
+export function exploreHint(lang: OrchestrateLang): string {
+  return lang === 'ru'
+    ? 'agento: эта задача начинается с разведки. Если нужных файлов ещё нет в контексте, сначала отправь agento-scout найти их и вернуть пути и номера строк.'
+    : 'agento: this task starts with exploring. If the files it needs are not in context yet, first send agento-scout to find them and report paths and line numbers.';
+}

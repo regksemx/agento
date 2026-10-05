@@ -161,10 +161,19 @@ export function createBrainClassifier(o: BrainClassifierOptions): TaskClassifier
       const answer = parseRoute(res.text);
       if (!answer) return rules(prompt, ctx, 'invalid');
       const v = verdictFromRoute(answer);
-      if ('skip' in v) return rules(prompt, ctx, v.skip);
+      if ('skip' in v) return v.skip === 'abstain' ? withHeads(await rules(prompt, ctx, v.skip), answer) : rules(prompt, ctx, v.skip);
       return v;
     },
   };
+}
+
+// An abstaining daemon gives up only the tier and effort: its yes/no heads are calibrated on their own and are kept
+// over the rules' verdict (training/artifacts: plan_first 92%, delegate_explore 76% on the held-out tasks).
+export function withHeads(v: TaskVerdict, a: RouteAnswer): TaskVerdict {
+  const reasons = [...v.reasons];
+  if (a.planFirst) reasons.push(`brain ${a.runId}: plan first`);
+  if (a.delegateExplore) reasons.push(`brain ${a.runId}: delegate exploring`);
+  return { ...v, reasons, planFirst: a.planFirst, delegateExplore: a.delegateExplore, ...(a.latencyMs !== null ? { latencyMs: a.latencyMs } : {}) };
 }
 
 // The same rules, as the mod runs them at a prompt with no daemon to ask.

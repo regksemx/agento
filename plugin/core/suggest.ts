@@ -181,8 +181,9 @@ export function decidePrompt(f: PromptFacts): PromptDecision {
 
   // Heavy or planning work on a cheaper model: offer the architect → executor handoff (S2).
   const curTier = tierOf(f.current.model);
-  const planning = verdict.tier === 'opus' || features.keywords.plan >= 1 || verdict.planFirst === true;
-  if (f.suggestions && !is('S2') && planning && verdict.confidence >= CONFIDENCE_HANDOFF && curTier !== null && tierRank(curTier) < tierRank('opus')) {
+  // The trained plan-first head is calibrated on its own: it does not wait on the tier's confidence.
+  const planning = verdict.planFirst === true || ((verdict.tier === 'opus' || features.keywords.plan >= 1) && verdict.confidence >= CONFIDENCE_HANDOFF);
+  if (f.suggestions && !is('S2') && planning && curTier !== null && tierRank(curTier) < tierRank('opus')) {
     return { ...base, action: { kind: 'S2a' } };
   }
 
