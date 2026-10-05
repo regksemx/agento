@@ -54,15 +54,17 @@ export type Matrix = Record<string, Record<string, number>>;
 export function matrix(k: Kit, rowHeader: string, colPrefix: string, totalLabel: string, rows: string[], cols: readonly string[], m: Matrix, hot: (row: string, col: string) => boolean): void {
   const labelW = Math.max(visWidth(rowHeader), ...rows.map((r) => r.length)) + 1;
   const cellW = Math.max(7, visWidth(totalLabel) + 1);
-  k.body(k.t.dim(padR(rowHeader, labelW)) + cols.map((c) => k.t.dim(padL(colPrefix + ' ' + c, cellW + 3))).join('') + k.t.dim(padL(totalLabel, cellW)));
+  // A column is as wide as its header plus a gap, so long prefixes ("догадка sonnet") never run together.
+  const colW = cols.map((c) => Math.max(cellW + 3, visWidth(colPrefix + ' ' + c) + 2));
+  k.body(k.t.dim(padR(rowHeader, labelW)) + cols.map((c, i) => k.t.dim(padL(colPrefix + ' ' + c, colW[i]!))).join('') + k.t.dim(padL(totalLabel, cellW + 1)));
   for (const r of rows) {
     const total = cols.reduce((a, c) => a + (m[r]?.[c] ?? 0), 0);
-    const cells = cols.map((c) => {
+    const cells = cols.map((c, i) => {
       const v = m[r]?.[c] ?? 0;
-      const text = padL(v === 0 ? '·' : k.n(v), cellW + 3);
+      const text = padL(v === 0 ? '·' : k.n(v), colW[i]!);
       return v > 0 && hot(r, c) ? k.t.accent(text) : v === 0 ? k.t.dim(text) : k.t.num(text);
     });
-    k.body(k.t.num(padR(r, labelW)) + cells.join('') + k.t.dim(padL(k.n(total), cellW)));
+    k.body(k.t.num(padR(r, labelW)) + cells.join('') + k.t.dim(padL(k.n(total), cellW + 1)));
   }
 }
 
