@@ -1,0 +1,38 @@
+[project]
+name = "agento-train"
+version = "0.1.0"
+description = "agento router training: tasks.jsonl -> Laya teacher (RLCD) -> distilled ONNX student"
+requires-python = ">=3.11"
+# export + metrics need only numpy; the training stages need the `train` extra.
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+train = [
+  "torch>=2.4",
+  "transformers>=4.48",
+  "safetensors>=0.4",
+  "huggingface_hub>=0.20",
+  "tokenizers>=0.19",
+  # laya.train (the shared RLCD loop) is in the repo but not in the PyPI wheel of 0.3.27: pin the git revision.
+  # Without it agento_train falls back to its vendored copy (_laya_port.py), so `laya>=0.3.27` from PyPI works too.
+  "laya @ git+https://github.com/NandhaKishorM/laya@8a6e1328cce2460a0e5aa348ad465bb1b5821cd2",
+  "onnx>=1.16",
+  "onnxruntime>=1.18",
+  "onnxscript>=0.1",
+]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["agento_train"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["slow: needs torch, transformers, onnxruntime and a tiny model from the HF hub"]
