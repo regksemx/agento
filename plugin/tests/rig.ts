@@ -1,6 +1,6 @@
-import { mock } from 'claude-code/testing';
+import { mock, test } from 'claude-code/testing';
 import type { On, TurnStepInput, TurnStepResult, TurnUsage } from 'claude-code';
-import type { Engine } from 'claude-code/testing';
+import type { Engine, TestBody, TestOptions } from 'claude-code/testing';
 import type { AgentoBanner, AgentoLedger, AgentoTask } from '../types';
 
 export const T0 = 1_760_000_000_000; // a fixed "now" for the mocked clock
@@ -80,6 +80,8 @@ export interface Rig {
   http: HttpCall[];
   // What the bottom of tool.call answers per tool, instead of the plain `ok`: the tool's `result`.
   results: Record<string, unknown>;
+  // Compactions that reached the engine's own summarizer, with the transcript it was given.
+  compactions: Array<{ trigger: string; messages: unknown[] }>;
 }
 
 // Hooks beneath the plugins must be registered before the test first calls `$`.
@@ -99,6 +101,7 @@ export function rig(on: On, o: RigOptions = {}): Rig {
     banner: undefined,
     task: undefined,
     results: {},
+    compactions: [],
     commands: [],
     model: o.model ?? OPUS,
     effort: undefined,
@@ -209,7 +212,10 @@ export function rig(on: On, o: RigOptions = {}): Rig {
   });
   on('turn.start', async (_$, e, _next) => ({ turnId: e.turnId }));
   on('turn.complete', async (_$, _e, _next) => ({ text: '' }));
-  on('session.compact', async (_$, _e, _next) => (o.compactSkip ? { skip: 'vetoed' } : { messages: [{ role: 'user' as const, text: 'summary', toolUses: [] }] }) as never);
+  on('session.compact', async (_$, e, _next) => {
+    r.compactions.push({ trigger: e.trigger, messages: [...(e.messages ?? [])] });
+    return (o.compactSkip ? { skip: 'vetoed' } : { messages: [{ role: 'user' as const, text: 'summary', toolUses: [] }] }) as never;
+  });
   on('settings.read', async (_$, _e, _next) => ({ value: {} }));
   on('ui.open', async (_$, e, _next) => {
     r.panes.push(e.id);
@@ -278,4 +284,12 @@ export async function turn($: Engine, id: string, steps: () => Promise<unknown>)
   await $.turn.start({ text: 'go', turnId: id } as never);
   await steps();
   await $.turn.complete({ turnId: id, answer: 'done', durationMs: 1000, isAborted: false, reason: 'answer' } as never);
+}
+
+// Autopilot, orchestrator and pruning are on by default; tests of the plain suggestions turn them off.
+export const MANUAL = { autopilot: 'off', orchestrate: 'off', prune: 'off' } as const;
+
+export function manualTest(name: string, ...rest: readonly [TestBody] | readonly [TestOptions, TestBody]): void {
+  if (rest.length === 1) test(name, { options: MANUAL }, rest[0]);
+  else test(name, { ...rest[0], options: { ...MANUAL, ...(rest[0].options ?? {}) } }, rest[1]);
 }

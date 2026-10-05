@@ -6,7 +6,8 @@ import { isWarm, rewriteCost, warmRemainingMs, type LineageState } from '../core
 import { familyOf, tierOf, tierRank } from '../core/pricing.ts';
 import { fmtPct, formatUsd } from './status.ts';
 import type { Lang } from './strings.ts';
-import { hintsOf, savedOf } from './ledger.ts';
+import { hintsOf, savedOf, savedTotal } from './ledger.ts';
+import { fmtTokensShort } from './receipt.ts';
 
 export type Tone = 'plain' | 'dim' | 'accent' | 'success' | 'warning';
 
@@ -36,7 +37,7 @@ export interface PanelData {
   cost: number;
   tokens: { input: number; output: number; cacheRead: number; cacheWrite: number };
   byModel: Record<string, { steps: number; cost: number }>;
-  saved: { spawnRouting: number; suggestions: number; handoff: number; autopilot: number };
+  saved: { spawnRouting: number; suggestions: number; handoff: number; autopilot: number; prune?: number };
   hints: { shown: number; accepted: number; dismissed: number; auto: number };
   loopSignals: number;
   lastSignal: string | null;
@@ -52,6 +53,10 @@ export interface PanelData {
   routes?: AgentoRoute[];
   spawns?: SpawnsView;
   lastSignalKind?: string | null;
+  pruned?: { count: number; outputs: number; tokens: number } | null;
+  // The running task's cost (all lineages) and its 7-day reading at start.
+  taskTotal?: number | null;
+  taskPctAtStart?: number | null;
 }
 
 // One subagent spawn as the pane shows it. `actual` is set only when the steps ran it on another model than chosen.
@@ -67,8 +72,9 @@ export interface SpawnView {
 export interface SpawnsView {
   recent: SpawnView[];
   total: number;
-  // Spawns agento moved to a cheaper tier than the parent's.
+  // Spawns agento moved to a cheaper tier than the parent's, in all and by target tier.
   cheaper: number;
+  cheaperByTier?: Record<string, number>;
 }
 
 export interface PanelModel {
@@ -76,7 +82,10 @@ export interface PanelModel {
   modeText: string;
   settingsLabel: string;
   rangeLabel: string;
+  // Headline: savings, what agento did, the task, the limits.
   rows: Row[];
+  detailsLabel: string;
+  details: Row[];
   // What the footer buttons say.
   buttons: { mode: string; orchestrate: string; autopilot: string };
   rangeOptions: Array<{ value: AgentoPaneRange; label: string }>;
@@ -112,9 +121,6 @@ export function cacheHit(t: PanelData['tokens']): number | null {
   return total > 0 ? t.cacheRead / total : null;
 }
 
-function savedTotal(s: PanelData['saved']): number {
-  return s.spawnRouting + s.suggestions + s.handoff + s.autopilot;
-}
 
 // Who classifies the task at a clean point: the local rules, or the trained model the daemon serves.
 export function classifierText(b: AgentoBrain | undefined, lang: Lang): Seg[] {
@@ -165,16 +171,22 @@ export function spawnsOf(l: Pick<AgentoLedger, 'decisions' | 'recent'>): SpawnsV
     const fb = familyOf(b);
     return fa !== 'unknown' && fb !== 'unknown' ? fa !== fb : a !== b;
   };
-  const cheaper = l.decisions.filter((d) => {
+  const cheaperList = l.decisions.filter((d) => {
     const to = tierOf(d.model);
     const from = tierOf(d.parentModel);
     return d.reason !== 'explicit-model' && to !== null && from !== null && tierRank(to) < tierRank(from);
-  }).length;
+  });
+  const cheaperByTier: Record<string, number> = {};
+  for (const d of cheaperList) {
+    const t = tierOf(d.model) as string;
+    cheaperByTier[t] = (cheaperByTier[t] ?? 0) + 1;
+  }
+  const cheaper = cheaperList.length;
   const recent = l.decisions.slice(-MAX_SPAWN_ROWS).reverse().map((d): SpawnView => {
     const a = actualOf(d.agentId);
     return { ts: d.ts, type: d.subagentType, parent: d.parentModel, model: d.model, reason: d.reason, actual: a !== null && differs(a, d.model) ? a : null };
   });
-  return { recent, total: l.decisions.length, cheaper };
+  return { recent, total: l.decisions.length, cheaper, cheaperByTier };
 }
 
 // `in 3d 4h`, `in 5h03m`; null when it cannot be read or is past.
@@ -192,6 +204,10 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
   const fact = ru ? 'факт' : 'measured';
   const est = ru ? 'оценка' : 'estimate';
   const rows: Row[] = [];
+  const details: Row[] = [];
+  const pct = d.isSubscription && d.pctPerUsd !== null ? d.pctPerUsd : null;
+  // `1.2% недели` when calibrated, else dollars.
+  const amount = (usd: number): string => (pct !== null ? `${fmtPct(usd * pct)} ${ru ? 'недели' : 'of the week'}` : formatUsd(usd));
 
   const rangeLabel =
     d.range === 'session'
@@ -205,25 +221,44 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
   const ago = (ts: number): string => `${duration(d.now - ts)} ${ru ? 'назад' : 'ago'}`;
   const scope: Seg[] = d.range === 'session' ? [] : [{ text: ru ? '  (сессия)' : '  (session)', tone: 'dim' }];
 
-  // Now: the main thread and the running task
-  const now: Seg[] = [];
-  if (d.main) now.push({ text: `${shortModel(d.main.model)}${d.main.effort ? `·${d.main.effort}` : ''}`, tone: 'accent' });
+  // Saved: the one number
+  const saved = savedOf({ savedEstimate: d.saved });
+  const total = savedTotal(saved);
+  if (total > 0) {
+    const segs: Seg[] = [{ text: `≈ ${amount(total)}`, tone: 'success' }];
+    if (pct !== null) segs.push({ text: `  (${formatUsd(total)} ${ru ? 'API-экв.' : 'API-equiv.'})`, tone: 'dim' });
+    segs.push({ text: `   ${est}`, tone: 'warning' });
+    rows.push({ label: ru ? 'Сэкономлено' : 'Saved', segs });
+  } else {
+    rows.push({ label: ru ? 'Сэкономлено' : 'Saved', segs: [{ text: ru ? 'пока нечего засчитать' : 'nothing to credit yet', tone: 'dim' }] });
+  }
+
+  // What agento did
+  const did: Seg[][] = [];
+  const line = (what: string, usd: number): Seg[] => [{ text: what }, ...(usd > 0 ? [{ text: ` — ≈${amount(usd)}`, tone: 'success' as Tone }] : [])];
+  const h = d.hints;
+  if (saved.autopilot > 0 || h.auto > 0) did.push(line(ru ? `автопилот: модель дешевле${h.auto > 0 ? ` ×${h.auto}` : ''}` : `autopilot: cheaper model${h.auto > 0 ? ` ×${h.auto}` : ''}`, saved.autopilot));
+  const byTier = Object.entries(d.spawns?.cheaperByTier ?? {}).filter(([, n]) => n > 0).map(([t, n]) => `${t} ×${n}`);
+  if (saved.spawnRouting > 0 || byTier.length > 0) did.push(line(ru ? `субагенты${byTier.length ? `: ${byTier.join(', ')}` : ' на дешёвых моделях'}` : `subagents${byTier.length ? `: ${byTier.join(', ')}` : ' on cheaper models'}`, saved.spawnRouting));
+  if (saved.handoff > 0 || (d.handoff && d.range === 'session')) did.push(line(ru ? 'код по плану на Sonnet' : 'plan coded on Sonnet', saved.handoff));
+  if (saved.suggestions > 0) did.push(line(ru ? `принятые подсказки${h.accepted > 0 ? ` ×${h.accepted}` : ''}` : `accepted suggestions${h.accepted > 0 ? ` ×${h.accepted}` : ''}`, saved.suggestions));
+  const pr = d.pruned;
+  if (saved.prune > 0 || (pr && pr.count > 0)) did.push(line(ru ? `убраны старые выводы${pr ? ` ×${pr.outputs} (−${fmtTokensShort(pr.tokens)} токенов)` : ''}` : `pruned stale outputs${pr ? ` ×${pr.outputs} (−${fmtTokensShort(pr.tokens)} tokens)` : ''}`, saved.prune));
+  if (d.loopSignals > 0) did.push([{ text: ru ? `предупредил о буксовании ×${d.loopSignals}` : `flagged a stuck agent ×${d.loopSignals}`, tone: 'warning' }, ...(d.lastSignal ? [{ text: `  (${d.lastSignal})`, tone: 'dim' as Tone }] : [])]);
+  const didLabel = ru ? 'Что сделал' : 'What it did';
+  if (did.length === 0) rows.push({ label: didLabel, segs: [{ text: ru ? 'пока ничего' : 'nothing yet', tone: 'dim' }] });
+  did.forEach((segs, i) => rows.push({ label: i === 0 ? didLabel : '', segs }));
+
+  // The running task
   if (d.task) {
     const t = d.task;
-    now.push({ text: `${now.length > 0 ? '  ' : ''}${ru ? 'задача' : 'task'} ${t.class}${t.tier ? ` (${t.tier})` : ''}`, tone: 'plain' }, { text: ` · ${t.steps} ${ru ? 'шагов' : 'steps'} · ${formatUsd(t.cost)}`, tone: 'dim' });
-  }
-  if (now.length > 0) rows.push({ label: ru ? 'Сейчас' : 'Now', segs: now });
-
-  // Cache: state, prefix, and what a cold restart would cost
-  if (d.cache) {
-    const warm = isWarm(d.cache, d.now);
-    const cs: Seg[] = [{ text: warm ? `● warm ${Math.max(1, Math.floor(warmRemainingMs(d.cache, d.now) / 60_000))}m` : '○ cold', tone: warm ? 'success' : 'dim' }, { text: ` · ${ru ? 'префикс' : 'prefix'} ${fmtTokens(d.cache.prefixTokens)} · ttl ${d.cache.ttl}`, tone: 'plain' }];
-    const restart = rewriteCost(d.cache.model, d.cache.prefixTokens, d.cache.ttl);
-    if (restart !== null) cs.push({ text: `  ${ru ? 'холодный старт' : 'cold restart'} ≈ ${formatUsd(restart)}`, tone: 'dim' });
-    rows.push({ label: ru ? 'Кэш' : 'Cache', segs: cs });
+    const usd = d.taskTotal ?? t.cost;
+    const start = d.taskPctAtStart;
+    const share = d.isSubscription && start !== null && start !== undefined && d.sevenDayPct !== null && d.sevenDayPct >= start ? `${fmtPct(Math.max(d.sevenDayPct - start, 0.01))} ${ru ? 'недели' : 'of the week'}` : amount(usd);
+    rows.push({ label: ru ? 'Задача' : 'Task', segs: [{ text: share, tone: 'accent' }, { text: ` · ${t.steps} ${ru ? 'шагов' : 'steps'}${t.tier ? ` · ${t.tier}` : ''}`, tone: 'dim' }] });
   }
 
-  // Limits: subscribers only. Only the 7-day window is kept; the 5-hour one is not in the ledger.
+  // Limits: subscribers only (the 5-hour window is not in the ledger)
   if (d.isSubscription) {
     const ls: Seg[] = [];
     if (d.sevenDayPct !== null) {
@@ -236,56 +271,40 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
     rows.push({ label: ru ? 'Лимиты' : 'Limits', segs: ls });
   }
 
-  // Spend
-  const spend: Seg[] =[{ text: `${formatUsd(d.cost)} ${d.isSubscription ? (ru ? 'API-экв.' : 'API-equiv.') : fact}`, tone: 'plain' }];
-  if (d.isSubscription && d.sevenDayPct !== null) spend.push({ text: `  ${ru ? '7д' : '7d'} ${fmtPct(d.sevenDayPct)}`, tone: 'accent' });
+  // ---- details ----
+
+  const spend: Seg[] = [{ text: `${formatUsd(d.cost)} ${d.isSubscription ? (ru ? 'API-экв.' : 'API-equiv.') : fact}`, tone: 'plain' }];
   const hit = cacheHit(d.tokens);
   if (hit !== null) spend.push({ text: `   ${ru ? 'кэш hit' : 'cache hit'} ${Math.round(hit * 100)}%`, tone: 'dim' });
-  if (d.cache) {
-    const warm = isWarm(d.cache, d.now);
-    spend.push({ text: warm ? ` · ● warm ${Math.max(1, Math.floor(warmRemainingMs(d.cache, d.now) / 60_000))}m` : ' · ○ cold', tone: warm ? 'success' : 'dim' });
-  }
-  rows.push({ label: ru ? 'Расход' : 'Spend', segs: spend });
+  details.push({ label: ru ? 'Расход' : 'Spend', segs: spend });
 
-  // Models
+  if (d.main) details.push({ label: ru ? 'Модель' : 'Model', segs: [{ text: `${shortModel(d.main.model)}${d.main.effort ? `·${d.main.effort}` : ''}`, tone: 'accent' }] });
+
   const tiers = tierSteps(d.byModel);
   const max = Math.max(0, ...tiers.map((t) => t.steps));
   const models: Seg[] = [];
   tiers.forEach((t, i) => models.push({ text: `${i > 0 ? '   ' : ''}${t.name} ${bar(t.steps, max, 10)} ${t.steps}`, tone: 'plain' }));
   if (tiers.length === 0) models.push({ text: ru ? 'пока нет шагов' : 'no steps yet', tone: 'dim' });
-  rows.push({ label: ru ? 'Модели' : 'Models', segs: models });
+  details.push({ label: ru ? 'Модели' : 'Models', segs: models });
   const costs = tierCosts(d.byModel);
   const costSum = costs.reduce((a, c) => a + c.cost, 0);
-  if (costSum > 0) rows.push({ label: ru ? 'По моделям' : 'By model', segs: [{ text: costs.map((c) => `${c.name} ${formatUsd(c.cost)} ${Math.round((c.cost / costSum) * 100)}%`).join(' · ') }] });
+  if (costSum > 0) details.push({ label: ru ? 'По моделям' : 'By model', segs: [{ text: costs.map((c) => `${c.name} ${formatUsd(c.cost)} ${Math.round((c.cost / costSum) * 100)}%`).join(' · ') }] });
   const tk = d.tokens;
   if (tk.input + tk.output + tk.cacheRead + tk.cacheWrite > 0) {
-    rows.push({ label: ru ? 'Токены' : 'Tokens', segs: [{ text: `in ${fmtTokens(tk.input)} · out ${fmtTokens(tk.output)}`, tone: 'plain' }, { text: `   ${ru ? 'кэш' : 'cache'} ${ru ? 'чтение' : 'read'} ${fmtTokens(tk.cacheRead)} · ${ru ? 'запись' : 'write'} ${fmtTokens(tk.cacheWrite)}`, tone: 'dim' }] });
+    details.push({ label: ru ? 'Токены' : 'Tokens', segs: [{ text: `in ${fmtTokens(tk.input)} · out ${fmtTokens(tk.output)}`, tone: 'plain' }, { text: `   ${ru ? 'кэш' : 'cache'} ${ru ? 'чтение' : 'read'} ${fmtTokens(tk.cacheRead)} · ${ru ? 'запись' : 'write'} ${fmtTokens(tk.cacheWrite)}`, tone: 'dim' }] });
   }
 
-  // Savings: only agento's own mechanisms, always an estimate.
-  const total = savedTotal(d.saved);
-  const parts: string[] = [];
-  const pct = d.isSubscription && d.pctPerUsd !== null ? d.pctPerUsd : null;
-  const add = (v: number, name: string): void => {
-    if (v > 0) parts.push(`${name} ${formatUsd(v)}${pct !== null ? ` (${fmtPct(v * pct)})` : ''}`);
-  };
-  add(d.saved.spawnRouting, ru ? 'субагенты' : 'subagents');
-  add(d.saved.suggestions, ru ? 'подсказки' : 'hints');
-  add(d.saved.autopilot, ru ? 'автопилот' : 'autopilot');
-  add(d.saved.handoff, 'handoff');
-  const savedSegs: Seg[] = [];
-  if (total > 0) {
-    const head = d.isSubscription && d.pctPerUsd !== null ? `≈ ${fmtPct(total * d.pctPerUsd)} ${ru ? 'недельного лимита' : 'of the weekly limit'}` : `≈ ${formatUsd(total)}`;
-    savedSegs.push({ text: head, tone: 'success' }, { text: `  (${parts.join(' · ')})`, tone: 'dim' }, { text: `   ${est}`, tone: 'warning' });
-  } else {
-    savedSegs.push({ text: ru ? 'пока нечего засчитать' : 'nothing to credit yet', tone: 'dim' });
+  if (d.cache) {
+    const warm = isWarm(d.cache, d.now);
+    const cs: Seg[] = [{ text: warm ? `● warm ${Math.max(1, Math.floor(warmRemainingMs(d.cache, d.now) / 60_000))}m` : '○ cold', tone: warm ? 'success' : 'dim' }, { text: ` · ${ru ? 'префикс' : 'prefix'} ${fmtTokens(d.cache.prefixTokens)} · ttl ${d.cache.ttl}`, tone: 'plain' }];
+    const restart = rewriteCost(d.cache.model, d.cache.prefixTokens, d.cache.ttl);
+    if (restart !== null) cs.push({ text: `  ${ru ? 'холодный старт' : 'cold restart'} ≈ ${formatUsd(restart)}`, tone: 'dim' });
+    details.push({ label: ru ? 'Кэш' : 'Cache', segs: cs });
   }
-  rows.push({ label: ru ? 'Экономия' : 'Savings', segs: savedSegs });
 
-  // Routing: the last task classifications and what each led to (the session's, whatever the period)
   const routes = (d.routes ?? []).slice(-MAX_ROUTE_ROWS).reverse();
   const routeLabel = ru ? 'Маршрут' : 'Routing';
-  if (routes.length === 0) rows.push({ label: routeLabel, segs: [{ text: ru ? 'пока нет' : 'none yet', tone: 'dim' }] });
+  if (routes.length === 0) details.push({ label: routeLabel, segs: [{ text: ru ? 'пока нет' : 'none yet', tone: 'dim' }] });
   routes.forEach((r, i) => {
     const segs: Seg[] = [{ text: `${ago(r.ts)}  `, tone: 'dim' }, { text: r.classifier }, { text: ` · ${r.tier}·${r.effort}`, tone: 'accent' }];
     segs.push({ text: r.stage === 'trajectory' ? ` · ${ru ? 'траектория' : 'trajectory'} ${r.complexity ?? '?'}` : ` · ${Math.round(r.confidence * 100)}%`, tone: 'plain' });
@@ -294,15 +313,14 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
     if (r.fallback) segs.push({ text: ` · fallback ${r.fallback}`, tone: 'dim' });
     segs.push({ text: ` → ${r.action}`, tone: 'success' });
     if (i === 0) segs.push(...scope);
-    rows.push({ label: i === 0 ? routeLabel : '', segs });
+    details.push({ label: i === 0 ? routeLabel : '', segs });
   });
 
-  // Subagents: which model each recent spawn was launched with
   const sp = d.spawns;
   if (!sp || sp.total === 0) {
-    rows.push({ label: ru ? 'Субагенты' : 'Subagents', segs: [{ text: ru ? 'пока нет' : 'none yet', tone: 'dim' }] });
+    details.push({ label: ru ? 'Субагенты' : 'Subagents', segs: [{ text: ru ? 'пока нет' : 'none yet', tone: 'dim' }] });
   } else {
-    rows.push({
+    details.push({
       label: ru ? 'Субагенты' : 'Subagents',
       segs: [{ text: ru ? `${sp.total} запусков · ${sp.cheaper} дешевле родителя` : `${sp.total} spawns · ${sp.cheaper} routed cheaper`, tone: 'plain' }, ...scope],
     });
@@ -312,31 +330,15 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
       segs.push(kept ? { text: `  ${shortModel(v.parent)} · ${ru ? 'оставлена' : 'kept'}`, tone: 'dim' } : { text: `  ${shortModel(v.parent)} → ${shortModel(v.model)}`, tone: 'success' });
       segs.push({ text: ` · ${v.reason}`, tone: 'dim' });
       if (v.actual) segs.push({ text: `  ${ru ? 'шёл на' : 'ran on'} ${shortModel(v.actual)}`, tone: 'warning' });
-      rows.push({ label: '', segs });
+      details.push({ label: '', segs });
     }
   }
 
-  // Hints
-  const h = d.hints;
-  const hintParts = ru
-    ? [`${h.shown} показано`, `${h.accepted} принято`, `${h.dismissed} «не предлагать»`]
-    : [`${h.shown} shown`, `${h.accepted} accepted`, `${h.dismissed} "don't suggest"`];
-  if (h.auto > 0) hintParts.push(ru ? `${h.auto} авто` : `${h.auto} auto`);
-  rows.push({ label: ru ? 'Подсказки' : 'Hints', segs: [{ text: hintParts.join(' · ') }] });
+  details.push({ label: ru ? 'Классификатор' : 'Classifier', segs: classifierText(d.brain, lang) });
 
-  // Loops
-  rows.push({
-    label: ru ? 'Буксование' : 'Loops',
-    segs: d.loopSignals > 0 ? [{ text: `${d.loopSignals}`, tone: 'warning' }, ...(d.lastSignal ? [{ text: ` (${d.lastSignalKind ? `${d.lastSignalKind}: ` : ''}${d.lastSignal})`, tone: 'dim' as Tone }] : [])] : [{ text: ru ? 'нет' : 'none', tone: 'dim' }],
-  });
-
-  // Classifier
-  rows.push({ label: ru ? 'Классификатор' : 'Classifier', segs: classifierText(d.brain, lang) });
-
-  // Handoff
   if (d.handoff && d.range === 'session') {
     const k = (n: number | null): string => (n === null ? '…' : `${Math.round(n / 1000)}k`);
-    rows.push({
+    details.push({
       label: 'Handoff',
       segs: [{ text: ru ? `контекст исполнителя ${k(d.handoff.executorTokens)} токенов вместо ${k(d.handoff.plannerTokens)}` : `executor context ${k(d.handoff.executorTokens)} tokens instead of ${k(d.handoff.plannerTokens)}` }, { text: `   ${d.handoff.planPath}`, tone: 'dim' }],
     });
@@ -350,7 +352,9 @@ export function buildPanel(d: PanelData, lang: Lang): PanelModel {
     settingsLabel: ru ? 'Настройки' : 'Settings',
     rangeLabel: ru ? 'Период' : 'Period',
     rows,
-    buttons: { mode: ru ? 'Режим' : 'Mode', orchestrate: `${ru ? 'Оркестр' : 'Orchestra'}: ${orch}`, autopilot: `${ru ? 'Автопилот' : 'Autopilot'}: ${d.autopilot === 'off' ? (ru ? 'выкл' : 'off') : d.autopilot}` },
+    detailsLabel: ru ? 'Подробности' : 'Details',
+    details,
+    buttons: { mode: ru ? 'Режим' : 'Mode', orchestrate: `${ru ? 'Оркестр' : 'Orchestra'}: ${orch}`, autopilot: `${ru ? 'Автопилот' : 'Autopilot'}: ${d.autopilot === 'off' ? (ru ? 'выкл' : 'off') : ru ? 'вкл' : 'on'}` },
     rangeOptions: [
       { value: 'session', label: ru ? 'Сессия' : 'Session' },
       { value: 'today', label: ru ? 'Сегодня' : 'Today' },
@@ -368,7 +372,7 @@ export function foldDays(days: ReadonlyArray<{
 }>): Pick<PanelData, 'steps' | 'cost' | 'tokens' | 'byModel' | 'saved' | 'hints' | 'loopSignals'> {
   const out = {
     steps: 0, cost: 0, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, byModel: {} as PanelData['byModel'],
-    saved: { spawnRouting: 0, suggestions: 0, handoff: 0, autopilot: 0 }, hints: { shown: 0, accepted: 0, dismissed: 0, auto: 0 }, loopSignals: 0,
+    saved: { spawnRouting: 0, suggestions: 0, handoff: 0, autopilot: 0, prune: 0 }, hints: { shown: 0, accepted: 0, dismissed: 0, auto: 0 }, loopSignals: 0,
   };
   for (const d of days) {
     out.steps += d.steps;
@@ -378,7 +382,7 @@ export function foldDays(days: ReadonlyArray<{
       const p = out.byModel[m] ?? { steps: 0, cost: 0 };
       out.byModel[m] = { steps: p.steps + t.steps, cost: p.cost + t.cost };
     }
-    out.saved = { spawnRouting: out.saved.spawnRouting + d.savedEstimate.spawnRouting, suggestions: out.saved.suggestions + d.savedEstimate.suggestions, handoff: out.saved.handoff + d.savedEstimate.handoff, autopilot: out.saved.autopilot + d.savedEstimate.autopilot };
+    out.saved = { spawnRouting: out.saved.spawnRouting + d.savedEstimate.spawnRouting, suggestions: out.saved.suggestions + d.savedEstimate.suggestions, handoff: out.saved.handoff + d.savedEstimate.handoff, autopilot: out.saved.autopilot + d.savedEstimate.autopilot, prune: (out.saved.prune ?? 0) + (d.savedEstimate.prune ?? 0) };
     out.hints = { shown: out.hints.shown + d.hintsShown, accepted: out.hints.accepted + d.hintsAccepted, dismissed: out.hints.dismissed + d.hintsDismissed, auto: out.hints.auto + d.autopilotActions };
     out.loopSignals += d.loopSignals;
   }

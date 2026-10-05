@@ -32,7 +32,8 @@ function data(over: Partial<PanelData> = {}): PanelData {
   };
 }
 
-const text = (m: ReturnType<typeof buildPanel>, label: string): string => (m.rows.find((r) => r.label === label)?.segs ?? []).map((s) => s.text).join('');
+const all = (m: ReturnType<typeof buildPanel>) => [...m.rows, ...m.details];
+const text = (m: ReturnType<typeof buildPanel>, label: string): string => (all(m).find((r) => r.label === label)?.segs ?? []).map((s) => s.text).join('');
 
 describe('the /agento pane (spec §7.7 mock)', () => {
   const m = buildPanel(data(), 'ru');
@@ -41,48 +42,51 @@ describe('the /agento pane (spec §7.7 mock)', () => {
     expect(m.title[0]).toEqual({ text: '◆', tone: 'accent' });
     expect(m.modeText).toBe('mode: balanced');
   });
-  it('spend is a measured figure, with the cache hit and warm state', () => {
-    expect(text(m, 'Расход')).toBe('$6.71 факт   кэш hit 94% · ● warm 58m');
+  it('leads with one savings number, marked as an estimate', () => {
+    expect(m.rows[0]?.label).toBe('Сэкономлено');
+    expect(text(m, 'Сэкономлено')).toBe('≈ $2.12   оценка');
+    expect(m.rows[0]?.segs.map((x) => x.tone)).toEqual(['success', 'warning']);
   });
-  it('model mix bars are per tier, scaled to the busiest', () => {
+  it('then what agento did, each with its amount', () => {
+    expect(rowsOf(m, 'Что сделал')).toEqual(['субагенты на дешёвых моделях — ≈$1.30', 'принятые подсказки ×2 — ≈$0.82', 'предупредил о буксовании ×1  (auth.spec падает 3 раза)']);
+  });
+  it('raw metrics live under the details', () => {
+    expect(m.detailsLabel).toBe('Подробности');
+    expect(text(m, 'Расход')).toBe('$6.71 факт   кэш hit 94%');
     expect(text(m, 'Модели')).toBe('opus ▇▇▇▇░░░░░░ 31   sonnet ▇▇▇▇▇▇▇▇▇▇ 84   haiku ▇▇▇░░░░░░░ 27');
-  });
-  it('savings are only agento\'s mechanisms and are marked as an estimate', () => {
-    expect(text(m, 'Экономия')).toBe('≈ $2.12  (субагенты $1.30 · подсказки $0.82)   оценка');
-    const tones = m.rows.find((r) => r.label === 'Экономия')?.segs.map((s) => s.tone);
-    expect(tones).toEqual(['success', 'dim', 'warning']);
-  });
-  it('hints and loop events', () => {
-    expect(text(m, 'Подсказки')).toBe('4 показано · 2 принято · 1 «не предлагать»');
-    expect(text(m, 'Буксование')).toBe('1 (auth.spec падает 3 раза)');
+    expect(m.rows.some((r) => r.label === 'Расход' || r.label === 'Подсказки')).toBe(false);
   });
   it('footer: buttons name the current settings; range options', () => {
     expect(m.buttons).toEqual({ mode: 'Режим', orchestrate: 'Оркестр: выкл', autopilot: 'Автопилот: выкл' });
+    expect(buildPanel(data({ autopilot: 'clean-points' }), 'ru').buttons.autopilot).toBe('Автопилот: вкл');
     expect(m.rangeOptions.map((o) => o.value)).toEqual(['session', 'today', '7d', 'all']);
   });
 
-  it('a cold cache, no hits yet', () => {
-    const c = buildPanel(data({ cache: { ...cache, lastAt: NOW - 2 * 3_600_000 }, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, steps: 0, byModel: {}, hints: { shown: 0, accepted: 0, dismissed: 0, auto: 0 }, loopSignals: 0, lastSignal: null, saved: { spawnRouting: 0, suggestions: 0, handoff: 0, autopilot: 0 } }), 'en');
-    expect(text(c, 'Spend')).toBe('$6.71 measured · ○ cold');
+  it('nothing yet: says so', () => {
+    const c = buildPanel(data({ tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, steps: 0, byModel: {}, hints: { shown: 0, accepted: 0, dismissed: 0, auto: 0 }, loopSignals: 0, lastSignal: null, saved: { spawnRouting: 0, suggestions: 0, handoff: 0, autopilot: 0 } }), 'en');
+    expect(text(c, 'Saved')).toBe('nothing to credit yet');
+    expect(text(c, 'What it did')).toBe('nothing yet');
     expect(text(c, 'Models')).toBe('no steps yet');
-    expect(text(c, 'Savings')).toBe('nothing to credit yet');
-    expect(text(c, 'Loops')).toBe('none');
   });
 
-  it('a subscriber sees the weekly limit; savings in percent when a calibration exists, else dollars', () => {
+  it('a calibrated subscriber sees savings as a share of the week, dollars beside it', () => {
     const sub = buildPanel(data({ isSubscription: true, sevenDayPct: 63.4, pctPerUsd: 4 }), 'ru');
+    expect(text(sub, 'Сэкономлено')).toBe('≈ 8.5% недели  ($2.12 API-экв.)   оценка');
+    expect(rowsOf(sub, 'Что сделал')[0]).toBe('субагенты на дешёвых моделях — ≈5.2% недели');
     expect(text(sub, 'Расход')).toContain('API-экв.');
-    expect(text(sub, 'Расход')).toContain('7д 63%');
-    expect(text(sub, 'Экономия')).toContain('≈ 8.5% недельного лимита');
     const nocal = buildPanel(data({ isSubscription: true, sevenDayPct: 10, pctPerUsd: null }), 'ru');
-    expect(text(nocal, 'Экономия')).toContain('≈ $2.12');
+    expect(text(nocal, 'Сэкономлено')).toBe('≈ $2.12   оценка');
   });
 
-  it('autopilot and handoff mechanisms are named; handoff shows executor against planner context', () => {
-    const h = buildPanel(data({ saved: { spawnRouting: 0, suggestions: 0.1, handoff: 0.4, autopilot: 0.2 }, hints: { shown: 3, accepted: 1, dismissed: 0, auto: 2 }, handoff: { ts: NOW, planPath: '.agento/plans/p.md', plannerTokens: 142_000, executorTokens: 9_000 } }), 'ru');
-    expect(text(h, 'Экономия')).toContain('подсказки $0.10 · автопилот $0.20 · handoff $0.40');
-    expect(text(h, 'Подсказки')).toContain('2 авто');
+  it('autopilot, handoff and pruning are named; handoff details stay below', () => {
+    const h = buildPanel(data({ saved: { spawnRouting: 0, suggestions: 0, handoff: 0.4, autopilot: 0.2, prune: 0.05 }, hints: { shown: 3, accepted: 1, dismissed: 0, auto: 2 }, loopSignals: 0, pruned: { count: 1, outputs: 4, tokens: 12_000 }, handoff: { ts: NOW, planPath: '.agento/plans/p.md', plannerTokens: 142_000, executorTokens: 9_000 } }), 'ru');
+    expect(rowsOf(h, 'Что сделал')).toEqual(['автопилот: модель дешевле ×2 — ≈$0.20', 'код по плану на Sonnet — ≈$0.40', 'убраны старые выводы ×4 (−12k токенов) — ≈$0.05']);
     expect(text(h, 'Handoff')).toBe('контекст исполнителя 9k токенов вместо 142k   .agento/plans/p.md');
+  });
+
+  it('cheaper subagents are counted by tier', () => {
+    const v = buildPanel(data({ spawns: { recent: [], total: 4, cheaper: 3, cheaperByTier: { haiku: 2, sonnet: 1 } } }), 'en');
+    expect(rowsOf(v, 'What it did')[0]).toBe('subagents: haiku ×2, sonnet ×1 — ≈$1.30');
   });
 
   it('orchestrate changed this session: says it applies from the next one', () => {
@@ -126,7 +130,7 @@ describe('panel helpers', () => {
     expect(f.cost).toBe(3);
     expect(f.tokens.cacheRead).toBe(6);
     expect(f.byModel['claude-opus-5-5']).toEqual({ steps: 5, cost: 3 });
-    expect(f.saved).toEqual({ spawnRouting: 1, suggestions: 0.2, handoff: 0, autopilot: 0.4 });
+    expect(f.saved).toEqual({ spawnRouting: 1, suggestions: 0.2, handoff: 0, autopilot: 0.4, prune: 0 });
     expect(f.hints).toEqual({ shown: 4, accepted: 2, dismissed: 0, auto: 2 });
     expect(f.loopSignals).toBe(2);
   });
@@ -152,9 +156,10 @@ describe('classifierText: who classifies', () => {
 const decision = (over: Partial<AgentoSpawnDecision> = {}): AgentoSpawnDecision => ({ ts: NOW - 120_000, agentId: 'a1', subagentType: 'Explore', parentModel: 'claude-opus-5-5', model: 'haiku', reason: 'explore', mechanism: 'spawn-routing', ...over });
 const step = (lineage: string, model: string): AgentoStep => ({ ts: NOW - 60_000, lineage, model, effort: null, tokens: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 }, cost: 0.01, baselineCost: 0.02, mechanism: null, savedEstimate: null });
 const rowsOf = (m: ReturnType<typeof buildPanel>, label: string) => {
-  const i = m.rows.findIndex((r) => r.label === label);
-  const out = [m.rows[i]];
-  for (let j = i + 1; j < m.rows.length && m.rows[j]?.label === ''; j++) out.push(m.rows[j]);
+  const rs = all(m);
+  const i = rs.findIndex((r) => r.label === label);
+  const out = [rs[i]];
+  for (let j = i + 1; j < rs.length && rs[j]?.label === ''; j++) out.push(rs[j]);
   return out.filter((r): r is NonNullable<typeof r> => !!r).map((r) => r.segs.map((x) => x.text).join(''));
 };
 
@@ -205,24 +210,27 @@ describe('the Subagents section', () => {
   });
   it('tones: a rewrite is success, a kept spawn dim, a differing actual a warning', () => {
     const m = buildPanel(data({ spawns }), 'en');
-    const i = m.rows.findIndex((r) => r.label === 'Subagents');
-    expect(m.rows[i + 1]?.segs.find((s) => s.text.includes('kept'))?.tone).toBe('dim');
-    expect(m.rows[i + 2]?.segs.find((s) => s.text.includes('→'))?.tone).toBe('success');
-    expect(m.rows[i + 2]?.segs.find((s) => s.text.includes('ran on'))?.tone).toBe('warning');
+    const rs = all(m);
+    const i = rs.findIndex((r) => r.label === 'Subagents');
+    expect(rs[i + 1]?.segs.find((s) => s.text.includes('kept'))?.tone).toBe('dim');
+    expect(rs[i + 2]?.segs.find((s) => s.text.includes('→'))?.tone).toBe('success');
+    expect(rs[i + 2]?.segs.find((s) => s.text.includes('ran on'))?.tone).toBe('warning');
   });
 });
 
 describe('the richer pane', () => {
-  it('Now: main model and effort, the task with its steps and cost; omitted without either', () => {
-    const m = buildPanel(data({ main: { model: 'claude-opus-5-5', effort: 'high' }, task: { class: 'refactor', tier: 'sonnet', cost: 0.41, steps: 12 } }), 'en');
-    expect(text(m, 'Now')).toBe('opus-5-5·high  task refactor (sonnet) · 12 steps · $0.41');
-    expect(text(buildPanel(data({ main: { model: 'claude-opus-5-5', effort: 'high' }, task: { class: 'refactor', tier: 'sonnet', cost: 0.41, steps: 12 } }), 'ru'), 'Сейчас')).toBe('opus-5-5·high  задача refactor (sonnet) · 12 шагов · $0.41');
-    expect(buildPanel(data(), 'en').rows.some((r) => r.label === 'Now')).toBe(false);
+  it('Task: its cost and steps up top; the model in the details', () => {
+    const m = buildPanel(data({ main: { model: 'claude-opus-5-5', effort: 'high' }, task: { class: 'refactor', tier: 'sonnet', cost: 0.41, steps: 12 }, taskTotal: 0.6 }), 'en');
+    expect(text(m, 'Task')).toBe('$0.60 · 12 steps · sonnet');
+    expect(text(m, 'Model')).toBe('opus-5-5·high');
+    const sub = buildPanel(data({ isSubscription: true, sevenDayPct: 40.6, pctPerUsd: 4, task: { class: 'x', tier: null, cost: 0.1, steps: 3 }, taskPctAtStart: 40 }), 'ru');
+    expect(text(sub, 'Задача')).toBe('0.6% недели · 3 шагов');
+    expect(all(buildPanel(data(), 'en')).some((r) => r.label === 'Task' || r.label === 'Model')).toBe(false);
   });
   it('Cache: state, prefix and the price of a cold restart', () => {
     expect(text(buildPanel(data(), 'en'), 'Cache')).toBe('● warm 58m · prefix 100k · ttl 1h  cold restart ≈ $0.80');
     expect(text(buildPanel(data({ cache: { ...cache, lastAt: NOW - 2 * 3_600_000 } }), 'ru'), 'Кэш')).toBe('○ cold · префикс 100k · ttl 1h  холодный старт ≈ $0.80');
-    expect(buildPanel(data({ cache: undefined }), 'en').rows.some((r) => r.label === 'Cache')).toBe(false);
+    expect(all(buildPanel(data({ cache: undefined }), 'en')).some((r) => r.label === 'Cache')).toBe(false);
   });
   it('Limits: subscribers only; the 7-day window with its reset', () => {
     const reset = new Date(NOW + 3 * 86_400_000 + 4 * 3_600_000).toISOString();
@@ -238,13 +246,8 @@ describe('the richer pane', () => {
     expect(text(m, 'Tokens')).toBe('in 600 · out 20k   cache read 940k · write 60k');
     expect(text(buildPanel(data(), 'ru'), 'По моделям')).toContain('opus $3.00 45%');
     const empty = buildPanel(data({ byModel: {}, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }), 'en');
-    expect(empty.rows.some((r) => r.label === 'By model' || r.label === 'Tokens')).toBe(false);
+    expect(all(empty).some((r) => r.label === 'By model' || r.label === 'Tokens')).toBe(false);
     expect(tierCosts({ 'claude-opus-5-5': { steps: 1, cost: 1 }, 'claude-opus-4-8': { steps: 1, cost: 2 }, x: { steps: 1, cost: 0.5 } })).toEqual([{ name: 'opus', cost: 3 }, { name: 'other', cost: 0.5 }]);
-  });
-  it('Savings: each mechanism with its amount, and its share of the weekly limit where calibrated', () => {
-    const sav = { spawnRouting: 1, suggestions: 0, handoff: 0.5, autopilot: 0 };
-    expect(text(buildPanel(data({ saved: sav }), 'en'), 'Savings')).toBe('≈ $1.50  (subagents $1.00 · handoff $0.50)   estimate');
-    expect(text(buildPanel(data({ saved: sav, isSubscription: true, pctPerUsd: 4 }), 'en'), 'Savings')).toBe('≈ 6.0% of the weekly limit  (subagents $1.00 (4.0%) · handoff $0.50 (2.0%))   estimate');
   });
   it('Routing: the last three decisions newest first, with flags and the action; none yet when empty', () => {
     const route = (over: Partial<AgentoRoute>): AgentoRoute => ({ ts: NOW - 300_000, classifier: 'rules-v1', tier: 'sonnet', effort: 'medium', confidence: 0.82, action: 'S1', ...over });
@@ -257,9 +260,6 @@ describe('the richer pane', () => {
     expect(rowsOf(buildPanel(data({ routes: [route({ fallback: 'timeout' })] }), 'ru'), 'Маршрут')[0]).toBe('5m назад  rules-v1 · sonnet·medium · 82% · fallback timeout → S1');
     expect(rowsOf(buildPanel(data(), 'en'), 'Routing')).toEqual(['none yet']);
     expect(rowsOf(buildPanel(data(), 'ru'), 'Маршрут')).toEqual(['пока нет']);
-  });
-  it('Loops: the last signal with its kind', () => {
-    expect(text(buildPanel(data({ lastSignalKind: 'failing-test' }), 'en'), 'Loops')).toBe('1 (failing-test: auth.spec падает 3 раза)');
   });
   it('shortModel', () => {
     expect(shortModel('claude-opus-5-5-20260801[1m]')).toBe('opus-5-5');

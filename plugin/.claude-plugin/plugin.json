@@ -1,6 +1,6 @@
 {
   "name": "agento",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Spend less of your Claude Code budget without losing quality: right-sized models at task start, cheap subagents, plan-to-code handoff, loop guard.",
   "author": {
     "name": "agento"
@@ -22,8 +22,8 @@
     "autopilot": {
       "type": "string",
       "title": "Autopilot",
-      "description": "off: only suggestions. clean-points: at a clean point (first prompt, after /clear or a compaction, cold cache) agento sets a cheaper model and effort itself when it is confident, and shows how to undo it. Never raises anything, never changes the model mid-task.",
-      "default": "off",
+      "description": "clean-points (default): at a clean point (first prompt, after /clear or a compaction, cold cache) agento sets a cheaper model and effort for the task itself when it is confident, says so, and offers an undo. Never raises anything, never changes the model mid-task. off: suggestions only.",
+      "default": "clean-points",
       "options": [
         "off",
         "clean-points"
@@ -32,11 +32,21 @@
     "orchestrate": {
       "type": "string",
       "title": "Orchestrator mode",
-      "description": "on: adds one fixed section to the system prompt that tells the main model when to delegate to the agento-scout, agento-builder and agento-checker subagents. Applies from the next session.",
-      "default": "off",
+      "description": "on (default): adds one fixed section to the system prompt that tells the main model when to delegate to the agento-scout, agento-builder and agento-checker subagents. Applies from the next session.",
+      "default": "on",
       "options": [
         "off",
         "on"
+      ]
+    },
+    "prune": {
+      "type": "string",
+      "title": "Prune stale outputs",
+      "description": "on (default): right before a compaction (/compact or the automatic one), tool outputs superseded by a later identical call (the same file read again, the same command run again) are replaced by a one-line stub, so the summarizer reads less. The latest messages are never touched. off: never.",
+      "default": "on",
+      "options": [
+        "on",
+        "off"
       ]
     },
     "suggestions": {

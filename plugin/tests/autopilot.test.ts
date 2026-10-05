@@ -148,7 +148,21 @@ describe('autopilot: clean-points', () => {
     expect(r.steps[0]?.model).toBe(OPUS);
   });
 
-  test('default is off (P1): suggestions only, no request is ever rewritten', async ($, on) => {
+  test('on by default: the light task runs cheaper, and the turn ends with a receipt that keeps the undo', async ($, on) => {
+    const r = rig(on);
+    await start($);
+    await prompt($, LIGHT);
+    expect(r.banner?.scenario).toBe('AP');
+    await turn($, 't1', () => request($, r));
+    expect(r.commands).toEqual([]);
+    expect(r.steps[0]?.model).not.toBe(OPUS);
+    expect(r.banner?.scenario).toBe('RC');
+    expect(r.banner?.title).toMatch(/^This task cost \$\d+\.\d\d$/);
+    expect(r.banner?.reason).toMatch(/^agento saved ≈\$\d+\.\d\d: autopilot picked a cheaper model$/);
+    expect(r.banner?.actions.map((x) => x.key)).toEqual(['undo', 'details']);
+  });
+
+  test('autopilot off: suggestions only, no request is ever rewritten', { options: { autopilot: 'off' } }, async ($, on) => {
     const r = rig(on);
     await start($);
     await prompt($, LIGHT);

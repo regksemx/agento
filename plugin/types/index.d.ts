@@ -13,7 +13,7 @@ export type AgentoTokens = {
 };
 
 // Only agento's own mechanisms are ever credited with savings (P6).
-export type AgentoMechanism = 'spawn-routing' | 'suggestion-accepted' | 'handoff' | 'autopilot';
+export type AgentoMechanism = 'spawn-routing' | 'suggestion-accepted' | 'handoff' | 'autopilot' | 'prune';
 
 export type AgentoStep = {
   ts: number;
@@ -99,6 +99,8 @@ export type AgentoRoute = {
   reasons?: string[];
 };
 
+export type AgentoSaved = { spawnRouting: number; suggestions: number; handoff: number; autopilot: number; prune?: number };
+
 export type AgentoLedger = {
   startedAt: number;
   // The model the user started on: what savings are measured against. Empty until the first main step.
@@ -112,7 +114,9 @@ export type AgentoLedger = {
   baselineCost: number;
   tokens: AgentoTokens;
   byModel: Record<string, AgentoModelTotals>;
-  savedEstimate: { spawnRouting: number; suggestions: number; handoff: number; autopilot: number };
+  savedEstimate: AgentoSaved;
+  // Stale tool outputs agento pruned (absent in older ledgers).
+  pruned?: { count: number; outputs: number; tokens: number };
   // Banners shown / accepted / dismissed with "don't suggest again", and autopilot actions taken.
   hints: AgentoHintCounts;
   // What agento changed at the last clean point, so main steps on it can be credited (an estimate).
@@ -134,7 +138,8 @@ export type AgentoLedger = {
 
 // ---- suggestions (one banner above the prompt at a time) ----
 
-export type AgentoScenario = 'S1' | 'S2a' | 'S2b' | 'S3' | 'S4' | 'S7' | 'AP';
+// RC: the per-task receipt.
+export type AgentoScenario = 'S1' | 'S2a' | 'S2b' | 'S3' | 'S4' | 'S7' | 'AP' | 'RC';
 
 export type AgentoBannerAction = {
   // `model`, `effort`, `keep`, `never`, `undo`, `disable`, `ok`, `discuss`, `handoff`, `continue`, `orchestra`, `clear`, `compact`, `stop`, `hint`.
@@ -209,6 +214,22 @@ export type AgentoTrajectoryVerdict = {
   reasons: string[];
 };
 
+// `cost`/`steps` are the main thread's (they feed the per-class averages); the rest is for the receipt.
+export type AgentoTaskBooks = {
+  class: string;
+  tier: string | null;
+  cost: number;
+  steps: number;
+  startedAt?: number;
+  sevenDayPctAtStart?: number | null;
+  // All lineages, subagents included.
+  total?: number;
+  saved?: Partial<Record<AgentoMechanism, number>>;
+  // Spawns moved to a cheaper tier, by tier.
+  cheaper?: Record<string, number>;
+  prunedTokens?: number;
+};
+
 // What the prompt hook knows about the current task and what lets the next one be told apart.
 export type AgentoTask = {
   prompts: number;
@@ -224,7 +245,7 @@ export type AgentoTask = {
   // Scenarios already shown for the task in progress (S1/S4 at most once per task).
   shown: string[];
   // The running task's cost, folded into the per-class averages when the next task starts.
-  current: { class: string; tier: string | null; cost: number; steps: number } | null;
+  current: AgentoTaskBooks | null;
   // Autopilot at the clean point that began this task: its main requests go out on the cheaper setup (see core/suggest.ts).
   override: AgentoOverride | null;
   // A hint for the agent that rides the next prompt's context.

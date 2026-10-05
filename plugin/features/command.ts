@@ -13,8 +13,9 @@ export type AgentoCommand =
   | { kind: 'orchestrate'; value: 'on' | 'off' }
   | { kind: 'invalid'; usage: string };
 
+// On unless switched off.
 export function parseAutopilot(v: unknown): Autopilot {
-  return v === 'clean-points' ? 'clean-points' : 'off';
+  return v === 'off' ? 'off' : 'clean-points';
 }
 
 export function parseOnOff(v: unknown): 'on' | 'off' {

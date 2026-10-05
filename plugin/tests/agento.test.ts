@@ -1,5 +1,5 @@
 import { describe, expect, test, type Engine } from 'claude-code/testing';
-import { HAIKU, OPUS, SONNET, rig, step, T0 } from './rig.ts';
+import { HAIKU, OPUS, SONNET, prompt, rig, step, T0 } from './rig.ts';
 
 const SPAWN_BASE = { parentModel: OPUS, provider: { plugin: 'engine', tier: 'core' } };
 const spawn = ($: Engine, args: Record<string, unknown>) => $.agent.spawn({ ...SPAWN_BASE, ...args } as never);
@@ -64,20 +64,18 @@ describe('T15: ledger observes turn.step', () => {
     expect(l?.cost).toBe(0);
   });
 
-  test('status line: model, effort, session cost, cache warm minutes (API key)', async ($, on) => {
+  test('status line: session spend, then the task (API key)', async ($, on) => {
     const r = rig(on, { auth: 'api-key' });
+    await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true });
+    await prompt($, 'Добавь тесты для парсера конфигурации и обработку ошибок');
     await step($);
-    const line = r.statuses[r.statuses.length - 1] ?? '';
-    // 5m TTL less the 30 s margin, floored to whole minutes.
-    expect(line).toMatch(/^opus·high · \$0\.0[67] · cache ● 4m$/);
+    expect(r.statuses[r.statuses.length - 1]).toMatch(/^\$0\.0[67] · task \$0\.0[67]$/);
   });
 
-  test('status line for a subscriber shows the 7-day limit instead of dollars', async ($, on) => {
+  test('status line for a subscriber leads with the 7-day limit', async ($, on) => {
     const r = rig(on, { auth: 'bearer', rateLimits: [{ kind: 'five_hour', percentUsed: 12 }, { kind: 'seven_day', percentUsed: 63.4 }] });
     await step($, { model: SONNET, effort: 'medium' });
-    const line = r.statuses[r.statuses.length - 1] ?? '';
-    // Subscriptions cache for 1h: 60m less the 30 s margin.
-    expect(line).toBe('sonnet·med · 7d 63% · cache ● 59m');
+    expect(r.statuses[r.statuses.length - 1]).toBe('7d 63%');
     expect(r.ledger?.isSubscription).toBe(true);
     expect(r.ledger?.sevenDayPct).toBe(63.4);
   });
@@ -94,13 +92,13 @@ describe('T15: ledger observes turn.step', () => {
     expect(r.ledger?.isSubscription).toBe(true);
   });
 
-  test('cache goes cold in the status line as the clock runs', async ($, on) => {
+  test('the status line names savings once there are some', async ($, on) => {
     const r = rig(on, { auth: 'api-key' });
     await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true });
-    await step($);
-    expect(r.statuses[r.statuses.length - 1]).toMatch(/cache ● 4m$/);
-    await r.clock.advance(6 * 60_000);
-    expect(r.statuses[r.statuses.length - 1]).toMatch(/cache ○$/);
+    const res = await $.agent.spawn({ subagentType: 'Explore', prompt: 'find usages of foo', parentModel: OPUS, provider: { plugin: 'engine', tier: 'core' } } as never);
+    r.usage.model = HAIKU;
+    await step($, { agentId: res.agentId, model: HAIKU, effort: undefined });
+    expect(r.statuses[r.statuses.length - 1]).toMatch(/ · saved ≈\$0\.\d\d$/);
   });
 
   test('1h TTL is read from the usage and from a subscription', async ($, on) => {

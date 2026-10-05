@@ -80,7 +80,7 @@ describe('hints and /clear', () => {
     delete old.hints;
     delete old.credit;
     expect(hintsOf(old as AgentoLedger)).toEqual({ shown: 0, accepted: 0, dismissed: 0, auto: 0 });
-    expect(savedOf({ savedEstimate: { spawnRouting: 1 } as never })).toEqual({ spawnRouting: 1, suggestions: 0, handoff: 0, autopilot: 0 });
+    expect(savedOf({ savedEstimate: { spawnRouting: 1 } as never })).toEqual({ spawnRouting: 1, suggestions: 0, handoff: 0, autopilot: 0, prune: 0 });
     const l = applyStep(old as AgentoLedger, step(OPUS));
     expect(l.steps).toBe(1);
   });

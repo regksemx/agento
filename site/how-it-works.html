@@ -40,7 +40,7 @@
   <h2>Clean points</h2>
   <p>A model is cheap to change only when there is no warm cache to lose. agento treats four moments as the start of a task: the first prompt of a new session, the first prompt after <code>/clear</code> or a compaction, a prompt after the cache has gone cold, and a task you mark yourself with <code>/agento new</code>.<sup class="n">1</sup> Inside a task the verdict is still computed for the ledger, and nothing is acted on.</p>
   <p class="note"><span class="n">1</span>The cache lives 5 minutes or 1 hour, depending on how the request asked for it. agento reads the lifetime from each response rather than assuming one.</p>
-  <p>By default you get a hint with its reason and an estimate, and you decide. With <code>/agento autopilot clean-points</code> agento applies the choice itself, but only for that one task, only where the switch is free, and it says so with an undo button. The next clean point decides again.</p>
+  <p>By default agento applies the choice itself, but only for that one task, only where the switch is free, and it says so with an undo button. The next clean point decides again. When the turn ends, a short receipt says what the task cost and what saved money. With <code>/agento autopilot off</code> you get a hint with its reason and an estimate instead, and you decide.</p>
   <p>Effort is the exception. On the 5.5 models effort can change from one message to the next without losing the cache, and thinking is billed as output, so effort is the cheapest lever inside a task. On older models an effort change rewrites the cache like a model change does.</p>
   <h3>Things that look like clean points and are not</h3>
   <dl class="defs">
@@ -112,7 +112,7 @@
 <section class="row" id="subagents">
   <h2>Subagents and the orchestrator</h2>
   <p>A subagent starts with its own empty cache and does not read the parent’s, so its model can be chosen freely. agento routes spawns by what the prompt asks for: reading and searching go to Haiku, well-specified code to Sonnet. It never raises a subagent above the model you are on.</p>
-  <p>With orchestrator mode on (it is off by default), the main thread gets three named helpers and a short instruction on when to use them:</p>
+  <p>With orchestrator mode on (the default), the main thread gets three named helpers and a short instruction on when to use them:</p>
   <table>
     <thead><tr><th>Agent</th><th>Model</th><th>Job</th></tr></thead>
     <tbody>

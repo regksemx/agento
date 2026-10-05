@@ -1,5 +1,5 @@
 import { describe, expect, test, type Engine } from 'claude-code/testing';
-import { prompt, rig, slash, step } from './rig.ts';
+import { manualTest, prompt, rig, slash, step } from './rig.ts';
 
 const ID = 'agento:orchestrate';
 // The facts a request is composed for, as the engine resolves them.
@@ -9,7 +9,13 @@ const section = (r: { sections: ReadonlyArray<{ id: string; text: string; scope:
 const start = ($: Engine) => $.session.start({ cwd: '/work/app', surface: 'terminal', isInteractive: true });
 
 describe('T20: orchestrator mode (P7)', () => {
-  test('off by default: the system prompt gets nothing from agento', async ($, on) => {
+  test('on by default', async ($, on) => {
+    rig(on);
+    await start($);
+    expect(section(await compose($))).toBeDefined();
+  });
+
+  test('off: the system prompt gets nothing from agento', { options: { orchestrate: 'off' } }, async ($, on) => {
     rig(on);
     await start($);
     const r = await compose($);
@@ -50,7 +56,7 @@ describe('T20: orchestrator mode (P7)', () => {
     expect(section(c)?.text).toBe(section(a)?.text);
   });
 
-  test('a reload mid-session (a setting changed, so session.start runs again) changes nothing the session started with', async ($, on) => {
+  manualTest('a reload mid-session (a setting changed, so session.start runs again) changes nothing the session started with', async ($, on) => {
     rig(on);
     await start($);
     const a = await compose($);
@@ -97,7 +103,7 @@ describe('T20: orchestrator mode (P7)', () => {
     expect(section(await compose($))?.text).toContain('Делегирование');
   });
 
-  test('turning it on mid-session does not touch this session\'s prompt (the setting applies from the next one)', async ($, on) => {
+  manualTest('turning it on mid-session does not touch this session\'s prompt (the setting applies from the next one)', async ($, on) => {
     const r = rig(on);
     await start($);
     const before = await compose($);

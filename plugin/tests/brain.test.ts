@@ -1,5 +1,6 @@
-import { describe, expect, test, type Engine } from 'claude-code/testing';
+import { describe, expect, type Engine } from 'claude-code/testing';
 import { OPUS, SONNET, prompt, rig, slash, step, type BrainReply, type HttpCall, type Rig } from './rig.ts';
+import { manualTest as test } from './rig.ts';
 
 const LIGHT = 'Исправь опечатку в README';
 const FIRST = 'Добавь тесты для парсера конфигурации и обработку ошибок';

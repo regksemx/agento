@@ -9,11 +9,11 @@ import type { Mode } from './spawn-policy.ts';
 import { startKindOf } from './brain.ts';
 import { classifyRules, extractFeatures, conversationTopicShift, isTaskStart, type TaskContext, type TaskEffort, type TaskFeatures, type TaskStartReason, type TaskVerdict } from './task.ts';
 
-export type Scenario = 'S1' | 'S2a' | 'S2b' | 'S3' | 'S4' | 'S7' | 'AP';
+export type Scenario = 'S1' | 'S2a' | 'S2b' | 'S3' | 'S4' | 'S7' | 'AP' | 'RC';
 
 // One banner at a time; a higher number takes the band from a lower one. S7 > S2 > (autopilot notice) > S1 = S3 > S4.
 // S3 (the trajectory's, after a task's first steps) is newer than the S1 that the same task's prompt may have raised.
-export const PRIORITY: Record<Scenario, number> = { S7: 6, S2a: 5, S2b: 5, AP: 4, S1: 3, S3: 3, S4: 2 };
+export const PRIORITY: Record<Scenario, number> = { S7: 6, S2a: 5, S2b: 5, AP: 4, S1: 3, S3: 3, S4: 2, RC: 1 };
 
 export function canReplace(shown: Scenario | undefined, next: Scenario): boolean {
   return shown === undefined || PRIORITY[next] >= PRIORITY[shown];

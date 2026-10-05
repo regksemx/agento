@@ -1,5 +1,6 @@
-import { describe, expect, test, type Engine } from 'claude-code/testing';
+import { describe, expect, test as defaultsTest, type Engine } from 'claude-code/testing';
 import { HAIKU, OPUS, SONNET, prompt, rig, slash, step, type Rig } from './rig.ts';
+import { manualTest as test } from './rig.ts';
 
 const CWD = '/work/app';
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const;
@@ -124,15 +125,16 @@ describe('T21: the pane, on every surface', () => {
       expect((await ui.find({ type: 'Text', text: /agento · session 0m/ }))).toBeDefined();
       expect((await ui.find({ key: 'mode' }))).toMatchObject({ props: { label: 'Mode: balanced' } });
       expect((await ui.find({ type: 'Text', text: /^Settings/ }))).toBeDefined();
-      for (const label of ['Spend', 'Models', 'Savings', 'Hints', 'Loops']) expect(await ui.find({ key: `val:${label}` })).toBeDefined();
+      for (const label of ['Saved', 'What it did', 'Task', 'Spend', 'Models', 'Cache']) expect(await ui.find({ key: `val:${label}` })).toBeDefined();
+      expect(await ui.find({ type: 'Text', text: /── Details/ })).toBeDefined();
+      // The routed haiku subagent is credited as an estimate, and says so.
+      expect(await rowText(ui, 'Saved')).toMatch(/^≈ \$0\.04 {3}estimate$/);
+      expect(await rowText(ui, 'What it did')).toMatch(/^subagents: haiku ×1 — ≈\$0\.04$/);
+      expect(await rowText(ui, 'Task')).toMatch(/^\$0\.19 · 3 steps/);
       expect(await rowText(ui, 'Spend')).toMatch(/^\$0\.19 measured/);
       expect(await rowText(ui, 'Spend')).toContain('cache hit');
-      expect(await rowText(ui, 'Spend')).toContain('● warm');
+      expect(await rowText(ui, 'Cache')).toContain('● warm');
       expect(await rowText(ui, 'Models')).toBe('opus ▇▇▇▇▇▇▇▇▇▇ 2   sonnet ▇▇▇▇▇░░░░░ 1   haiku ▇▇▇▇▇░░░░░ 1');
-      // The routed haiku subagent is credited as an estimate, and says so.
-      expect(await rowText(ui, 'Savings')).toMatch(/^≈ \$0\.04 {2}\(subagents \$0\.04\) {3}estimate$/);
-      expect(await rowText(ui, 'Hints')).toBe('0 shown · 0 accepted · 0 "don\'t suggest"');
-      expect(await rowText(ui, 'Loops')).toBe('none');
       for (const key of ['mode', 'orchestrate', 'autopilot', 'range:session', 'range:today', 'range:7d', 'range:all']) expect(await ui.find({ key })).toBeDefined();
       expect((await ui.find({ key: 'orchestrate' }))?.props.label).toBe('Orchestra: off');
       expect((await ui.find({ key: 'autopilot' }))?.props.label).toBe('Autopilot: off');
@@ -163,8 +165,7 @@ describe('T21: the pane, on every surface', () => {
     r.toolIsError = true;
     for (let i = 0; i < 3; i++) await $.tool.call({ tool: 'Bash', command: 'npx vitest run auth.spec' });
     const ui = await mountPane($);
-    expect(await rowText(ui, 'Hints')).toBe('2 shown · 0 accepted · 1 "don\'t suggest"');
-    expect(await rowText(ui, 'Loops')).toBe('1 (failing-test: npx vitest run auth.spec)');
+    expect(await rowText(ui, 'What it did')).toBe('flagged a stuck agent ×1  (npx vitest run auth.spec)');
   });
 
   test('a subscriber sees the weekly limit, and savings in percent once a calibration exists', async ($, on) => {
@@ -173,8 +174,8 @@ describe('T21: the pane, on every surface', () => {
     await busy($, r);
     const ui = await mountPane($);
     expect(await rowText(ui, 'Spend')).toContain('API-equiv.');
-    expect(await rowText(ui, 'Spend')).toContain('7d 63%');
-    expect(await rowText(ui, 'Savings')).toMatch(/^≈ \d\.\d% of the weekly limit/);
+    expect(await rowText(ui, 'Limits')).toContain('63%');
+    expect(await rowText(ui, 'Saved')).toMatch(/^≈ \d\.\d+% of the week/);
   });
 
   test('russian', async ($, on) => {
@@ -182,7 +183,7 @@ describe('T21: the pane, on every surface', () => {
     await busy($, r);
     const ui = await mountPane($);
     expect(await ui.find({ key: 'val:Расход' })).toBeDefined();
-    expect(await rowText(ui, 'Экономия')).toContain('оценка');
+    expect(await rowText(ui, 'Сэкономлено')).toContain('оценка');
     expect((await ui.find({ key: 'orchestrate' }))?.props.label).toBe('Оркестр: выкл');
   });
 
@@ -191,7 +192,16 @@ describe('T21: the pane, on every surface', () => {
     await start($);
     const ui = await mountPane($);
     expect(await rowText(ui, 'Models')).toBe('no steps yet');
-    expect(await rowText(ui, 'Savings')).toBe('nothing to credit yet');
+    expect(await rowText(ui, 'Saved')).toBe('nothing to credit yet');
+    expect(await rowText(ui, 'What it did')).toBe('nothing yet');
+  });
+
+  defaultsTest('defaults: autopilot and orchestra are on', async ($, on) => {
+    rig(on);
+    await start($);
+    const ui = await mountPane($);
+    expect((await ui.find({ key: 'autopilot' }))?.props.label).toBe('Autopilot: on');
+    expect((await ui.find({ key: 'orchestrate' }))?.props.label).toBe('Orchestra: on');
   });
 
   test('with agento off the pane still opens', { options: { mode: 'off' } }, async ($, on) => {
@@ -231,7 +241,7 @@ describe('T21: the pane\'s buttons', () => {
     const ui = await mountPane($);
     await ui.press({ key: 'autopilot' });
     expect(r.configs).toEqual([{ key: 'agento.autopilot', value: 'clean-points' }]);
-    expect((await ui.find({ key: 'autopilot' }))?.props.label).toBe('Autopilot: clean-points');
+    expect((await ui.find({ key: 'autopilot' }))?.props.label).toBe('Autopilot: on');
   });
 
   test('range: session / today / 7 days / all time read the day aggregates in $.store', async ($, on) => {
@@ -252,12 +262,11 @@ describe('T21: the pane\'s buttons', () => {
     await ui.press({ key: 'range:today' });
     expect(await ui.find({ type: 'Text', text: /agento · today/ })).toBeDefined();
     expect(await rowText(ui, 'Spend')).toMatch(/^\$1\.00 measured/);
-    expect(await rowText(ui, 'Hints')).toBe('3 shown · 1 accepted · 1 "don\'t suggest"');
-    expect(await rowText(ui, 'Savings')).toContain('$0.75');
+    expect(await rowText(ui, 'Saved')).toContain('$0.75');
     await ui.press({ key: 'range:7d' });
     expect(await ui.find({ type: 'Text', text: /agento · 7 days/ })).toBeDefined();
     expect(await rowText(ui, 'Spend')).toMatch(/^\$3\.00 measured/);
-    expect(await rowText(ui, 'Loops')).toBe('4');
+    expect(await rowText(ui, 'What it did')).toBe('subagents on cheaper models — ≈$1.00');
     await ui.press({ key: 'range:all' });
     expect(await ui.find({ type: 'Text', text: /agento · all time/ })).toBeDefined();
     expect(await rowText(ui, 'Spend')).toMatch(/^\$7\.00 measured/);

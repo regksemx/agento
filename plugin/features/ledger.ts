@@ -6,6 +6,7 @@ import type {
   AgentoLoopSignalRecord,
   AgentoMechanism,
   AgentoRoute,
+  AgentoSaved,
   AgentoSpawnDecision,
   AgentoStep,
   AgentoTokens,
@@ -84,16 +85,22 @@ function tokensOf(u: StepInput['usage']): AgentoTokens {
 }
 
 // Which `savedEstimate` bucket a mechanism is credited to.
-const SAVED_KEY = { 'spawn-routing': 'spawnRouting', 'suggestion-accepted': 'suggestions', handoff: 'handoff', autopilot: 'autopilot' } as const;
+const SAVED_KEY = { 'spawn-routing': 'spawnRouting', 'suggestion-accepted': 'suggestions', handoff: 'handoff', autopilot: 'autopilot', prune: 'prune' } as const;
 
-export function savedKey(m: AgentoMechanism): keyof AgentoLedger['savedEstimate'] {
+export type SavedFull = Required<AgentoSaved>;
+
+export function savedKey(m: AgentoMechanism): keyof SavedFull {
   return SAVED_KEY[m];
 }
 
 // A ledger written by an older version may lack the newer buckets.
-export function savedOf(l: Pick<AgentoLedger, 'savedEstimate'> | undefined): AgentoLedger['savedEstimate'] {
-  const s: Partial<AgentoLedger['savedEstimate']> = l?.savedEstimate ?? {};
-  return { spawnRouting: s.spawnRouting ?? 0, suggestions: s.suggestions ?? 0, handoff: s.handoff ?? 0, autopilot: s.autopilot ?? 0 };
+export function savedOf(l: Pick<AgentoLedger, 'savedEstimate'> | undefined): SavedFull {
+  const s: Partial<AgentoSaved> = l?.savedEstimate ?? {};
+  return { spawnRouting: s.spawnRouting ?? 0, suggestions: s.suggestions ?? 0, handoff: s.handoff ?? 0, autopilot: s.autopilot ?? 0, prune: s.prune ?? 0 };
+}
+
+export function savedTotal(s: AgentoSaved): number {
+  return s.spawnRouting + s.suggestions + s.handoff + s.autopilot + (s.prune ?? 0);
 }
 
 export function hintsOf(l: Pick<AgentoLedger, 'hints'> | undefined): AgentoHintCounts {
@@ -224,6 +231,24 @@ export function applyRoute(prev: AgentoLedger | undefined, r: AgentoRoute, mode:
   return l;
 }
 
+export interface PruneRecord {
+  ts: number;
+  outputs: number;
+  tokens: number;
+  savedUsd: number | null;
+}
+
+export function applyPrune(prev: AgentoLedger | undefined, p: PruneRecord, mode: Mode, isSubscription: boolean): AgentoLedger {
+  const l: AgentoLedger = prev ? { ...prev } : emptyLedger(p.ts, mode, isSubscription);
+  const cur = l.pruned ?? { count: 0, outputs: 0, tokens: 0 };
+  l.pruned = { count: cur.count + 1, outputs: cur.outputs + p.outputs, tokens: cur.tokens + p.tokens };
+  if (p.savedUsd !== null && p.savedUsd > 0) {
+    const saved = savedOf(l);
+    l.savedEstimate = { ...saved, prune: saved.prune + p.savedUsd };
+  }
+  return l;
+}
+
 export function applySignal(prev: AgentoLedger | undefined, sig: AgentoLoopSignalRecord, mode: Mode, isSubscription: boolean): AgentoLedger {
   const l: AgentoLedger = prev ? { ...prev } : emptyLedger(sig.ts, mode, isSubscription);
   l.signals = [...l.signals, sig].slice(-MAX_SIGNALS);
@@ -238,7 +263,7 @@ export interface DayAggregate {
   baselineCost: number;
   tokens: AgentoTokens;
   byModel: Record<string, { steps: number; cost: number }>;
-  savedEstimate: { spawnRouting: number; suggestions: number; handoff: number; autopilot: number };
+  savedEstimate: SavedFull;
   routedSpawns: number;
   loopSignals: number;
   hintsShown: number;
@@ -253,7 +278,7 @@ export const emptyDay = (): DayAggregate => ({
   baselineCost: 0,
   tokens: zeroTokens(),
   byModel: {},
-  savedEstimate: { spawnRouting: 0, suggestions: 0, handoff: 0, autopilot: 0 },
+  savedEstimate: { spawnRouting: 0, suggestions: 0, handoff: 0, autopilot: 0, prune: 0 },
   routedSpawns: 0,
   loopSignals: 0,
   hintsShown: 0,
@@ -294,6 +319,12 @@ export function foldDay(prev: unknown, step: AgentoStep): DayAggregate {
       ? { ...d.savedEstimate, [savedKey(step.mechanism)]: d.savedEstimate[savedKey(step.mechanism)] + (step.savedEstimate ?? 0) }
       : d.savedEstimate,
   };
+}
+
+export function creditDay(prev: unknown, m: AgentoMechanism, usd: number): DayAggregate {
+  const d = normalizeDay(prev);
+  const k = savedKey(m);
+  return { ...d, savedEstimate: { ...d.savedEstimate, [k]: d.savedEstimate[k] + usd } };
 }
 
 export function isDay(v: unknown): v is DayAggregate {

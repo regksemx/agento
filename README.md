@@ -29,41 +29,47 @@ Everything is measured in dollars (or % of your weekly limit), locally.
 
 ## 60-second tour
 
-agento shows up in three places. The mock-ups below use the plugin's real strings; the amounts are illustrative.
+agento acts on its own and then tells you what it did. It shows up in three places. The mock-ups below use the plugin's real strings; the amounts are illustrative.
 
-**1. The status line.** Model and effort, spend, and whether the main cache is still warm (`●`) or cold (`○`). Subscribers see their 7-day limit instead of dollars.
+**1. The status line.** Your weekly limit (or session spend on an API key), what the current task has cost, and what agento has saved so far.
 
 ```text
-◆ agento · opus·high · $1.84 · cache ● 41m
-◆ agento · sonnet·med · 7d 63% · cache ● 41m
+agento: 7d 63% · task 0.4% · saved ≈1.2%
+agento: $1.84 · task $0.31 · saved ≈$0.40
 ```
 
-**2. The banner above the prompt.** At most one, only at the start of a task, always with a reason and an estimate.
+**2. The band above the prompt.** At a clean point autopilot picks a cheaper setup for the task itself and says so, with an undo. When a turn ends, a short receipt says what the task cost and what saved money.
 
 ```text
 > fix the typo in the README heading
 ────────────────────────────────────────────────────────────────────────────
-◆ Looks like a light task
-  sonnet·medium is enough here (now opus·max). Why: light-task words ×2, short prompt (34 chars).
-  Switching early in a task is cheap: the cache is empty or still small.
-  ≈ −$0.40 on a task like this · estimate
-  [Sonnet]  [Effort medium]  [Keep]  [Don't suggest]
+◆ This task cost 0.4% of the week
+  agento saved ≈0.3% of the week: autopilot picked a cheaper model, subagents: haiku ×3
+  cost measured, savings estimated
+  [Back to my model]  [Details]
 ```
 
-**3. The `/agento` pane.** Measured spend, agento's savings (always marked as an estimate), hints, loops, and which classifier is active.
+**3. The `/agento` pane.** One savings number first, then the list of what agento did; raw metrics sit under the details.
 
 ```text
- ◆ agento · session 1h12m                                     mode: balanced
+ ◆ agento · session 1h12m
  ───────────────────────────────────────────────────────────────────────────
- Spend        $6.71 measured   cache hit 94% · ● warm 41m
+ Saved        ≈ 2.1% of the week  ($3.10 API-equiv.)   estimate
+ What it did  autopilot: cheaper model ×2 — ≈0.4% of the week
+              subagents: haiku ×3, sonnet ×1 — ≈1.3% of the week
+              pruned stale outputs ×4 (−12k tokens) — ≈0.1% of the week
+              flagged a stuck agent ×1  (auth.spec)
+ Task         0.4% of the week · 12 steps · sonnet
+ Limits       7d ▇▇▇▇▇▇░░░░ 63% · resets in 3d 4h
+ ── Details ────────────────────────────────────────────────────────────────
+ Spend        $6.71 API-equiv.   cache hit 94%
  Models       opus ▇▇▇▇░░░░░░ 31   sonnet ▇▇▇▇▇▇▇▇▇▇ 84   haiku ▇▇▇░░░░░░░ 27
- Savings      ≈ $2.12  (subagents $1.30 · hints $0.82)   estimate
- Hints        4 shown · 2 accepted · 1 "don't suggest"
- Loops        1 (test failing for the 3rd time: auth.spec)
  Classifier   rules-v1 · local
  ───────────────────────────────────────────────────────────────────────────
- [Mode]  [Orchestra: off]  [Autopilot: off]
+ [Mode: balanced]  [Orchestra: on]  [Autopilot: on]
 ```
+
+Autopilot, orchestrator mode and pruning are on by default; each one is a switch in `/config` or the pane.
 
 ## How it works
 
@@ -146,9 +152,9 @@ Also optional: **train your own System 1** on your history — dataset → judge
 | 🎯 | **Right model for the task** — a light task on Opus/`max` effort gets a one-click "Sonnet · medium" suggestion when the task starts | Chosen before the cache warms up, so switching is free |
 | 🏛 | **Architect → builder** — discuss architecture with Opus in plan mode, then code on Sonnet in a fresh context with only the plan | Sonnet starts with ~5–10k tokens instead of 100k+ of discussion |
 | 🎼 | **Orchestra of subagents** — scout (Haiku) reads and searches, builder (Sonnet) implements, checker (Haiku) runs tests | Subagents have their own cache; the main thread stays lean |
-| 🧹 | **Context hygiene** — a new topic in a long context gets a "/clear first" hint with its per-step cost | Dead context stops being re-read on every step |
+| 🧹 | **Context hygiene** — a new topic in a long context gets a "/clear first" hint with its per-step cost; right before a compaction, outputs superseded by a later identical call (the same file read again, the same test run again) are cut to a stub | Dead context stops being re-read on every step; the summarizer reads less |
 | 🔁 | **Loop guard** — the same failing test three times, or edit–revert cycles, raise a flag | A stuck agent is the most expensive agent |
-| 📊 | **Ledger** — what you spent, what agento saved, cache warmth, weekly-limit pace in the status line | You see the money, not token counts |
+| 📊 | **Receipts** — after each turn, what the task cost and what saved money; the status line keeps a running total | You see the result, not token counts |
 
 ## Benchmarks
 
@@ -195,7 +201,7 @@ No. The audit and the plugin read local files and run locally. The only network 
 <details>
 <summary><b>Will it switch models mid-task?</b></summary>
 
-Never. The main model changes only at a clean point (first prompt, after `/clear` or compaction, cold cache). Autopilot is off by default; when on, it holds the cheaper setup for that one task and never runs `/model`, which would also change your default for every new session.
+Never. The main model changes only at a clean point (first prompt, after `/clear` or compaction, cold cache). Autopilot is on by default: it holds the cheaper setup for that one task, says so, and never runs `/model`, which would also change your default for every new session. `/agento autopilot off` turns it into suggestions only.
 
 After the first steps of a task (four main requests, or the first edit) it looks at what the agent actually did. A small task caps the model of subagents spawned later (down only, never in `quality` mode), and may raise a one-time hint with the cache rewrite's break-even or a plan-then-code handoff; you decide, and the running task's model is never changed on its own.
 </details>
@@ -219,7 +225,9 @@ Nothing: Apache-2.0. The rules and the local student make no API calls. Judging 
 - [x] Plugin MVP — ledger, status line, subagent routing, loop guard, hints, plan → code handoff, `/agento` pane, autopilot at clean points
 - [x] Training pipeline — dataset from your history, L1 judge (any OpenAI-compatible server), replays, public TwinRouterBench labels, [Laya](https://github.com/NandhaKishorM/laya) teacher → multilingual-e5-small student (8.1 ms at 128 tokens on the training box CPU; the installed daemon answers in ~6 ms on an Apple-silicon Mac), `agento-brain` daemon
 - [x] First training run (`opus-v1`): plan-first and delegate-explore heads in use; the model choice stays with the rules
-- [ ] Decide after the first steps of a task, when trajectory signals exist
+- [x] Decide after the first steps of a task, when trajectory signals exist
+- [x] Act by default and report: autopilot and orchestrator on, per-task receipts, savings in the status line and the pane
+- [ ] Prune stale outputs when the cache goes cold on its own (needs the engine to let a plugin answer a compaction it starts)
 - [ ] Trained System 1 shipped by default instead of rules ([runbook](docs/runbook-gpu.md))
 - [ ] Public benchmark: cost per resolved task vs always-Opus, opusplan, rule routers
 

@@ -1,5 +1,6 @@
-import { describe, expect, test, type Engine } from 'claude-code/testing';
+import { describe, expect, type Engine } from 'claude-code/testing';
 import { OPUS, SONNET, prompt, rig, step, T0, type Rig } from './rig.ts';
+import { manualTest as test } from './rig.ts';
 
 const HEAVY = 'Спроектируй архитектуру распределённой очереди задач с миграцией старых данных';
 const LIGHT = 'Исправь опечатку в README';

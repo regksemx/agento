@@ -7,12 +7,13 @@ import { isWarm } from '../core/cache.ts';
 import { fitPctPerUsd, isCalibration, recordStep, CALIBRATION_KEY } from '../core/calibration.ts';
 import { classKey, classOf, DEFAULT_TASK_STEPS, estimateSaving, foldClassStats, handoffSaving, isClassStats, readCostPerStep, stepSaving, type ClassStats, type TaskClass } from '../core/estimate.ts';
 import { MAX_PLAN_CHARS, handoffPrompt, planDocument, planPath } from '../core/handoff.ts';
+import { charsToTokens, compactPruneSaving, planPrune } from '../core/prune.ts';
 import { exploreHint, langFromEnv, orchestrateSection } from '../core/orchestrate.ts';
-import { tierOf, TIER_ALIAS, type Tier } from '../core/pricing.ts';
+import { tierOf, tierRank, TIER_ALIAS, type Tier } from '../core/pricing.ts';
 import { canReplace, decidePrompt, detectTaskStart, dismissKeyOf, dismissStoreKey, makeOverride, overrideFor, S4_CONTEXT_TOKENS, taskContextOf, type DismissKey, type Downgrade, type PromptFacts } from '../core/suggest.ts';
 import { RULES_ID, rulesClassifier, type TaskContext, type TaskEffort, type TaskVerdict } from '../core/task.ts';
 import { decideTrajectory, emptyTrajectory, foldStep, foldToolCall, normalizeTrajectory, type TrajectoryStats, type TrajectoryVerdict } from '../core/trajectory.ts';
-import type { AgentoBanner, AgentoBrain, AgentoLedger, AgentoLoopSignalRecord, AgentoPaneRange, AgentoSpawnDecision, AgentoStep, AgentoTask } from '../types';
+import type { AgentoBanner, AgentoBrain, AgentoLedger, AgentoLoopSignalRecord, AgentoMechanism, AgentoPaneRange, AgentoSpawnDecision, AgentoStep, AgentoTask, AgentoTaskBooks } from '../types';
 import { agentHint, autopilotBanner, autopilotToast, s1Banner, s2aBanner, s2bBanner, s3Banner, s4Banner, s7Banner, type BannerBase, type MoneyCtx } from './banner.ts';
 import { nextMode, parseAgentoArgs, parseAutopilot, parseOnOff, type Autopilot } from './command.ts';
 import {
@@ -20,9 +21,11 @@ import {
   applyDecision,
   applyHandoff,
   applyHint,
+  applyPrune,
   applyRoute,
   applySignal,
   applyStep,
+  creditDay,
   dayKey,
   dropMainLineage,
   emptyLedger,
@@ -31,11 +34,14 @@ import {
   isDay,
   lineageOf,
   normalizeDay,
+  savedOf,
+  savedTotal,
   type DayAggregate,
   type HintKind,
   type StepInput,
 } from './ledger.ts';
 import { buildPanel, foldDays, rangeDays, sessionNumbers, spawnsOf, type PanelData, type Row, type Tone } from './panel.ts';
+import { receiptBanner, fmtTokensShort, amountText } from './receipt.ts';
 import { formatStatus } from './status.ts';
 import type { Lang } from './strings.ts';
 
@@ -58,9 +64,10 @@ const PANE_ID = 'agento';
 type Dollar = Parameters<Hook<'session.start'>>[0];
 
 let mode: Mode = 'balanced';
-let autopilot: Autopilot = 'off';
+let autopilot: Autopilot = 'clean-points';
 let suggestionsOn = true;
-let orchestrateOn = false;
+let orchestrateOn = true;
+let pruneOn = true;
 let langOption: 'ru' | 'en' | 'auto' = 'auto';
 let brainMode: BrainMode = 'auto';
 let brainSocketOption: unknown;
@@ -74,7 +81,8 @@ export function configure(options: Readonly<Record<string, unknown>>): void {
   mode = parseMode(options.mode);
   autopilot = parseAutopilot(options.autopilot);
   suggestionsOn = options.suggestions !== 'off';
-  orchestrateOn = parseOnOff(options.orchestrate) === 'on';
+  orchestrateOn = options.orchestrate !== 'off';
+  pruneOn = options.prune !== 'off';
   brainMode = parseBrainMode(options.brain);
   brainSocketOption = options.brainSocket;
   brainTimeoutMs = parseBrainTimeout(options.brainTimeoutMs);
@@ -153,6 +161,21 @@ async function moneyOf($: Dollar): Promise<MoneyCtx> {
   return { lang, isSubscription: subscription ?? l?.isSubscription ?? false, pctPerUsd: isCalibration(cal) ? fitPctPerUsd(cal) : null };
 }
 
+async function statusText($: Dollar, l: AgentoLedger): Promise<string> {
+  const { value: t } = await $.state.get(taskRef);
+  const cur = t?.current;
+  return formatStatus(l, await moneyOf($), cur ? (cur.total ?? cur.cost) : null, savedTotal(savedOf(l)));
+}
+
+function newBooks(cls: string, now: number, sevenDayPct: number | null): AgentoTaskBooks {
+  return { class: cls, tier: null, cost: 0, steps: 0, startedAt: now, sevenDayPctAtStart: sevenDayPct, total: 0, saved: {}, cheaper: {}, prunedTokens: 0 };
+}
+
+function addSaved(b: AgentoTaskBooks, m: AgentoMechanism, usd: number): AgentoTaskBooks {
+  const saved = b.saved ?? {};
+  return { ...b, saved: { ...saved, [m]: (saved[m] ?? 0) + usd } };
+}
+
 // Adds counters to today's aggregate in $.store.
 type DayCounters = Partial<Pick<DayAggregate, 'routedSpawns' | 'loopSignals' | 'hintsShown' | 'hintsAccepted' | 'hintsDismissed' | 'autopilotActions'>>;
 async function bumpDay($: Dollar, ts: number, add: DayCounters): Promise<void> {
@@ -182,14 +205,14 @@ async function countHint($: Dollar, kind: HintKind): Promise<void> {
 let bannerSeq = 0;
 
 // Shows a banner unless a higher-priority one holds the band. Returns whether it was shown.
-async function showBanner($: Dollar, spec: BannerBase, cwd: string): Promise<boolean> {
+async function showBanner($: Dollar, spec: BannerBase, cwd: string, count = true): Promise<boolean> {
   const now = await $.clock.now();
   const { value: cur } = await $.state.get(bannerRef);
   if (cur && !canReplace(cur.scenario, spec.scenario)) return false;
   bannerSeq += 1;
   const banner: AgentoBanner = { ...spec, id: `${now}-${bannerSeq}`, ts: now, cwd };
   await update($, bannerRef, () => banner);
-  await countHint($, 'shown');
+  if (count) await countHint($, 'shown');
   return true;
 }
 
@@ -339,7 +362,7 @@ export const onSessionStart: Hook<'session.start'> = async ($, e, next) => {
     $.clock.every(60_000, async () => {
       try {
         const { value } = await $.state.get(ledgerRef);
-        if (value && value.steps > 0) $.ui.status(formatStatus(value, await $.clock.now()));
+        if (value && value.steps > 0) $.ui.status(await statusText($, value));
         $.ui.invalidate('ui.render');
       } catch {
         // fine
@@ -382,7 +405,7 @@ export const onSessionEnd: Hook<'session.end'> = async ($, e, next) => {
         const { value } = await $.state.get(ledgerRef);
         if (!value?.lineages.main) return;
         const l = await update($, ledgerRef, (prev) => (prev ? dropMainLineage(prev) : value));
-        $.ui.status(formatStatus(l, await $.clock.now()));
+        $.ui.status(await statusText($, l));
       });
     }
   } catch {
@@ -394,8 +417,29 @@ export const onSessionEnd: Hook<'session.end'> = async ($, e, next) => {
 // A compaction rewrites the conversation: the main cache starts over and the next prompt is a task start. An automatic
 // one may land mid-turn: the task's setup (an autopilot override) stays until that next prompt decides again (P1).
 export const onSessionCompact: Hook<'session.compact'> = async ($, e, next) => {
-  const r = await next(e);
+  // Before a real compaction the summarizer gets the transcript without the stale outputs.
+  let sent = e;
+  let pre: { outputs: number; chars: number } | null = null;
+  if (pruneOn && (mode === 'balanced' || mode === 'eco') && e.agentId === undefined && (e.trigger === 'manual' || e.trigger === 'auto')) {
+    try {
+      const plan = planPrune(e.messages);
+      if (plan.pruned > 0) {
+        sent = { ...e, messages: plan.messages };
+        pre = { outputs: plan.pruned, chars: plan.chars };
+      }
+    } catch {
+      sent = e;
+    }
+  }
+  const r = await next(sent);
   if (mode === 'off') return r;
+  if (pre && r.skip === undefined) {
+    const tokens = charsToTokens(pre.chars);
+    const { value: l } = await $.state.get(ledgerRef);
+    const model = l?.main?.model ?? '';
+    const outputs = pre.outputs;
+    await safe(() => recordPrune($, outputs, tokens, model ? compactPruneSaving(model, tokens) : null), undefined);
+  }
   try {
     if (r.skip === undefined && e.agentId === undefined && e.trigger !== 'precompute') {
       await closeTask($);
@@ -419,8 +463,54 @@ export const onTurnStart: Hook<'turn.start'> = async ($, e, next) => {
 
 export const onTurnComplete: Hook<'turn.complete'> = async ($, e, next) => {
   if (runningTurn === e.turnId) runningTurn = null;
-  return next(e);
+  const r = await next(e);
+  if (mode === 'off' || e.agentId !== undefined || e.reason !== 'answer') return r;
+  try {
+    await showReceipt($);
+  } catch {
+    // the receipt is a convenience
+  }
+  return r;
 };
+
+// After a main turn: what the task cost so far and what agento saved on it. Takes the band from the
+// autopilot notice (keeping its undo), never from a suggestion or a warning.
+async function showReceipt($: Dollar): Promise<void> {
+  const { value: t } = await $.state.get(taskRef);
+  if (!t?.current) return;
+  const { value: l } = await $.state.get(ledgerRef);
+  const spec = receiptBanner({ books: t.current, money: await moneyOf($), sevenDayPct: l?.sevenDayPct ?? null });
+  if (!spec) return;
+  const lang = await langOf($);
+  if (t.override) spec.actions = [{ key: 'undo', label: lang === 'ru' ? 'Вернуть мою модель' : 'Back to my model' }, ...spec.actions];
+  await clearBanner($, (b) => b.scenario !== 'AP' && b.scenario !== 'RC');
+  await showBanner($, spec, await safe(() => $.session.cwd(), ''), false);
+}
+
+// ---- pruning stale tool outputs before a compaction ----
+
+// A plugin cannot answer a compaction it starts itself (its own session.compact hook is skipped and the engine
+// summarizes), so agento only prunes compactions the engine or the person start.
+async function recordPrune($: Dollar, outputs: number, tokens: number, savedUsd: number | null): Promise<void> {
+  const now = await $.clock.now();
+  await enqueue($, async () => {
+    await update($, ledgerRef, (prev) => applyPrune(prev, { ts: now, outputs, tokens, savedUsd }, mode, subscription ?? false));
+    if (savedUsd !== null && savedUsd > 0) {
+      const key = dayKey(now);
+      await $.store.set(key, creditDay(await $.store.get(key), 'prune', savedUsd));
+    }
+  });
+  await update($, taskRef, (t) => {
+    if (!t?.current) return t ?? emptyTask();
+    let b: AgentoTaskBooks = { ...t.current, prunedTokens: (t.current.prunedTokens ?? 0) + tokens };
+    if (savedUsd !== null && savedUsd > 0) b = addSaved(b, 'prune', savedUsd);
+    return { ...t, current: b };
+  });
+  const money = await moneyOf($);
+  const ru = money.lang === 'ru';
+  const worth = savedUsd !== null && savedUsd > 0 ? ` · ≈${amountText(savedUsd, money)}` : '';
+  $.ui.toast(ru ? `agento: перед сжатием убрал ${outputs} устаревших выводов (−${fmtTokensShort(tokens)} токенов)${worth}` : `agento: pruned ${outputs} stale outputs before compacting (−${fmtTokensShort(tokens)} tokens)${worth}`, { timeoutMs: 8000 });
+}
 
 // P1: observes only — `e` goes down as it came and the result comes back as it came — except for one case the user
 // switched on (autopilot) and only at a clean point: the main requests of a task that began there go out on the
@@ -487,19 +577,26 @@ export const onTurnStep: Hook<'turn.step'> = async function* ($, e, next) {
           pruned = true;
           for (const k of expiredDayKeys(await $.store.keys(), ts)) await $.store.delete(k);
         }
-        // The main thread's step belongs to the task in progress: its cost feeds the per-class averages.
-        if (step.lineage === 'main') {
-          const cost = step.cost ?? 0;
-          const model = step.model;
-          await update($, taskRef, (t) => (t?.current ? { ...t, current: { ...t.current, cost: t.current.cost + cost, steps: t.current.steps + 1, tier: tierOf(model) } } : (t ?? emptyTask())));
-        }
+        // Every step counts toward the task's receipt; main steps also feed the per-class averages.
+        const cost = step.cost ?? 0;
+        const model = step.model;
+        const main = step.lineage === 'main';
+        const mech = step.mechanism;
+        const saved = step.savedEstimate ?? 0;
+        await update($, taskRef, (t) => {
+          if (!t?.current) return t ?? emptyTask();
+          let b: AgentoTaskBooks = { ...t.current, total: (t.current.total ?? t.current.cost) + cost };
+          if (main) b = { ...b, cost: b.cost + cost, steps: b.steps + 1, tier: tierOf(model) };
+          if (mech && saved > 0) b = addSaved(b, mech, saved);
+          return { ...t, current: b };
+        });
         // A subscriber's weekly-limit percent against the dollars spent in that window (spec §7.8).
         if (isSub) {
           const prevCal = await $.store.get(CALIBRATION_KEY);
           await $.store.set(CALIBRATION_KEY, recordStep(prevCal, resetsAt, step.cost ?? 0, sevenDayPct));
         }
       }
-      $.ui.status(formatStatus(l, await $.clock.now()));
+      $.ui.status(await statusText($, l));
     });
     // The main thread's step joins the task's trajectory (its cache is in the ledger now).
     if (e.agentId === undefined) await safe(() => feedTrajectory($, (s) => foldStep(s, usage), false), undefined);
@@ -543,6 +640,11 @@ export const onAgentSpawn: Hook<'agent.spawn'> = async ($, e, next) => {
         await update($, ledgerRef, (prev) => applyDecision(prev, d, mode, subscription ?? false));
         if (model) await bumpDay($, d.ts, { routedSpawns: 1 });
       });
+      const to = tierOf(d.model);
+      const from = tierOf(d.parentModel);
+      if (model && to && from && tierRank(to) < tierRank(from)) {
+        await update($, taskRef, (t) => (t?.current ? { ...t, current: { ...t.current, cheaper: { ...(t.current.cheaper ?? {}), [to]: (t.current.cheaper?.[to] ?? 0) + 1 } } } : (t ?? emptyTask())));
+      }
     }
   } catch {
     // not recording is fine
@@ -773,7 +875,7 @@ async function onPrompt($: Dollar, text: string, midTurn: boolean): Promise<stri
       // A new task is a new decision; the old override belonged to the old one. Only where the switch is free, though:
       // dropping it on a warm cache (`/agento new` mid-conversation) would move the conversation to another model.
       override: dec?.start?.freeSwitch ? null : base.override,
-      current: dec?.start && dec.verdict ? { class: classOf(dec.verdict), tier: null, cost: 0, steps: 0 } : base.current,
+      current: dec?.start && dec.verdict ? newBooks(classOf(dec.verdict), now, l?.sevenDayPct ?? null) : fresh && !base.current ? newBooks('default', now, l?.sevenDayPct ?? null) : base.current,
       trajectory: fresh ? emptyTrajectory() : normalizeTrajectory(base.trajectory),
       trajectoryVerdict: fresh ? null : (base.trajectoryVerdict ?? null),
       promptVerdict: dec?.start && dec.verdict ? { tier: dec.verdict.tier, effort: dec.verdict.effort, confidence: dec.verdict.confidence, ...(dec.verdict.planFirst !== undefined ? { planFirst: dec.verdict.planFirst } : {}) } : fresh ? null : (base.promptVerdict ?? null),
@@ -996,6 +1098,18 @@ async function onBannerAction($: Dollar, banner: AgentoBanner, key: string): Pro
         }
         return await clearBanner($, (b) => b.id !== banner.id);
       }
+      case 'RC': {
+        if (key === 'details') await $.ui.open({ id: PANE_ID, title: 'agento' });
+        else if (key === 'undo') {
+          await update($, taskRef, (x) => ({ ...(x ?? emptyTask()), override: null }));
+          const now = await $.clock.now();
+          await enqueue($, async () => {
+            await update($, ledgerRef, (prev) => applyCredit(prev, null, now, mode, subscription ?? false));
+          });
+          $.ui.toast(lang === 'ru' ? 'agento: следующие запросы пойдут на вашей модели' : 'agento: the next requests go out on your model', { timeoutMs: 6000 });
+        }
+        return await clearBanner($, (b) => b.id !== banner.id);
+      }
       case 'S7': {
         if (key === 'stop') {
           if (runningTurn) await $.turn.abort({ turnId: runningTurn });
@@ -1131,7 +1245,7 @@ export const onModelCommand: Hook<'command.run'> = async ($, e, next) => {
 
 // ---- ui.render: the banner above the prompt ----
 
-const TONE_OF_SCENARIO = { S1: 'suggestion', S2a: 'suggestion', S2b: 'suggestion', S3: 'suggestion', S4: 'suggestion', S7: 'warning', AP: 'success' } as const;
+const TONE_OF_SCENARIO = { S1: 'suggestion', S2a: 'suggestion', S2b: 'suggestion', S3: 'suggestion', S4: 'suggestion', S7: 'warning', AP: 'success', RC: 'success' } as const;
 
 export const onRenderBand: MatchedHook<'ui.render', { component: 'AbovePrompt' }> = async ($, e, next) => {
   try {
@@ -1207,6 +1321,9 @@ async function panelData($: Dollar, range: AgentoPaneRange): Promise<PanelData> 
     routes: l.routes ?? [],
     spawns: spawnsOf(l),
     lastSignalKind: last?.kind ?? null,
+    pruned: range === 'session' ? (l.pruned ?? null) : null,
+    taskTotal: task?.current ? (task.current.total ?? task.current.cost) : null,
+    taskPctAtStart: task?.current?.sevenDayPctAtStart ?? null,
   };
 }
 
@@ -1230,6 +1347,19 @@ export const onRenderPane: MatchedHook<'ui.render', { component: 'Pane'; request
         <Text dimColor>{'─'.repeat(width)}</Text>
         {model.rows.map((r, i) => (
           <Box key={`row:${r.label || i}`}>
+            <Text dimColor>{label(r)}</Text>
+            <Box key={`val:${r.label || i}`}>
+              {r.segs.map((seg) => (
+                <Text color={COLOR[seg.tone ?? 'plain']} dimColor={seg.tone === 'dim'} wrap="truncate-end">
+                  {seg.text}
+                </Text>
+              ))}
+            </Box>
+          </Box>
+        ))}
+        <Text dimColor>{`── ${model.detailsLabel} ${'─'.repeat(Math.max(0, width - model.detailsLabel.length - 4))}`}</Text>
+        {model.details.map((r, i) => (
+          <Box key={`det:${r.label || i}`}>
             <Text dimColor>{label(r)}</Text>
             <Box key={`val:${r.label || i}`}>
               {r.segs.map((seg) => (

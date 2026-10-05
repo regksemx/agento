@@ -29,8 +29,9 @@ describe('/agento arguments', () => {
     }
   });
   it('option parsing falls back to the safe value', () => {
-    expect(parseAutopilot('full')).toBe('off');
-    expect(parseAutopilot(undefined)).toBe('off');
+    expect(parseAutopilot('full')).toBe('clean-points');
+    expect(parseAutopilot('off')).toBe('off');
+    expect(parseAutopilot(undefined)).toBe('clean-points');
     expect(parseAutopilot('clean-points')).toBe('clean-points');
     expect(parseOnOff('on')).toBe('on');
     expect(parseOnOff('yes')).toBe('off');
