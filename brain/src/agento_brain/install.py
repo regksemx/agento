@@ -26,13 +26,16 @@ class InstallResult:
     unload_commands: list[str]
 
 
+GIT_SOURCE = "agento-brain @ git+https://github.com/regksemx/agento#subdirectory=brain"
+
+
 def detect_source() -> str:
-    """Install from this checkout when running from source (brain/pyproject.toml), else from the package index."""
+    """Install from this checkout when running from source (brain/pyproject.toml), else from the GitHub repository."""
     here = Path(__file__).resolve()
     root = here.parents[2]
     if (root / "pyproject.toml").is_file() and (root / "src" / "agento_brain").is_dir():
         return str(root)
-    return "agento-brain"
+    return GIT_SOURCE
 
 
 def create_venv(venv_dir: Path, source: str, *, run=subprocess.run) -> None:

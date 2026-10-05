@@ -69,6 +69,24 @@ def cmd_check(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fetch(a: argparse.Namespace) -> int:
+    from .fetch import FetchError, fetch
+
+    def progress(n: int) -> None:
+        print(f"\r  {n / 1e6:.1f} MB", end="", file=sys.stderr, flush=True)
+
+    try:
+        ref, target, run_id = fetch(a.model, sha256=a.sha256, dest=a.dest, progress=None if a.quiet else progress)
+    except (FetchError, OSError) as e:
+        print(f"\nagento-brain: {e}", file=sys.stderr)
+        return 2
+    if not a.quiet:
+        print(file=sys.stderr)
+    print(f"model: {run_id} -> {target}")
+    print("Restart the daemon to load it (launchctl kickstart -k gui/$UID/dev.agento.brain, or systemctl --user restart agento-brain).")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="agento-brain", description="agento local System-1 router daemon")
     p.add_argument("--version", action="version", version=f"agento-brain {__version__}")
@@ -91,6 +109,13 @@ def main(argv: list[str] | None = None) -> int:
     i.add_argument("--unit-dir", type=Path, help=argparse.SUPPRESS)
     i.add_argument("--platform", choices=["macos", "linux"], help=argparse.SUPPRESS)
     i.set_defaults(fn=cmd_install)
+
+    f = sub.add_parser("fetch", help="download a published model, verify its checksum and the contract, put it in place")
+    f.add_argument("model", nargs="?", default="latest", help="a published name (default: latest) or an https:// URL of a .tar.gz")
+    f.add_argument("--sha256", help="required with a URL; checked against the published one with a name")
+    f.add_argument("--dest", type=Path, help="default: $AGENTO_HOME/brain/model")
+    f.add_argument("--quiet", action="store_true")
+    f.set_defaults(fn=cmd_fetch)
 
     c = sub.add_parser("check", help="validate a model dir against the contract and exit")
     c.add_argument("model_dir", type=Path)
