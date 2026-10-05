@@ -1,0 +1,284 @@
+<!doctype html>
+<!-- Владелец репозитория на GitHub ещё не выбран: замените все "<owner>" (в HTML это &lt;owner&gt;) после публикации. -->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agento · бенчмарки</title>
+<meta name="description" content="Куда ушли деньги одного пользователя Claude Code, что судья считает возможным сделать дешевле, насколько можно доверять судьям и как быстр локальный ученик. Каждый график — с оговорками.">
+<link rel="alternate" hreflang="en" href="../benchmarks.html">
+<link rel="alternate" hreflang="ru" href="benchmarks.html">
+<link rel="alternate" hreflang="x-default" href="../benchmarks.html">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#181715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../styles.css">
+<script src="../boot.js"></script>
+<script src="../app.js" defer></script>
+<script src="../charts.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">К содержанию</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="agento, главная"><span class="d">◆</span> agento</a>
+    <nav class="nav-links" aria-label="Основное меню">
+      <a href="how-it-works.html">Как работает</a>
+      <a href="benchmarks.html" aria-current="page">Бенчмарки</a>
+      <a class="opt" href="./#privacy">Приватность</a>
+      <a class="opt" href="./#faq">Вопросы</a>
+    </nav>
+    <div class="nav-tools">
+      <a class="tool" href="../benchmarks.html" hreflang="en" lang="en" data-set-lang="en" aria-label="English version">EN</a>
+      <button class="tool theme-toggle" type="button" data-theme-toggle>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="tool gh" href="https://github.com/&lt;owner&gt;/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
+    </div>
+  </div>
+  <nav class="subnav" aria-label="Страницы">
+    <a href="./">Главная</a>
+    <a href="how-it-works.html">Как работает</a>
+    <a href="benchmarks.html" aria-current="page">Бенчмарки</a>
+    <a href="./#faq">Вопросы</a>
+  </nav>
+</header>
+
+<main id="main">
+
+<div class="page-head">
+  <div class="wrap">
+    <p class="eyebrow">Бенчмарки</p>
+    <h1>Цифры — вместе с оговорками.</h1>
+    <div class="intro">
+      <p>Здесь цифры двух видов. <strong>Месяц одного пользователя:</strong> собственные <span data-bind="days">30</span> дней автора в Claude Code в агрегатах (<span data-bind="sessions">408</span> сессий, <span data-bind="requests">71 511</span> запросов; без названий проектов и без промптов). <strong>Детали, из которых собран agento:</strong> насколько можно доверять судьям и как быстро работает локальный ученик.</p>
+      <p>Ничего из этого не измеренная экономия, и на вас это не переносится. Открытый бенчмарк — стоимость решённой задачи против always-Opus, <code>opusplan</code> и роутеров на правилах — в дорожной карте. Свою версию первой половины покажет <code>npx agento-cc audit</code>.</p>
+    </div>
+    <p class="caveat">Агрегаты за 30 дней работы автора в Claude Code (один пользователь на подписке, цены в API-эквиваленте). Это не бенчмарк по многим пользователям.</p>
+    <nav class="toc" aria-label="На этой странице">
+      <a href="#bill">Куда уходит счёт</a>
+      <a href="#spend">Расход</a>
+      <a href="#cache">Кэш</a>
+      <a href="#switch">Смена модели</a>
+      <a href="#judge">Шла на / нужно</a>
+      <a href="#judges">Сравнение судей</a>
+      <a href="#student">Ученик</a>
+      <a href="#training">Обучение</a>
+    </nav>
+  </div>
+</div>
+
+<section id="bill" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">01</span> Куда уходит счёт</p>
+    <div class="panel">
+      <div class="headline"><span class="big"><span data-bind="cacheReadPct">66%</span></span><span class="what">из <span data-bind="total">$8 175</span> автора (API-эквивалент, <span data-bind="days">30</span> дней) — <strong>чтение из кэша</strong>: длинный контекст, который перечитывается на каждом шаге.</span></div>
+      <div class="chart" id="ch-buckets" data-chart="buckets"></div>
+      <p class="caveat" data-for="ch-buckets">На подписке за токены не платят: это цены прайса, применённые к токенам, а настоящее ограничение — недельный лимит. Кэш hit: <span data-bind="hitRatio">99.2%</span>. Цены на <span data-bind="pricesAsOf">2026-10-05</span>.</p>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="panel">
+        <h3>Расход по семействам моделей</h3>
+        <p class="sub">Почти всё — на Opus. Вопрос agento в том, сколько из этого действительно требовало Opus.</p>
+        <div class="chart" id="ch-family" data-chart="family"></div>
+      </div>
+      <div class="panel">
+        <h3>Расход по effort</h3>
+        <p class="sub">Thinking оплачивается как output; на моделях 5.5 effort меняется без потери кэша.</p>
+        <div class="chart" id="ch-effort" data-chart="effort"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="spend" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">02</span> Расход по времени, основной поток и субагенты</p>
+    <div class="grid g2">
+      <div class="panel">
+        <h3>По неделям</h3>
+        <p class="sub">На подписке в лимит упирается самая тяжёлая неделя.</p>
+        <div class="chart" id="ch-weeks" data-chart="weeks"></div>
+        <p class="caveat" data-for="ch-weeks">Первая и последняя недели (серые) неполные: окно — 30 дней.</p>
+      </div>
+      <div class="panel">
+        <h3>Основной поток и субагенты</h3>
+        <p class="sub">У субагентов свой кэш, поэтому их модель выбирается свободно. Здесь на них пришлось <span data-bind="subPct">12%</span> расхода.</p>
+        <div class="chart" id="ch-mainsub" data-chart="mainsub"></div>
+        <h3 style="margin-top:22px">Субагенты по типам</h3>
+        <p class="sub">Сумма и число вызовов.</p>
+        <div class="chart" id="ch-subtypes" data-chart="subtypes"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cache" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">03</span> Промахи кэша</p>
+    <div class="panel">
+      <div class="headline"><span class="big"><span data-bind="lossUsd">$301</span></span><span class="what">— оценка потерь от промахов кэша; <span data-bind="ttlUsd">$222</span> из них — <span data-bind="ttlEvents">83</span> паузы, которые пережили кэш (истёк TTL).</span></div>
+      <div class="grid g2">
+        <div><h3>По сумме</h3><div class="chart" id="ch-lossusd" data-chart="lossUsd"></div></div>
+        <div><h3>По числу случаев</h3><div class="chart" id="ch-lossev" data-chart="lossEvents"></div></div>
+      </div>
+      <p class="caveat">Стоимость промахов — оценка аудита. «Причина неясна» значит, что по транскрипту не видно, почему кэш записался заново.</p>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h3>Паузы между запросами</h3>
+      <p class="sub">Большинство запросов идёт в пределах минуты. Каждая пауза дольше TTL кэша оплачивается полной перезаписью контекста: на API-ключе TTL по умолчанию 5 минут, на подписке — 1 час.</p>
+      <div class="chart" id="ch-gaps" data-chart="gaps"></div>
+    </div>
+  </div>
+</section>
+
+<section id="switch" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">04</span> Почему agento не меняет модель посреди задачи</p>
+    <div class="panel">
+      <h3>Через сколько шагов окупится смена модели посреди задачи</h3>
+      <p class="sub">Смена модели переписывает весь закэшированный префикс в кэш новой модели (это штраф). Окупается она только после достаточного числа дешёвых шагов. Opus 5.5 и Sonnet 5.5 читают кэш по одной цене, так что выигрыш за шаг маленький. Расчёт для двух размеров префикса.</p>
+      <div class="chart" id="ch-switch" data-chart="switch"></div>
+      <p class="caveat" data-for="ch-switch">Предполагается, что дешёвая модель решит задачу за столько же шагов, что часто не так. Поэтому модель выбирается в чистой точке, где терять нечего, а работа внутри задачи уходит субагентам. <a href="how-it-works.html#economics">Разбор примера →</a></p>
+    </div>
+  </div>
+</section>
+
+<section id="judge" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">05</span> На чём шла задача и что было нужно</p>
+    <div class="panel">
+      <div class="headline"><span class="big"><span data-bind="cheaperPct">54%</span></span><span class="what">задач автора на Opus/Fable (<span data-bind="cheaperTasks">303</span> из <span data-bind="expTasks">560</span>) справились бы на Sonnet или Haiku — <strong>по мнению судьи Opus</strong>.</span></div>
+      <p class="callout"><strong>Это мнение судьи по законченным задачам, а не повторный прогон.</strong> Opus читал каждую законченную задачу (промпт, дифф, сжатую траекторию) и называл самую дешёвую модель, которая, по его мнению, справилась бы не хуже. На Sonnet или Haiku эти задачи никто не перезапускал. Насколько часто такой судья ошибается — в следующем разделе.</p>
+      <div class="grid g2" style="margin-top:18px">
+        <div><h3>По тирам, <span data-bind="judgeTasks">576</span> задач</h3><div class="chart" id="ch-tiers" data-chart="judgeTiers"></div></div>
+        <div><h3>Шла на × нужно</h3><p class="sub">Левее диагонали: судья считает, что хватило бы модели дешевле.</p><div class="chart" id="ch-matrix" data-chart="judgeMatrix"></div></div>
+      </div>
+      <p class="caveat">Claude Opus как судья законченных задач (мнение, не повторный прогон). Effort и два флага здесь не показаны.</p>
+    </div>
+  </div>
+</section>
+
+<section id="judges" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">06</span> Сравнение судей</p>
+    <div class="two-col">
+      <div>
+        <h2 style="font-size:1.5rem">Главная цифра — недооценка.</h2>
+        <p>Роутер ошибается в две стороны. <strong>Переоценка</strong> — выбрать модель дороже нужной — стоит только упущенной экономии: вы платите столько же, сколько раньше. <strong>Недооценка</strong> — выбрать модель дешевле нужной — стоит качества: сломанная правка, повтор, долгая отладка, которая съедает больше, чем сэкономлено.</p>
+        <p>Поэтому одна точность обманчива. Обученная модель ставится, только если на отложенных задачах недооценивает не чаще чем в 5% случаев при выбранном пороге уверенности. Судьям ниже до этого далеко, поэтому их метки перед обучением калибруются по ручной разметке и повторным прогонам и как есть не используются.</p>
+      </div>
+      <div class="panel">
+        <div class="chart" id="ch-judges" data-chart="judges"></div>
+        <p class="caveat">Недооценка — судья выбрал модель дешевле эталона (риск качества); переоценка — дороже (упущенная экономия).</p>
+        <p class="caveat">«Opus и Qwen» сравнивает двух судей между собой на одних и тех же задачах; ни один из них не эталон. Метки автора — ручная разметка его собственных прошлых задач (<span data-bind="opusHumanN">34</span> для Opus).</p>
+        <p class="caveat">* Префиксы шагов SWE-bench из TwinRouterBench; эталонные метки там слабые (degradation_search_done).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div data-training>
+<section id="student" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">07</span> Ученик</p>
+    <div class="grid g2">
+      <div class="panel">
+        <h3>Задержка кандидатов-энкодеров</h3>
+        <p class="sub">p50 в мс, длина последовательности 256, 4 потока CPU, ONNX Runtime. Плагин спрашивает модель один раз на старте задачи; требование к ученику — не больше 60 мс и многоязычный токенизатор.</p>
+        <div class="chart" id="ch-latency" data-chart="latency"></div>
+        <p class="caveat" data-for="ch-latency">Apple M5, случайные веса: только задержка и размер, о точности здесь ничего. Модели Ettin только английские. Подробно: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/training/BENCHMARK.md">training/BENCHMARK.md</a>.</p>
+      </div>
+      <div class="panel t-ready">
+        <h3>Ученик из прогона <span data-tbind="run">opus-v1</span></h3>
+        <p class="sub">Обученная модель в том виде, в котором её экспортировал и проверил конвейер.</p>
+        <dl class="spec">
+          <div><dt>модель</dt><dd><span data-tbind="model">multilingual-e5-small</span><small><span data-tbind="params">118M</span> параметров</small></dd></div>
+          <div><dt>размер</dt><dd data-tbind="size">279 МБ</dd></div>
+          <div><dt>p50, длина 128</dt><dd data-tbind="p50_128">8.1 мс</dd></div>
+          <div><dt>p50, длина 256</dt><dd data-tbind="p50_256">17.6 мс</dd></div>
+          <div><dt>согласие ONNX и PyTorch</dt><dd data-tbind="parity">1.00</dd></div>
+          <div><dt>версия int8</dt><dd><small style="margin:0;font-size:0.82rem" data-tnote="student.int8">отброшена (согласие 0.888 &lt; 0.98)</small></dd></div>
+        </dl>
+        <p class="caveat">Здесь задержку мерил сам прогон обучения на своей машине; график кандидатов снят отдельно на Apple M5 с 4 потоками, поэтому напрямую их не сравнить.</p>
+      </div>
+      <div class="panel t-pending">
+        <h3>Обучение</h3>
+        <p class="sub">Результатов обучения пока нет: файла <code>data/training.json</code> нет. Пока модель не прошла проверку, плагин решает по правилам.</p>
+        <p class="caveat">Как делается и проверяется прогон: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">инструкция для GPU</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="training" class="tight t-ready">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">08</span> Первый прогон обучения</p>
+    <h2 style="font-size:1.5rem;max-width:36em">Ученик выучил кое-что полезное — и кое-что, что ему нельзя делать одному.</h2>
+    <div class="verdict">
+      <p class="lbl">◆ вердикт <span class="badge"><span data-tbind="run">opus-v1</span> · <span data-tbind="date">2026-10-05</span></span></p>
+      <blockquote data-tnote="verdict">По одному промпту ученик не может безопасно выбрать модель (ни один порог не удерживает недооценку в пределах 5%), поэтому выбор тира он сам никогда не применяет. Головы plan_first (92%) и delegate_explore (76%) пригодны к делу. Дальше — решать после первых шагов, когда появятся сигналы траектории.</blockquote>
+      <ul class="chips">
+        <li class="no"><b>tier</b>: только подсказки, сам не решает</li>
+        <li class="ok"><b>plan_first</b>: 92% · пригодна</li>
+        <li class="ok"><b>delegate_explore</b>: 76% · пригодна</li>
+        <li class="next"><b>дальше</b>: решать после первых шагов</li>
+      </ul>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="panel">
+        <h3>Точность на тесте по головам</h3>
+        <p class="sub">Четыре вопроса, на которые ученик отвечает на старте задачи. При наведении — macro-F1 и калибровка (ECE).</p>
+        <div class="chart" id="ch-heads" data-train-chart="heads"></div>
+      </div>
+      <div class="panel">
+        <h3>Выбор модели: ученик против простых политик</h3>
+        <p class="sub">Точность и недооценка выбора тира на тех же 87 тестовых задачах. Линия — граница 5% недооценки, ниже которой модели можно действовать самой.</p>
+        <div class="chart" id="ch-policies" data-train-chart="policies"></div>
+        <p class="caveat" data-for="ch-policies">L0 видит законченную траекторию, поэтому на старте задачи её не запустить: она показывает, сколько могли бы рассказать первые шаги задачи. «Всегда opus» никогда не недооценивает, но переплачивает на 64% задач.</p>
+      </div>
+    </div>
+    <p class="caveat">Метки — мнение судьи Opus (L1), того самого, который выше недооценивает в 41% случаев против ручной разметки: ученик выучил судью, а не истину. Это ещё одна причина, по которой голова tier только подсказывает.</p>
+    <p class="caveat"><span data-tnote="labels">Claude Opus как судья законченных задач (L1), 576 задач автора; разбиение по времени: обучение 407 / калибровка 87 / тест 87</span>. <span data-tnote="teacher">Laya multilingual (mmBERT 322M), RLCD, 6 эпох, 236 с на одной RTX PRO 4000</span>.</p>
+    <p class="caveat">Как делается и проверяется прогон: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">инструкция для GPU</a>.</p>
+  </div>
+</section>
+</div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p class="brand"><span class="d" style="color:var(--accent)">◆</span>&nbsp;agento</p>
+      <p>Открытый код под Apache-2.0. Независимый проект, не связан с Anthropic и не одобрен ею.</p>
+      <p>Данные: <code>data/bench.json</code>, собраны <span data-bind="generated">2026-10-05</span>.</p>
+    </div>
+    <div>
+      <h4>Сайт</h4>
+      <ul>
+        <li><a href="./">Главная</a></li>
+        <li><a href="how-it-works.html">Как работает</a></li>
+        <li><a href="../data/bench.json">Исходные данные (JSON)</a></li>
+        <li><a href="../benchmarks.html" hreflang="en" lang="en" data-set-lang="en">English version</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Репозиторий</h4>
+      <ul>
+        <li><a href="https://github.com/&lt;owner&gt;/agento">GitHub</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/research.md">Исследование</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/training/BENCHMARK.md">Бенчмарк ученика</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/LICENSE">Лицензия</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

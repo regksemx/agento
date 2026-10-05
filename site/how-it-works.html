@@ -1,0 +1,404 @@
+<!doctype html>
+<!-- The GitHub owner is not decided yet: replace every "<owner>" (escaped as &lt;owner&gt;) once the repo is published. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agento · how it works</title>
+<meta name="description" content="The architecture of agento, the decision it makes at a task start, the prompt-cache economics behind it, its seven principles and the scenarios it covers.">
+<link rel="alternate" hreflang="en" href="how-it-works.html">
+<link rel="alternate" hreflang="ru" href="ru/how-it-works.html">
+<link rel="alternate" hreflang="x-default" href="how-it-works.html">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#181715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="boot.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="agento home"><span class="d">◆</span> agento</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="how-it-works.html" aria-current="page">How it works</a>
+      <a href="benchmarks.html">Benchmarks</a>
+      <a class="opt" href="./#privacy">Privacy</a>
+      <a class="opt" href="./#faq">FAQ</a>
+    </nav>
+    <div class="nav-tools">
+      <a class="tool" href="ru/how-it-works.html" hreflang="ru" lang="ru" data-set-lang="ru" aria-label="Русская версия">RU</a>
+      <button class="tool theme-toggle" type="button" data-theme-toggle>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="tool gh" href="https://github.com/&lt;owner&gt;/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
+    </div>
+  </div>
+  <nav class="subnav" aria-label="Pages">
+    <a href="./">Home</a>
+    <a href="how-it-works.html" aria-current="page">How it works</a>
+    <a href="benchmarks.html">Benchmarks</a>
+    <a href="./#faq">FAQ</a>
+  </nav>
+</header>
+
+<main id="main">
+
+<div class="page-head">
+  <div class="wrap">
+    <p class="eyebrow">How it works</p>
+    <h1>One decision per task, made where it is free.</h1>
+    <div class="intro">
+      <p>agento is a Claude Code plugin. Its hooks run inside Claude Code, see every prompt and every model request, and can add a status line, a banner above the prompt and a pane. It makes one decision at the start of a task, when changing the model costs nothing, and otherwise keeps out of the way: it routes subagents, watches for loops and counts the money.</p>
+    </div>
+    <nav class="toc" aria-label="On this page">
+      <a href="#architecture">Architecture</a>
+      <a href="#decision">The decision</a>
+      <a href="#economics">Cache economics</a>
+      <a href="#principles">Principles</a>
+      <a href="#lessons">Lessons</a>
+      <a href="#scenarios">Scenarios</a>
+    </nav>
+  </div>
+</div>
+
+<section id="architecture" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">01</span> Architecture</p>
+    <figure class="diagram big">
+        <svg class="dg" viewBox="0 0 680 560" role="img" aria-labelledby="arch-t arch-d">
+          <title id="arch-t">agento architecture</title>
+          <desc id="arch-d">Claude Code calls the agento plugin through in-process hooks: prompt.submit, turn.step, agent.spawn, tool.call and ui. The plugin asks the optional local agento-brain daemon over a unix socket and falls back to rules, and writes every step to the ledger. An optional training loop builds the student model that agento-brain serves.</desc>
+          <defs>
+            <marker id="arch-ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker>
+            <marker id="arch-ah-acc" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-acc" d="M0,0 L8,4 L0,8 z"/></marker>
+          </defs>
+          <rect class="box" x="20" y="10" width="640" height="50" rx="10"/>
+          <text class="t-head" x="40" y="32">Claude Code ≥ 2.1.287</text>
+          <text class="t-dim" x="40" y="50">your session: main thread, subagents, slash commands</text>
+
+          <path class="ln-acc" d="M340 60 V 92" marker-start="url(#arch-ah-acc)" marker-end="url(#arch-ah-acc)"/>
+          <text class="t-dim" x="352" y="81">in-process hooks</text>
+
+          <rect class="box-acc" x="20" y="96" width="640" height="182" rx="12"/>
+          <text class="t-acc" x="40" y="122">◆ agento plugin</text>
+          <text class="t-dim" x="168" y="122">TypeScript mod · fail-open: on any error the event passes unchanged</text>
+
+          <rect class="box-q" x="36" y="140" width="194" height="56" rx="8"/>
+          <text x="50" y="162">prompt.submit</text><text class="t-dim" x="50" y="182">task start → classify</text>
+          <rect class="box-q" x="243" y="140" width="194" height="56" rx="8"/>
+          <text x="257" y="162">turn.step</text><text class="t-dim" x="257" y="182">observe · per-task hold</text>
+          <rect class="box-q" x="450" y="140" width="194" height="56" rx="8"/>
+          <text x="464" y="162">agent.spawn</text><text class="t-dim" x="464" y="182">the subagent's model</text>
+          <rect class="box-q" x="36" y="206" width="297" height="56" rx="8"/>
+          <text x="50" y="228">tool.call</text><text class="t-dim" x="50" y="248">loop guard · plan → code handoff</text>
+          <rect class="box-q" x="347" y="206" width="297" height="56" rx="8"/>
+          <text x="361" y="228">ui</text><text class="t-dim" x="361" y="248">status line · banner · /agento pane</text>
+
+          <path class="ln" d="M170 278 V 318" marker-end="url(#arch-ah)"/>
+          <text class="t-dim" x="182" y="303">usage of every step</text>
+          <path class="ln" d="M510 278 V 318" marker-start="url(#arch-ah)" marker-end="url(#arch-ah)"/>
+          <text class="t-dim" x="522" y="303">unix socket</text>
+
+          <rect class="box" x="20" y="320" width="300" height="100" rx="10"/>
+          <text class="t-head" x="36" y="344">ledger</text>
+          <text class="t-dim" x="36" y="366">measured spend, per step</text>
+          <text class="t-dim" x="36" y="384">savings, always as an estimate</text>
+          <text class="t-dim" x="36" y="402">% of the weekly limit (subscription)</text>
+
+          <rect class="box" x="360" y="320" width="300" height="100" rx="10"/>
+          <text class="t-head" x="376" y="344">agento-brain <tspan class="t-dim">optional</tspan></text>
+          <text class="t-dim" x="376" y="366">local daemon · POST /v1/route</text>
+          <text class="t-dim" x="376" y="384">ONNX student, ~35 ms p50 on CPU</text>
+          <text class="t-dim" x="376" y="402">no answer in 400 ms → rules-v1</text>
+
+          <rect class="box-dash" x="20" y="452" width="640" height="96" rx="12"/>
+          <text class="t-dim" x="36" y="474">optional training loop · your laptop + your GPU box</text>
+          <rect class="box-q" x="36" y="490" width="108" height="40" rx="8"/><text x="90" y="514" text-anchor="middle" style="font-size:12px">dataset</text>
+          <rect class="box-q" x="161" y="490" width="108" height="40" rx="8"/><text x="215" y="514" text-anchor="middle" style="font-size:12px">judge·labels</text>
+          <rect class="box-q" x="286" y="490" width="108" height="40" rx="8"/><text x="340" y="514" text-anchor="middle" style="font-size:12px">Laya teacher</text>
+          <rect class="box-q" x="411" y="490" width="108" height="40" rx="8"/><text x="465" y="514" text-anchor="middle" style="font-size:12px">e5 student</text>
+          <rect class="box-q" x="536" y="490" width="108" height="40" rx="8"/><text x="590" y="514" text-anchor="middle" style="font-size:12px">ONNX</text>
+          <path class="ln" d="M144 510 H 159" marker-end="url(#arch-ah)"/>
+          <path class="ln" d="M269 510 H 284" marker-end="url(#arch-ah)"/>
+          <path class="ln" d="M394 510 H 409" marker-end="url(#arch-ah)"/>
+          <path class="ln" d="M519 510 H 534" marker-end="url(#arch-ah)"/>
+          <path class="ln-dash" d="M590 490 V 424" marker-end="url(#arch-ah)"/>
+          <text class="t-dim" x="598" y="446">install</text>
+        </svg>
+        <figcaption>Everything runs on your machine. The training loop is optional and sends only a scrubbed dataset to a GPU box you own.</figcaption>
+      </figure>
+    <div class="two-col" style="margin-top:32px">
+      
+      <div>
+        <h3>The hooks</h3>
+        <ul class="ticks">
+          <li><strong><code>prompt.submit</code></strong> decides whether this prompt starts a task and, if so, asks System 1 what the task needs. It can show a banner; it never sends anything for you.</li>
+          <li><strong><code>turn.step</code></strong> runs before every model request. agento only reads the usage it returns, with one exception you switch on: autopilot's per-task hold, which sends that task's main requests on the cheaper setup it chose.</li>
+          <li><strong><code>agent.spawn</code></strong> picks the model of a subagent. Subagents have their own cache, so this choice is always free: Haiku for exploring, Sonnet for well-described code.</li>
+          <li><strong><code>tool.call</code></strong> feeds the loop guard (the same test failing, the same spot edited again, error streaks) and notices an approved plan for the handoff.</li>
+          <li><strong><code>ui</code></strong> draws the status line, one banner above the prompt at a time and the <code>/agento</code> pane.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>System 1</h3>
+        <p>The classifier that answers “what does this task need?” is either the built-in <code>rules-v1</code> (keywords, prompt length, planning words) or a small trained model served by <code>agento-brain</code>, a local daemon on a unix socket. The plugin waits at most 400 ms; any error or timeout and the rules answer. The pane shows which one is active.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="decision" class="tight alt">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">02</span> The decision at a task start</p>
+    <figure class="diagram big flow">
+        <svg class="dg" viewBox="0 0 680 660" role="img" aria-labelledby="flow-t flow-d">
+          <title id="flow-t">Decision flow at a task start</title>
+          <desc id="flow-d">When a prompt arrives, agento checks whether it is a clean point. If not, nothing changes. If so, it classifies the task, checks the confidence threshold and whether a cheaper setup than yours is enough. If autopilot is on it holds the cheaper setup for this task; otherwise it shows a hint. In every other case nothing happens.</desc>
+          <defs>
+            <marker id="flow-ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker>
+          </defs>
+          <rect class="box" x="40" y="10" width="330" height="40" rx="20"/>
+          <text class="t-head" x="205" y="35" text-anchor="middle">You submit a prompt</text>
+          <path class="ln" d="M205 50 V 78" marker-end="url(#flow-ah)"/>
+
+          <rect class="box-q" x="40" y="80" width="330" height="62" rx="10"/>
+          <text class="t-head" x="56" y="102">◇ A clean point?</text>
+          <text class="t-dim" x="56" y="120">first prompt · after /clear or compaction</text>
+          <text class="t-dim" x="56" y="136">cache gone cold · /agento new</text>
+          <path class="ln" d="M370 111 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="104">no</text>
+          <rect class="box" x="410" y="80" width="250" height="62" rx="10"/>
+          <text class="t-head" x="426" y="102">Nothing changes</text>
+          <text class="t-dim" x="426" y="120">mid-task: subagent routing,</text>
+          <text class="t-dim" x="426" y="136">loop guard and ledger only</text>
+          <path class="ln" d="M205 142 V 170" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="161">yes</text>
+
+          <rect class="box-acc" x="40" y="172" width="330" height="62" rx="10"/>
+          <text class="t-head" x="56" y="194">Classify the task</text>
+          <text class="t-dim" x="56" y="212">agento-brain over a unix socket,</text>
+          <text class="t-dim" x="56" y="228">or rules-v1 (no answer in 400 ms)</text>
+          <path class="ln" d="M205 234 V 262" marker-end="url(#flow-ah)"/>
+
+          <rect class="box-q" x="40" y="264" width="330" height="62" rx="10"/>
+          <text class="t-head" x="56" y="286">◇ Confident enough?</text>
+          <text class="t-dim" x="56" y="304">≥ 0.65 balanced · ≥ 0.55 eco</text>
+          <text class="t-dim" x="56" y="320">quality mode: never</text>
+          <path class="ln" d="M370 295 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="288">no</text>
+          <rect class="box" x="410" y="264" width="250" height="62" rx="10"/>
+          <text class="t-head" x="426" y="286">No hint</text>
+          <text class="t-dim" x="426" y="304">a doubtful verdict stays</text>
+          <text class="t-dim" x="426" y="320">in the ledger, not on screen</text>
+          <path class="ln" d="M205 326 V 354" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="345">yes</text>
+
+          <rect class="box-q" x="40" y="356" width="330" height="62" rx="10"/>
+          <text class="t-head" x="56" y="378">◇ Cheaper than your setup?</text>
+          <text class="t-dim" x="56" y="396">a lower model or effort than</text>
+          <text class="t-dim" x="56" y="412">the one you picked (P3)</text>
+          <path class="ln" d="M370 387 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="380">no</text>
+          <rect class="box" x="410" y="356" width="250" height="62" rx="10"/>
+          <text class="t-head" x="426" y="378">No hint</text>
+          <text class="t-dim" x="426" y="396">never above your choice; a hard</text>
+          <text class="t-dim" x="426" y="412">task may get “plan with Opus”</text>
+          <path class="ln" d="M205 418 V 446" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="437">yes</text>
+
+          <rect class="box-q" x="40" y="448" width="330" height="62" rx="10"/>
+          <text class="t-head" x="56" y="470">◇ Autopilot on?</text>
+          <text class="t-dim" x="56" y="488">off by default;</text>
+          <text class="t-dim" x="56" y="504">only where the switch is free</text>
+          <path class="ln" d="M370 479 H 408" marker-end="url(#flow-ah)"/><text class="no" x="378" y="472">no</text>
+          <rect class="box-acc" x="410" y="448" width="250" height="62" rx="10"/>
+          <text class="t-head" x="426" y="470">Hint above the prompt</text>
+          <text class="t-dim" x="426" y="488">[Sonnet] [Effort medium]</text>
+          <text class="t-dim" x="426" y="504">[Keep] [Don't suggest]</text>
+          <path class="ln" d="M205 510 V 538" marker-end="url(#flow-ah)"/><text class="yes" x="213" y="529">yes</text>
+
+          <rect class="box-acc" x="40" y="540" width="330" height="62" rx="10"/>
+          <text class="t-head" x="56" y="562">Hold it for this task</text>
+          <text class="t-dim" x="56" y="580">turn.step sends the task's main requests</text>
+          <text class="t-dim" x="56" y="596">on the cheaper setup · [Back to opus·max]</text>
+
+          <text class="t-dim" x="40" y="630">Never runs /model (it would change your default) · never mid-task</text>
+          <text class="t-dim" x="40" y="648">A /model or /effort you type ends the hold at once</text>
+        </svg>
+        <figcaption>Thresholds as in <code>plugin/core/suggest.ts</code>. At most one banner is visible; a stuck agent outranks every hint.</figcaption>
+      </figure>
+    <div class="two-col" style="margin-top:32px">
+
+      
+      <div>
+        <h3>What counts as a clean point</h3>
+        <p>A model is cheap to change only when there is no warm cache to lose. agento treats these as task starts: the first prompt of a genuinely new conversation, the first prompt after <code>/clear</code> or a compaction, a prompt after the cache went cold (5 minutes on an API key, 1 hour on a subscription), and an explicit <code>/agento new</code>. Inside a task the verdict is still computed for the ledger, and nothing is acted on.</p>
+        <h3>Hint or autopilot</h3>
+        <p>By default you get a hint with its reason and an estimate, and you decide. With <code>autopilot: clean-points</code> agento applies the choice itself, but only for that one task and only where the switch is free, and tells you so with an undo button. The next clean point decides again.</p>
+      </div>
+      <div>
+        <h3>The other hints</h3>
+        <ul class="ticks">
+          <li><strong>Plan with Opus (S2).</strong> A hard or planning task on Sonnet or Haiku gets “Discuss the architecture with Opus (plan mode)”. When the plan is approved: “Write the code on Sonnet, clean context”.</li>
+          <li><strong>Context hygiene (S4).</strong> A new topic in a context over 60k, or any context over 150k: <code>/clear</code>, or compact keeping what matters.</li>
+          <li><strong>Stuck agent (S7).</strong> The same test failing a third time, the same spot edited again, a streak of tool errors: [Stop] [Hint for the agent] [Continue].</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="economics" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">03</span> Prompt-cache economics</p>
+    <div class="two-col">
+      <div>
+        <h2 style="font-size:1.5rem">The worked example</h2>
+        <p>A typical agent step on a 100k cached prefix: read the prefix from cache, write 3k of new input to it, produce 1.5k of output. List prices as of 2026-10-05.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">One step</th><th class="num" scope="col">Opus 5.5</th><th class="num" scope="col">Sonnet 5.5</th><th class="num" scope="col">Haiku 4.5</th></tr></thead>
+            <tbody>
+              <tr><td>cache read, 100k</td><td class="num">$0.020</td><td class="num">$0.020</td><td class="num">$0.010</td></tr>
+              <tr><td>cache write, 3k</td><td class="num">$0.015</td><td class="num">$0.0075</td><td class="num">$0.00375</td></tr>
+              <tr><td>output, 1.5k</td><td class="num">$0.030</td><td class="num">$0.015</td><td class="num">$0.0075</td></tr>
+              <tr><td><strong>total</strong></td><td class="num"><strong>$0.065</strong></td><td class="num"><strong>$0.0425</strong> (−35%)</td><td class="num"><strong>$0.021</strong> (−67%)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:16px">Opus 5.5 and Sonnet 5.5 read the cache at the same $0.20 per million tokens, so Sonnet saves only on output and new input: about <strong>$0.0225 a step</strong>. Switching mid-task writes the whole prefix into the new model's cache: 100k × $2.50/M = $0.25 instead of a $0.02 read, <strong>+$0.23 once</strong>. It pays off after about <strong>10 steps</strong>, and only if Sonnet needs no extra steps. The built-in <code>opusplan</code> pays this tax: it plans on Opus and executes on Sonnet in the same context.</p>
+      </div>
+      <div>
+
+        <h3>Where changing things is free</h3>
+        <ul class="ticks">
+          <li><strong>Effort on the 5.5 models.</strong> On Opus 5.5, Sonnet 5.5 and Fable 5.1 effort can change per message without losing the cache. On other models an effort change rewrites it too. Thinking is billed as output, so effort cuts the most expensive part of a step.</li>
+          <li><strong>Subagents.</strong> A subagent has its own cache and does not read the parent's, so its model is chosen without touching yours.</li>
+          <li><strong>Empty or cold caches.</strong> After <code>/clear</code>, after compaction, after the TTL. That is exactly where agento decides.</li>
+        </ul>
+        <p class="note">Sources: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/research.md">docs/research.md</a> §1 (in Russian), Anthropic pricing and prompt-caching docs.</p>
+      </div>
+    </div>
+    <figure class="diagram big eco" style="margin-top:28px">
+          <svg class="dg" viewBox="0 0 640 290" role="img" aria-labelledby="eco-t eco-d">
+            <title id="eco-t">Extra cost of a mid-task switch over the following steps</title>
+            <desc id="eco-d">A switch from Opus 5.5 to Sonnet 5.5 on a 100k prefix starts $0.23 behind and recovers $0.0225 per step; it breaks even after about 10 steps.</desc>
+            <rect x="50" y="30" width="570" height="118" style="fill:var(--accent-wash)"/>
+            <rect x="50" y="148" width="570" height="62" style="fill:color-mix(in srgb, var(--c2) 10%, transparent)"/>
+            <line class="ln" x1="50" y1="148.4" x2="620" y2="148.4" style="stroke:var(--line-2)"/>
+            <line x1="50" y1="30" x2="50" y2="210" style="stroke:var(--line-2)"/>
+            <text class="t-dim" x="42" y="52" text-anchor="end">+$0.20</text>
+            <text class="t-dim" x="42" y="100" text-anchor="end">+$0.10</text>
+            <text class="t-dim" x="42" y="152" text-anchor="end">$0</text>
+            <text class="t-dim" x="42" y="200" text-anchor="end">−$0.10</text>
+            <g class="t-dim">
+              <text class="t-dim" x="50" y="230" text-anchor="middle">0</text>
+              <text class="t-dim" x="121" y="230" text-anchor="middle">2</text>
+              <text class="t-dim" x="192" y="230" text-anchor="middle">4</text>
+              <text class="t-dim" x="264" y="230" text-anchor="middle">6</text>
+              <text class="t-dim" x="335" y="230" text-anchor="middle">8</text>
+              <text class="t-dim" x="406" y="230" text-anchor="middle">10</text>
+              <text class="t-dim" x="477" y="230" text-anchor="middle">12</text>
+              <text class="t-dim" x="548" y="230" text-anchor="middle">14</text>
+              <text class="t-dim" x="620" y="230" text-anchor="middle">16</text>
+            </g>
+            <text class="t-dim" x="335" y="252" text-anchor="middle">steps after the switch</text>
+            <path d="M50 39.5 L620 210" style="stroke:var(--accent);stroke-width:2.5;fill:none;stroke-linecap:round"/>
+            <circle cx="50" cy="39.5" r="5" style="fill:var(--accent);stroke:var(--surface);stroke-width:2"/>
+            <circle cx="414" cy="148.4" r="5" style="fill:var(--accent);stroke:var(--surface);stroke-width:2"/>
+            <text class="t-acc" x="62" y="26">+$0.23: the prefix is written again</text>
+            <text x="424" y="140" style="font-size:12px">≈ 10 steps: break-even</text>
+            <text class="t-dim" x="60" y="140">you are paying more</text>
+            <text class="t-dim" x="60" y="200">below $0: the switch has paid off</text>
+            <text class="t-dim" x="50" y="282">Opus 5.5 → Sonnet 5.5, 100k prefix, assuming the same number of steps</text>
+          </svg>
+        </figure>
+  </div>
+</section>
+
+<section id="principles" class="tight alt">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">04</span> Seven principles, with an example each</p>
+    <div class="grid g2">
+      <div class="card principle"><span class="k"><b>P1</b> · never mid-task</span><h3>The main model never changes mid-task. Automatically, never.</h3><p>You are 40 steps into a refactor on Opus with a 150k context and the rules think the next prompt is light. agento says nothing: switching would rewrite ~150k of cache, about +$0.35, for a gain of cents per step.</p></div>
+      <div class="card principle"><span class="k"><b>P2</b> · save inside the task</span><h3>Inside a task, save without touching the main model.</h3><p>The Opus thread needs to read 30 files. With orchestration on, an <code>agento-scout</code> subagent on Haiku reads them and returns a summary with paths and lines; the Opus cache is untouched.</p></div>
+      <div class="card principle"><span class="k"><b>P3</b> · ceiling</span><h3>Never above your choice.</h3><p>You start a large refactor on <code>sonnet·low</code>. agento may suggest planning it with Opus, but it never raises the model or the effort by itself. What you picked is the cost ceiling.</p></div>
+      <div class="card principle"><span class="k"><b>P4</b> · visible</span><h3>Nothing silently.</h3><p>Autopilot moved a light task to <code>sonnet·medium</code>. You see “agento: sonnet·medium for this task” with [Back to opus·max] and [Turn autopilot off], and the ledger records why.</p></div>
+      <div class="card principle"><span class="k"><b>P5</b> · fail-open</span><h3>On any error, Claude Code behaves as if agento were not there.</h3><p><code>agento-brain</code> is down or slow: after 400 ms the rules answer. A hook throws: the request goes on unchanged. Nothing agento does can block your turn.</p></div>
+      <div class="card principle"><span class="k"><b>P6</b> · dollars</span><h3>Measure dollars and % of limits, not tokens.</h3><p>The pane says “$6.71 measured” and “≈ $2.12 … estimate”, never one for the other. A subscriber sees the weekly limit; its “% per dollar” is fitted from their own history and labelled as an estimate.</p></div>
+      <div class="card principle"><span class="k"><b>P7</b> · stable prefix</span><h3>What agento adds to the prompt is fixed at session start.</h3><p>Turning on orchestration mid-session changes nothing until the next session: “Orchestrator mode applies from the next session”. Editing the system prompt mid-session would break the cache agento is trying to protect.</p></div>
+      <div class="card"><span class="tag">source</span><h3>Where these come from</h3><p>The principles are the first section of the design spec, and every hook is written against them: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/spec-phase-0-1.md">docs/spec-phase-0-1.md</a> §0 (in Russian).</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="lessons" class="tight">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">05</span> Safety lessons we learned</p>
+    <div class="grid g2">
+      <div class="lesson"><h3><code>/model</code> is not a per-task switch</h3><p>In an interactive session <code>/model</code> and <code>/effort</code> also save your default for every new session. So agento never runs them for a per-task choice: it holds the cheaper setup for that task through <code>turn.step</code>, and the session's own model is never touched. A <code>/model</code> you type ends the hold.</p></div>
+      <div class="lesson"><h3>Resume is not a clean point</h3><p><code>claude -c</code> and <code>--resume</code> bring back a conversation whose cache may still be warm. Only the first prompt of a genuinely new conversation counts; a resumed one also resets what the ledger knew about the cache.</p></div>
+      <div class="lesson"><h3>Automatic compaction can land mid-turn</h3><p>Compaction does start the cache over, so the next prompt is a clean point. But the turn in progress keeps its setup until that prompt decides again (P1).</p></div>
+      <div class="lesson"><h3><code>/agento new</code> on a warm context is not free</h3><p>Marking a new task by hand in a long, warm conversation would move that conversation to another model. agento offers <code>/clear</code> there instead of switching.</p></div>
+      <div class="lesson"><h3>Buttons never send a prompt for you</h3><p>The handoff saves the plan, runs <code>/clear</code> and fills the input box with “Implement the plan in .agento/plans/…”. Enter is yours to press.</p></div>
+      <div class="lesson"><h3>A judge is not a router</h3><p>In published work, Opus asked to route from the start of a task guessed “needs the strong model” in only 7 of 147 cases. Judging a finished task is easier, but still not trusted: judge labels are checked against hand labels and replays (see <a href="benchmarks.html#judges">Judges compared</a>).</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="scenarios" class="tight alt">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">06</span> Scenarios S1–S11</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">ID</th><th scope="col">Scenario</th><th scope="col">Trigger</th><th scope="col">What agento does</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">S1</td><td><strong>Right model for the task</strong></td><td>Task start; a light task on Opus/Fable or effort max/xhigh</td><td>Hint “Looks like a light task” with [Sonnet] [Effort medium] [Keep] [Don't suggest], or autopilot</td><td>plugin</td></tr>
+          <tr><td class="mono">S2</td><td><strong>Architect → builder</strong></td><td>A hard task on Sonnet/Haiku; then an approved plan</td><td>Plan with Opus in plan mode; save the plan to <code>.agento/plans/</code>, <code>/clear</code>, Sonnet starts with ~8k of context</td><td>plugin</td></tr>
+          <tr><td class="mono">S3</td><td><strong>Orchestra of subagents</strong></td><td>Orchestration on (off by default)</td><td>scout (Haiku) reads, builder (Sonnet) implements, checker (Haiku) runs tests and returns only errors</td><td>plugin, experimental</td></tr>
+          <tr><td class="mono">S4</td><td><strong>Context hygiene</strong></td><td>A new topic in a context over 60k, or any context over 150k</td><td>[/clear] [Compact, keep what matters] [Keep], with the per-step cost of the old context</td><td>plugin</td></tr>
+          <tr><td class="mono">S5</td><td><strong>Cache TTL awareness</strong></td><td>The main cache went cold</td><td><code>cache ● 41m</code> / <code>cache ○</code> in the status line; the audit suggests a 1-hour TTL when pauses keep outliving 5 minutes</td><td>plugin, audit</td></tr>
+          <tr><td class="mono">S6</td><td><strong>Right effort</strong></td><td>Task start; max/xhigh on a light task</td><td>Part of the S1 hint; effort is not changed inside a task</td><td>plugin</td></tr>
+          <tr><td class="mono">S7</td><td><strong>Loop guard</strong></td><td>Same failing test ×3, same spot edited ×3, ≥ 4 tool errors in a row</td><td>“The agent looks stuck” with [Stop] [Hint for the agent] [Continue]</td><td>plugin</td></tr>
+          <tr><td class="mono">S8</td><td><strong>Fast mode</strong></td><td>A request in fast mode</td><td>Priced at its higher rate in the ledger and the audit</td><td>plugin, audit</td></tr>
+          <tr><td class="mono">S9</td><td><strong>Setup hygiene</strong></td><td>Once, in the audit</td><td>CLAUDE.md size, the fixed session prefix, MCP tools; <code>/agento:tune</code> proposes a slimmer setup</td><td>audit, skill</td></tr>
+          <tr><td class="mono">S10</td><td><strong>Advisor</strong></td><td>—</td><td>The cheaper executor asks Opus for short advice with a compact context</td><td>planned</td></tr>
+          <tr><td class="mono">S11</td><td><strong>Trained classifier</strong></td><td>Task start</td><td>The Laya-distilled student instead of rules in S1, S2 and S4</td><td>pipeline ready, not default</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p class="brand"><span class="d" style="color:var(--accent)">◆</span>&nbsp;agento</p>
+      <p>Open source under Apache-2.0. An independent project, not affiliated with or endorsed by Anthropic.</p>
+    </div>
+    <div>
+      <h4>Site</h4>
+      <ul>
+        <li><a href="./">Home</a></li>
+        <li><a href="benchmarks.html">Benchmarks</a></li>
+        <li><a href="./#faq">FAQ</a></li>
+        <li><a href="ru/how-it-works.html" hreflang="ru" lang="ru" data-set-lang="ru">Русская версия</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Repository</h4>
+      <ul>
+        <li><a href="https://github.com/&lt;owner&gt;/agento">GitHub</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/spec-phase-0-1.md">Spec (RU)</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/spec-phase-2-training.md">Training plan (RU)</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/LICENSE">License</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

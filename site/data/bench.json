@@ -1,0 +1,356 @@
+{
+ "note": "Aggregates from the author's own 30 days of Claude Code use (one subscription user, API-equivalent prices). Not a benchmark across users.",
+ "generated": "2026-10-05",
+ "pricesAsOf": "2026-10-05",
+ "days": 30,
+ "requests": 71511,
+ "sessions": 408,
+ "buckets": {
+  "cacheWrite": 1567.62,
+  "cacheRead": 5402.77,
+  "output": 1203.94,
+  "input": 0.82
+ },
+ "byFamily": [
+  {
+   "family": "opus-5.5",
+   "usd": 4455.8
+  },
+  {
+   "family": "opus-5",
+   "usd": 3381.55
+  },
+  {
+   "family": "fable-5.1",
+   "usd": 197.41
+  },
+  {
+   "family": "opus-4.x",
+   "usd": 69.88
+  },
+  {
+   "family": "sonnet-5",
+   "usd": 36.3
+  },
+  {
+   "family": "sonnet-5.5",
+   "usd": 34.03
+  },
+  {
+   "family": "haiku-4.5",
+   "usd": 0.2
+  }
+ ],
+ "byWeek": [
+  {
+   "week": "2026-08-31",
+   "usd": 104.81
+  },
+  {
+   "week": "2026-09-07",
+   "usd": 1593.32
+  },
+  {
+   "week": "2026-09-14",
+   "usd": 1464.66
+  },
+  {
+   "week": "2026-09-21",
+   "usd": 2001.08
+  },
+  {
+   "week": "2026-09-28",
+   "usd": 2807.4
+  },
+  {
+   "week": "2026-10-05",
+   "usd": 203.88
+  }
+ ],
+ "effortMix": [
+  {
+   "effort": "high",
+   "usd": 5309.67
+  },
+  {
+   "effort": "xhigh",
+   "usd": 1531.43
+  },
+  {
+   "effort": "medium",
+   "usd": 1047.23
+  },
+  {
+   "effort": "max",
+   "usd": 240.96
+  },
+  {
+   "effort": "low",
+   "usd": 45.67
+  },
+  {
+   "effort": "unknown",
+   "usd": 0.2
+  }
+ ],
+ "mainVsSub": {
+  "main": 7164.01,
+  "subagents": 1011.15
+ },
+ "cache": {
+  "hitRatio": 0.992033,
+  "losses": [
+   {
+    "cause": "ttl",
+    "events": 83,
+    "usd": 222.07
+   },
+   {
+    "cause": "model-switch",
+    "events": 4,
+    "usd": 8.67
+   },
+   {
+    "cause": "compaction",
+    "events": 64,
+    "usd": 20.23
+   },
+   {
+    "cause": "effort-change",
+    "events": 1,
+    "usd": 0.43
+   },
+   {
+    "cause": "unknown",
+    "events": 102,
+    "usd": 49.86
+   }
+  ]
+ },
+ "gapHistogram": [
+  {
+   "label": "<1m",
+   "count": 50235
+  },
+  {
+   "label": "1–5m",
+   "count": 3930
+  },
+  {
+   "label": "5–15m",
+   "count": 820
+  },
+  {
+   "label": "15–60m",
+   "count": 299
+  },
+  {
+   "label": ">60m",
+   "count": 96
+  }
+ ],
+ "switchSim": [
+  {
+   "from": "opus-5.5",
+   "to": "sonnet-5.5",
+   "prefixTokens": 258793,
+   "penalty": 0.5952,
+   "savingPerStep": 0.0078,
+   "breakEvenSteps": 76
+  },
+  {
+   "from": "opus-5.5",
+   "to": "haiku-4.5",
+   "prefixTokens": 258793,
+   "penalty": 0.2717,
+   "savingPerStep": 0.0376,
+   "breakEvenSteps": 8
+  },
+  {
+   "from": "fable-5.1",
+   "to": "opus-5.5",
+   "prefixTokens": 258793,
+   "penalty": 1.2293,
+   "savingPerStep": 0.0365,
+   "breakEvenSteps": 34
+  },
+  {
+   "from": "opus-5",
+   "to": "sonnet-5.5",
+   "prefixTokens": 258793,
+   "penalty": 0.5176,
+   "savingPerStep": 0.0894,
+   "breakEvenSteps": 6
+  },
+  {
+   "from": "opus-5.5",
+   "to": "sonnet-5.5",
+   "prefixTokens": 568693,
+   "penalty": 1.308,
+   "savingPerStep": 0.0078,
+   "breakEvenSteps": 167
+  },
+  {
+   "from": "opus-5.5",
+   "to": "haiku-4.5",
+   "prefixTokens": 568693,
+   "penalty": 0.5971,
+   "savingPerStep": 0.0686,
+   "breakEvenSteps": 9
+  },
+  {
+   "from": "fable-5.1",
+   "to": "opus-5.5",
+   "prefixTokens": 568693,
+   "penalty": 2.7013,
+   "savingPerStep": 0.052,
+   "breakEvenSteps": 52
+  },
+  {
+   "from": "opus-5",
+   "to": "sonnet-5.5",
+   "prefixTokens": 568693,
+   "penalty": 1.1374,
+   "savingPerStep": 0.1824,
+   "breakEvenSteps": 7
+  }
+ ],
+ "subagentTypes": [
+  {
+   "type": "general-purpose",
+   "usd": 731.31,
+   "calls": 11082
+  },
+  {
+   "type": "workflow-subagent",
+   "usd": 145.44,
+   "calls": 2511
+  },
+  {
+   "type": "fork",
+   "usd": 70.77,
+   "calls": 836
+  },
+  {
+   "type": "Explore",
+   "usd": 63.5,
+   "calls": 1309
+  },
+  {
+   "type": "claude-code-guide",
+   "usd": 0.14,
+   "calls": 9
+  }
+ ],
+ "opusJudge": {
+  "tasks": 576,
+  "neededTier": {
+   "haiku": 52,
+   "sonnet": 265,
+   "opus": 259
+  },
+  "ranOn": {
+   "opus": 531,
+   "fable": 29,
+   "sonnet": 16
+  },
+  "matrix": [
+   {
+    "ran": "opus",
+    "needed": "haiku",
+    "n": 37
+   },
+   {
+    "ran": "fable",
+    "needed": "sonnet",
+    "n": 13
+   },
+   {
+    "ran": "sonnet",
+    "needed": "sonnet",
+    "n": 9
+   },
+   {
+    "ran": "opus",
+    "needed": "sonnet",
+    "n": 243
+   },
+   {
+    "ran": "fable",
+    "needed": "haiku",
+    "n": 10
+   },
+   {
+    "ran": "sonnet",
+    "needed": "haiku",
+    "n": 5
+   },
+   {
+    "ran": "opus",
+    "needed": "opus",
+    "n": 251
+   },
+   {
+    "ran": "fable",
+    "needed": "opus",
+    "n": 6
+   },
+   {
+    "ran": "sonnet",
+    "needed": "opus",
+    "n": 2
+   }
+  ],
+  "note": "Claude Opus as a judge of finished tasks (opinion, not a replay). Effort and the two flags omitted here."
+ },
+ "judges": {
+  "opusVsQwen": {
+   "n": 197,
+   "accuracy": 0.711,
+   "under": 0.228,
+   "over": 0.061
+  },
+  "qwenVsHuman": {
+   "n": 19,
+   "accuracy": 0.421,
+   "under": 0.526,
+   "over": 0.053
+  },
+  "opusVsHuman": {
+   "n": 34,
+   "accuracy": 0.5,
+   "under": 0.412,
+   "over": 0.088
+  },
+  "publicSweQwen": {
+   "n": 51,
+   "accuracy": 0.39,
+   "under": 0.57,
+   "over": 0.04,
+   "note": "TwinRouterBench SWE-bench step prefixes; reference labels there are weak (degradation_search_done)"
+  },
+  "note": "under = judge picked a cheaper model than the reference (quality risk); over = more expensive (missed savings)."
+ },
+ "studentLatency": [
+  {
+   "model": "ettin-32m",
+   "p50ms_seq256_4threads": 22
+  },
+  {
+   "model": "ettin-68m",
+   "p50ms_seq256_4threads": 61
+  },
+  {
+   "model": "ettin-150m",
+   "p50ms_seq256_4threads": 121
+  },
+  {
+   "model": "mmBERT-small",
+   "p50ms_seq256_4threads": 62
+  },
+  {
+   "model": "multilingual-e5-small",
+   "p50ms_seq256_4threads": 35
+  }
+ ]
+}

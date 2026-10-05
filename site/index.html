@@ -1,0 +1,394 @@
+<!doctype html>
+<!-- The GitHub owner is not decided yet: replace every "<owner>" (escaped as &lt;owner&gt;) once the repo is published. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agento · Claude Code, cheaper</title>
+<meta name="description" content="agento is a System 1 for Claude Code: it right-sizes the model when a task starts, sends cheap work to cheap subagents and stops agents that go in circles. Local, open source, measured in dollars.">
+<link rel="alternate" hreflang="en" href="./">
+<link rel="alternate" hreflang="ru" href="ru/">
+<link rel="alternate" hreflang="x-default" href="./">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#181715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="boot.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="agento home"><span class="d">◆</span> agento</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="how-it-works.html">How it works</a>
+      <a href="benchmarks.html">Benchmarks</a>
+      <a class="opt" href="#privacy">Privacy</a>
+      <a class="opt" href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-tools">
+      <a class="tool" href="ru/" hreflang="ru" lang="ru" data-set-lang="ru" aria-label="Русская версия">RU</a>
+      <button class="tool theme-toggle" type="button" data-theme-toggle>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a class="tool gh" href="https://github.com/&lt;owner&gt;/agento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span>GitHub</span></a>
+    </div>
+  </div>
+  <nav class="subnav" aria-label="Pages">
+    <a href="./" aria-current="page">Home</a>
+    <a href="how-it-works.html">How it works</a>
+    <a href="benchmarks.html">Benchmarks</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</header>
+
+<main id="main">
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="pill"><b>alpha</b> · open source · Apache-2.0 · Claude Code ≥ 2.1.287</p>
+      <p class="wordmark"><span class="d">◆</span> agento</p>
+      <h1>Spend less of your Claude Code budget, <em>without losing quality.</em></h1>
+      <p class="lede">A “System 1” for Claude Code. It picks the right model when a task starts, sends cheap work to cheap subagents, hands a plan from Opus to Sonnet in a clean context and stops agents that go in circles. Everything is counted in dollars or in % of your weekly limit, on your machine.</p>
+      <div class="ctas">
+        <button class="btn btn-primary" type="button" data-copy="npx agento-cc audit" aria-label="Copy the audit command: npx agento-cc audit">
+          <span><span class="ps">$</span> npx agento-cc audit</span>
+          <span class="copy-label" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></span>
+          <span class="copied" aria-hidden="true">✓</span>
+          <span class="visually-hidden" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span>
+        </button>
+        <a class="btn btn-ghost" href="#install">Install the plugin <span aria-hidden="true">→</span></a>
+      </div>
+      <p class="fine">The audit reads your local transcripts and sends nothing anywhere. · <a href="benchmarks.html">See the benchmarks →</a></p>
+    </div>
+
+    <figure>
+      <div class="term" role="img" aria-label="Terminal running npx agento-cc audit and showing the top five actions from a synthetic sample report">
+        <div class="term-bar"><i></i><i></i><i></i><span>~/Projects · zsh</span></div>
+        <div class="term-body scroll">
+          <pre><span class="ps">$</span> npx agento-cc audit
+<span class="dim">  spend · buckets · cache · TTL · tasks · subagents · setup · …</span></pre>
+          <img src="assets/audit-actions.bare.svg" width="754" height="522" alt="">
+          <pre><span class="ps">$</span> <span class="cursor"></span></pre>
+        </div>
+      </div>
+      <figcaption class="term-cap">A synthetic sample report from the test fixtures, not real data.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="problem" class="alt">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">01</span> The problem</p>
+    <h2>Your bill is mostly prompt cache, not tool output.</h2>
+    <div class="intro">
+      <p>Claude Code sends the whole conversation with every step. The prompt cache makes each re-read cheap, but at agent scale those re-reads and cache writes are most of the bill. That changes what “saving tokens” has to mean.</p>
+    </div>
+    <div class="grid g3">
+      <div class="card stat">
+        <span class="num">87<span class="u">%</span></span>
+        <span class="what">of a Claude Code bill is prompt cache</span>
+        <p>44% cache writes plus 35% cache reads. Output is 10%; tool output and file reads are about 6%.</p>
+        <span class="src">Independent SWE-bench study, <a href="https://arxiv.org/abs/2607.12161">arXiv 2607.12161</a></span>
+      </div>
+      <div class="card stat">
+        <span class="num"><span class="u">+</span>$0.23</span>
+        <span class="what">to switch Opus → Sonnet mid-task</span>
+        <p>The cache does not carry over between models, so a 100k context is written again: $0.25 instead of a $0.02 read. Sonnet saves ~$0.02 a step, so the switch pays off after ~10 steps, if Sonnet does as well.</p>
+        <span class="src">Opus 5.5 / Sonnet 5.5 list prices, 2026-10-05</span>
+      </div>
+      <div class="card stat">
+        <span class="num"><span class="u">+</span>48%</span>
+        <span class="what">cost with a “token compression” tool</span>
+        <p>In the same study one compressor raised the total by 48% and another by 6.8%. Compressed context broke edit anchors, agents re-read files, and every extra step re-reads the whole prefix.</p>
+        <span class="src">Same study; agento measures dollars per resolved task</span>
+      </div>
+    </div>
+
+    <div class="saves">
+      <div>
+        <h3>So agento saves where the cache is cheap to touch</h3>
+        <ul class="ticks">
+          <li><strong>At a clean point.</strong> The first prompt, after <code>/clear</code> or compaction, after the cache went cold. A model chosen there costs no rewrite.</li>
+          <li><strong>In subagents.</strong> Each has its own cache, so its model is free to pick: Haiku for reading and searching, Sonnet for a well-described piece of code.</li>
+          <li><strong>By effort, not model.</strong> On Opus 5.5, Sonnet 5.5 and Fable 5.1 the effort level can change without losing the cache. Thinking is billed as output.</li>
+          <li><strong>By dropping dead context.</strong> A new topic in a 120k conversation re-reads 120k on every step. <code>/clear</code> stops that.</li>
+        </ul>
+      </div>
+      <figure>
+        <div class="term">
+          <div class="term-bar"><i></i><i></i><i></i><span>npx agento-cc audit</span></div>
+          <div class="term-body scroll"><img src="assets/audit-switch.bare.svg" width="754" height="270" alt="The audit's model switch table: switching Opus 5.5 to Sonnet 5.5 on a 100k prefix costs $0.23 and breaks even after 11 steps; the other direction never pays off."></div>
+        </div>
+        <figcaption class="term-cap">The audit's “Model switch” block, synthetic sample. Prices and sources: <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/research.md">docs/research.md</a> (in Russian).</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">02</span> How it works</p>
+    <h2>Decide once per task. Then stay out of the way.</h2>
+    <div class="intro">
+      <p>agento is a Claude Code plugin with in-process hooks. When a task starts it asks “System 1”, built-in rules or a small trained model, whether a cheaper setup is enough. During the task it never touches the main model; it routes subagents, watches for loops and keeps the ledger. <a href="how-it-works.html">The full mechanics →</a></p>
+    </div>
+    <div class="grid g2 steps">
+      <div class="card step">
+        <div class="step-head"><span class="i">1</span><div><h3>A status line you can glance at</h3><p>Model and effort, spend so far, and whether the main cache is still warm. If you turn autopilot on, its choice arrives with an undo button.</p></div></div>
+        <div class="term"><div class="term-body"><pre><span class="ac">◆</span> agento · opus·high · $1.84 · cache <span class="ok">●</span> 41m
+<span class="ac">◆</span> agento · sonnet·med · 7d 63% · cache <span class="ok">●</span> 41m
+<span class="dim">subscriber: the 7-day limit instead of dollars</span>
+<span class="rule">────────────────────────────────────────────────────────────</span><span class="ac">◆</span> <span class="b ok">agento: sonnet·medium for this task</span>
+<span class="dim">Autopilot at a clean point (switching is free for the cache); was opus·max. Why: light-task words ×2.</span>
+<span class="k p">Back to opus·max</span><span class="k">Turn autopilot off</span><span class="k">OK</span></pre></div></div>
+      </div>
+      <div class="card step">
+        <div class="step-head"><span class="i">2</span><div><h3>One hint, at the start of a task</h3><p>A light task on Opus at <code>max</code> effort gets a one-click suggestion, with its reason and an estimate. Autopilot can apply it for you; it is off by default.</p></div></div>
+        <div class="term"><div class="term-body"><pre><span class="dim">&gt; fix the typo in the README heading</span>
+<span class="rule">────────────────────────────────────────────────────────────</span><span class="ac">◆</span> <span class="b bl">Looks like a light task</span>
+<span class="dim">sonnet·medium is enough here (now opus·max). Why: light-task words ×2, short prompt (34 chars). Switching early in a task is cheap: the cache is empty or still small.</span>
+<span class="dim">≈ −$0.40 on a task like this · estimate</span>
+<span class="k p">Sonnet</span><span class="k">Effort medium</span><span class="k">Keep</span><span class="k">Don't suggest</span></pre></div></div>
+      </div>
+      <div class="card step">
+        <div class="step-head"><span class="i">3</span><div><h3>Plan on Opus, code on Sonnet</h3><p>Discuss the architecture with Opus in plan mode. When you approve the plan, Sonnet writes the code from a clean context that holds only the plan.</p></div></div>
+        <div class="term"><div class="term-body"><pre><span class="ac">◆</span> <span class="b bl">Plan approved</span>
+<span class="dim">The plan is saved to .agento/plans/ and Sonnet starts with ~8k of context instead of 112k.</span>
+<span class="dim">≈ −$1.10 on a task like this · estimate</span>
+<span class="k p">Write the code on Sonnet — clean context</span><span class="k">Continue on Opus</span><span class="k">Don't suggest</span></pre></div></div>
+      </div>
+      <div class="card step">
+        <div class="step-head"><span class="i">4</span><div><h3>The <code>/agento</code> pane</h3><p>What you spent (measured), what agento's own mechanisms saved (always marked as an estimate), hints, loops, and which classifier is active.</p></div></div>
+        <div class="term"><div class="term-body"><pre><span class="ac">◆</span> <span class="b">agento · session 1h12m</span>           <span class="dim">mode: balanced</span>
+<span class="rule">────────────────────────────────────────────────────</span>Spend       $6.71 measured   <span class="dim">cache hit 94%</span> · <span class="ok">● warm 41m</span>
+Models      opus ▇▇▇▇░░░░░░ 31   sonnet ▇▇▇▇▇▇▇▇▇▇ 84
+Savings     <span class="ok">≈ $2.12</span>  <span class="dim">(subagents $1.30 · hints $0.82)</span>  <span class="wa">estimate</span>
+Hints       4 shown · 2 accepted · 1 "don't suggest"
+Loops       1 <span class="dim">(test failing for the 3rd time: auth.spec)</span>
+Classifier  rules-v1 · local
+<span class="rule">────────────────────────────────────────────────────</span><span class="k">Mode</span><span class="k">Orchestra: off</span><span class="k">Autopilot: off</span></pre></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:18px">Mock-ups built from the plugin's real strings; the amounts are illustrative.</p>
+  </div>
+</section>
+
+<section id="install" class="alt">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">03</span> Get started</p>
+    <h2>Two commands. The first one changes nothing.</h2>
+    <div class="grid g3">
+      <div class="card">
+        <span class="tag">1 · see where it goes</span>
+        <h3>Run the audit</h3>
+        <p>Spend, cache misses and their causes, light tasks on expensive models, subagents, dead context, setup. Node ≥ 20.</p>
+        <div class="term"><div class="term-body"><pre><span class="ps">$</span> npx agento-cc audit
+<span class="ps">$</span> npx agento-cc audit --since all --md report.md</pre></div></div>
+      </div>
+      <div class="card">
+        <span class="tag">2 · install the plugin</span>
+        <h3>Add it to Claude Code</h3>
+        <p>Claude Code ≥ 2.1.287. Hints are on, autopilot is off, the main model is never changed mid-task.</p>
+        <div class="term"><div class="term-body"><pre><span class="ps">&gt;</span> /plugin marketplace add &lt;owner&gt;/agento
+<span class="ps">&gt;</span> /plugin install agento@agento
+<span class="ps">&gt;</span> /agento</pre></div></div>
+      </div>
+      <div class="card">
+        <span class="tag">3 · optional</span>
+        <h3>Train your own System 1</h3>
+        <p>Label your own history with a judge on your GPU, distil a small student, and serve it locally. The plugin falls back to rules if anything goes wrong.</p>
+        <p><a href="#train">How the training works →</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="principles">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">04</span> Principles</p>
+    <h2>Rules agento does not bend.</h2>
+    <div class="grid g5">
+      <div class="card principle"><span class="k"><b>P1</b> · cache</span><h3>Never switch mid-task</h3><p>The main model changes only at a clean point, and only through a choice you can see. Inside a task, savings come from subagents and handoffs.</p></div>
+      <div class="card principle"><span class="k"><b>P3</b> · ceiling</span><h3>Never above your choice</h3><p>agento will not raise the model or effort you picked. Your setup is the cost ceiling.</p></div>
+      <div class="card principle"><span class="k"><b>P4</b> · visible</span><h3>Nothing silently</h3><p>Every hint shows a reason and an estimate. Every automatic action is visible, reversible and can be switched off.</p></div>
+      <div class="card principle"><span class="k"><b>P5</b> · safe</span><h3>Fail-open</h3><p>If agento errors or times out, Claude Code behaves as if it were not installed.</p></div>
+      <div class="card principle"><span class="k"><b>P6</b> · honest</span><h3>Dollars, not tokens</h3><p>Measured spend is marked “measured”; savings are always marked “estimate”. The unit is billed cost per resolved task.</p></div>
+    </div>
+    <p class="note" style="margin-top:18px">All seven principles with examples: <a href="how-it-works.html#principles">How it works</a>.</p>
+  </div>
+</section>
+
+<section id="saved" class="alt">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">05</span> What the audit found for me</p>
+    <h2>One user's month, not a benchmark.</h2>
+    <div class="intro">
+      <p>The author ran <code>agento audit</code> and the training pipeline on his own 30 days of Claude Code: one subscription user, 408 sessions, 71,511 requests, priced at API list prices. Nothing here is a measured saving; it shows where the money went and what a judge thinks could have been cheaper.</p>
+    </div>
+    <div class="grid g3">
+      <div class="card stat">
+        <span class="num">66<span class="u">%</span></span>
+        <span class="what">of spend was cache reads</span>
+        <p>Cache writes 19%, output 15%, uncached input ≈ 0%. Cache hit ratio 99.2%. The bill is the long context being re-read.</p>
+        <span class="src">author's audit · API-equivalent</span>
+      </div>
+      <div class="card stat">
+        <span class="num">54<span class="u">%</span></span>
+        <span class="what">of Opus/Fable tasks judged doable cheaper</span>
+        <p>Claude Opus read 560 finished Opus/Fable tasks and said Sonnet or Haiku would have done 303 of them.</p>
+        <span class="src">judge opinion on finished tasks, not a replay</span>
+      </div>
+      <div class="card stat">
+        <span class="num">41<span class="u">%</span></span>
+        <span class="what">of the time that judge picked too cheap</span>
+        <p>On 34 tasks the author labelled by hand, the Opus judge agreed 50% of the time and under-routed 41%. That is why judge labels are not trusted as-is.</p>
+        <span class="src">n = 34 · see benchmarks</span>
+      </div>
+    </div>
+    <p style="margin-top:24px"><a class="btn btn-ghost" href="benchmarks.html">All charts and caveats <span aria-hidden="true">→</span></a></p>
+  </div>
+</section>
+
+<section id="train">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">06</span> Train your own System 1</p>
+    <h2>Your history shows what you chose, not what you needed.</h2>
+    <div class="intro">
+      <p>Almost everything in a heavy user's history ran on Opus at high effort, so a model trained to imitate it learns “always Opus”. agento's labels are counterfactual instead: the cheapest setup that would have done the task as well, from a judge, from your own hindsight labels, and, where affordable, from replays.</p>
+    </div>
+    <ol class="pipe">
+      <li><b>dataset build</b><span>Tasks from your local transcripts, features and weak labels; secrets scrubbed.</span></li>
+      <li><b>judge · label</b><span>A judge on any OpenAI-compatible server (vLLM on your GPU) reads finished tasks; you label a sample by hand as gold.</span></li>
+      <li><b>Laya teacher</b><span>Fine-tuned on the GPU box. Only the cleaned dataset leaves your laptop, to your own server.</span></li>
+      <li><b>e5-small student</b><span><code>multilingual-e5-small</code>, ONNX: <strong>35 ms</strong> p50 on CPU, 279 MB.</span></li>
+      <li><b>agento-brain</b><span>A local daemon on a unix socket. Any error, or no answer in 400 ms, and the rules decide.</span></li>
+    </ol>
+    <div class="callout"><strong>A model ships only if it is honest.</strong> On held-out tasks it must under-route (pick a cheaper model than needed) in at most 5% of cases at the chosen threshold, save something, and beat the rules. Otherwise the plugin stays on rules. The first run, <code>opus-v1</code>, did not pass for the model choice, so there it only hints; its plan-first and delegate-explore heads are usable (<a href="benchmarks.html#training">results</a>). <a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">GPU runbook</a> (in Russian).</div>
+  </div>
+</section>
+
+<section id="privacy" class="alt">
+  <div class="wrap two-col">
+    <div>
+      <p class="eyebrow"><span class="n">07</span> Privacy</p>
+      <h2>Your code stays on your machine.</h2>
+      <p class="intro">No telemetry, no account, no trackers on this site either.</p>
+    </div>
+    <ul class="ticks">
+      <li><strong><code>agento audit</code> and the plugin run locally.</strong> No prompts, code or usage leave your machine.</li>
+      <li><strong>The classifier is local.</strong> Rules run in-process; the trained student runs in <code>agento-brain</code> on a unix socket.</li>
+      <li><strong>Training is opt-in and goes where you point it.</strong> The judge talks to the server you name; <code>train</code> sends only the scrubbed dataset to your own GPU box. Your data never goes into public weights.</li>
+      <li><strong>A future hosted classifier will be opt-in</strong> and receive only compact features.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">08</span> Pricing preview</p>
+    <h2>Free and local today. Paid tiers are only a plan.</h2>
+    <div class="grid g3">
+      <div class="card plan featured">
+        <div class="tier">Local <span class="badge now">available</span></div>
+        <div class="price">$0 <small>· Apache-2.0</small></div>
+        <ul class="ticks">
+          <li>Audit, plugin, ledger, hints, handoff, loop guard</li>
+          <li>Rules or your own trained student, on CPU</li>
+          <li>The whole training pipeline</li>
+        </ul>
+        <a class="btn btn-primary" href="#install">Install</a>
+      </div>
+      <div class="card plan">
+        <div class="tier">Pro <span class="badge">planned</span></div>
+        <div class="price">— <small>price not set</small></div>
+        <ul class="ticks">
+          <li>Hosted teacher model on a GPU: more accurate than the CPU student</li>
+          <li>Opt-in, compact features only</li>
+        </ul>
+      </div>
+      <div class="card plan">
+        <div class="tier">Team <span class="badge">planned</span></div>
+        <div class="price">— <small>price not set</small></div>
+        <ul class="ticks">
+          <li>Team reports</li>
+          <li>Self-hosted teacher (Docker) for teams that cannot send prompts out</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note" style="margin-top:18px">Nothing here is a commitment: paid tiers may change or never ship. The local version stays free and open source.</p>
+  </div>
+</section>
+
+<section id="faq" class="alt">
+  <div class="wrap">
+    <p class="eyebrow"><span class="n">09</span> FAQ</p>
+    <h2>Questions</h2>
+    <div class="faq">
+      <details>
+        <summary>Does it work on Pro/Max subscriptions?</summary>
+        <div class="a"><p>Yes. A subscription charges nothing per token, but the weekly limit runs out. The audit shows API-equivalent amounts; the plugin shows your 7-day limit in the status line and, once it has calibrated on your own history, phrases hints as “≈ −0.6% of the weekly limit”. The calibration is an empirical estimate, and labelled so.</p></div>
+      </details>
+      <details>
+        <summary>Does it send my code anywhere?</summary>
+        <div class="a"><p>No. The audit and the plugin read local files and run locally. The only network traffic is the training you start yourself: the judge you point at a server, and <code>train</code>, which sends the scrubbed dataset to your own GPU box.</p></div>
+      </details>
+      <details>
+        <summary>Will it switch models mid-task?</summary>
+        <div class="a"><p>Never. Switching mid-task rewrites the whole cache (+$0.23 on a 100k context). The main model changes only at a clean point: the first prompt, after <code>/clear</code> or compaction, after the cache went cold. Autopilot is off by default; when on, it holds the cheaper setup for that one task and never runs <code>/model</code>, which would also change your default.</p></div>
+      </details>
+      <details>
+        <summary>What if it's wrong?</summary>
+        <div class="a"><p>A hint is one click to ignore, and “Don't suggest” turns that kind off for the project. An autopilot choice comes with a <span class="mono">[Back to opus·max]</span> button. agento never goes above your choice, the loop guard flags a stuck agent, and any error makes it step aside. A trained model ships only if it under-routes in at most 5% of held-out tasks; the first one did not, so for the model choice it only hints.</p></div>
+      </details>
+      <details>
+        <summary>What does it cost?</summary>
+        <div class="a"><p>Nothing: Apache-2.0. The rules and the local student cost no API calls. Judging your history costs a little if you use <code>claude</code> as the judge, or nothing on your own vLLM server; replays spend real limit, are opt-in and take a <code>--budget-usd</code>.</p></div>
+      </details>
+      <details>
+        <summary>How much will it save me?</summary>
+        <div class="a"><p>We don't know yet, and we won't make up a number. Run the audit to see an upper bound for your own history. A public benchmark of cost per resolved task against always-Opus, <code>opusplan</code> and rule routers is on the roadmap.</p></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p class="brand"><span class="d" style="color:var(--accent)">◆</span>&nbsp;agento</p>
+      <p>Open source under Apache-2.0. An independent project, not affiliated with or endorsed by Anthropic.</p>
+      <p>No trackers, no cookies.</p>
+    </div>
+    <div>
+      <h4>Site</h4>
+      <ul>
+        <li><a href="how-it-works.html">How it works</a></li>
+        <li><a href="benchmarks.html">Benchmarks</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="ru/" hreflang="ru" lang="ru" data-set-lang="ru">Русская версия</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Repository</h4>
+      <ul>
+        <li><a href="https://github.com/&lt;owner&gt;/agento">GitHub</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/research.md">Research (RU)</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/docs/runbook-gpu.md">GPU runbook (RU)</a></li>
+        <li><a href="https://github.com/&lt;owner&gt;/agento/blob/main/LICENSE">License</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{
+ "run": "opus-v1",
+ "date": "2026-10-05",
+ "labels": "Claude Opus as judge of finished tasks (L1), 576 of the author's tasks; time split train 407 / calibration 87 / test 87",
+ "teacher": "Laya multilingual (mmBERT 322M), RLCD, 6 epochs, 236 s on one RTX PRO 4000",
+ "student": {
+  "model": "intfloat/multilingual-e5-small",
+  "params_m": 118,
+  "size_mb": 279,
+  "p50_ms_seq128": 8.1,
+  "p50_ms_seq256": 17.6,
+  "onnx_parity": 1.0,
+  "int8": "discarded (agreement 0.888 < 0.98)"
+ },
+ "testHeads": {
+  "tier": {
+   "accuracy": 0.494,
+   "macro_f1": 0.417,
+   "ece": 0.075
+  },
+  "effort": {
+   "accuracy": 0.713,
+   "macro_f1": 0.359,
+   "ece": 0.109
+  },
+  "plan_first": {
+   "accuracy": 0.92,
+   "macro_f1": 0.847,
+   "ece": 0.078
+  },
+  "delegate_explore": {
+   "accuracy": 0.759,
+   "macro_f1": 0.715,
+   "ece": 0.094
+  }
+ },
+ "tierPolicies": [
+  {
+   "policy": "student, every task",
+   "accuracy": 0.494,
+   "under": 0.437,
+   "over": 0.069
+  },
+  {
+   "policy": "always sonnet",
+   "accuracy": 0.586,
+   "under": 0.356,
+   "over": 0.057
+  },
+  {
+   "policy": "rules v1",
+   "accuracy": 0.632,
+   "under": 0.31,
+   "over": 0.057
+  },
+  {
+   "policy": "L0 (sees the finished trajectory)",
+   "accuracy": 0.747,
+   "under": 0.046,
+   "over": 0.207
+  },
+  {
+   "policy": "always opus",
+   "accuracy": 0.356,
+   "under": 0.0,
+   "over": 0.644
+  }
+ ],
+ "safeThreshold": null,
+ "verdict": "From the prompt alone the student cannot pick the model safely (no threshold keeps under-routing <= 5%), so it never acts on its own for the tier. Its plan-first (92%) and delegate-explore (76%) heads are usable. Next: decide after the first steps, when trajectory signals exist."
+}
