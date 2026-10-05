@@ -111,7 +111,17 @@ Install the plugin (Claude Code ≥ 2.1.287):
 /plugin install agento@agento
 ```
 
-Optional: **train your own System 1** on your history — dataset → judge on your GPU → Laya teacher → multilingual-e5-small student → `agento-brain`. Step by step: [docs/runbook-gpu.md](docs/runbook-gpu.md) (in Russian).
+Optional: **the local classifier** (`agento-brain`, Python ≥ 3.11). The plugin works without it on built-in rules; with it, the plan-first and explore-first hints come from a small trained model, answered in a few milliseconds on your CPU. Nothing leaves the machine.
+
+```sh
+uv tool install "agento-brain @ git+https://github.com/regksemx/agento#subdirectory=brain"
+agento-brain fetch      # the published model (262 MB, checksum verified)
+agento-brain install    # writes a launchd/systemd unit and prints the command that starts it
+```
+
+The published model, `opus-v1`, does not pick the model for a task yet: its tier head failed its own safety bar, so the rules keep that decision ([why](https://regksemx.github.io/agento/benchmarks.html)).
+
+Also optional: **train your own System 1** on your history — dataset → judge on your GPU → Laya teacher → multilingual-e5-small student → `agento-brain`. Step by step: [docs/runbook-gpu.md](docs/runbook-gpu.md) (in Russian).
 
 ## Commands
 

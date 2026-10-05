@@ -111,7 +111,17 @@ npx agento-cc audit --since all --md report.md
 /plugin install agento@agento
 ```
 
-По желанию: **обучить свой System 1** на своей истории — датасет → судья на вашем GPU → учитель Laya → ученик multilingual-e5-small → `agento-brain`. Пошагово: [docs/runbook-gpu.md](docs/runbook-gpu.md).
+По желанию: **локальный классификатор** (`agento-brain`, Python ≥ 3.11). Плагин работает и без него, на встроенных правилах. С ним подсказки «сначала план» и «начни с разведки» даёт небольшая обученная модель: несколько миллисекунд на вашем CPU, без сети.
+
+```sh
+uv tool install "agento-brain @ git+https://github.com/regksemx/agento#subdirectory=brain"
+agento-brain fetch      # опубликованная модель (262 МБ, контрольная сумма проверяется)
+agento-brain install    # создаёт службу launchd/systemd и печатает команду для запуска
+```
+
+Опубликованная модель `opus-v1` пока не выбирает модель для задачи: её голова тира не прошла собственный порог безопасности, и это решение остаётся за правилами ([почему](https://regksemx.github.io/agento/ru/benchmarks.html)).
+
+Тоже по желанию: **обучить свой System 1** на своей истории — датасет → судья на вашем GPU → учитель Laya → ученик multilingual-e5-small → `agento-brain`. Пошагово: [docs/runbook-gpu.md](docs/runbook-gpu.md).
 
 ## Команды
 
