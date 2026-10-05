@@ -17,8 +17,6 @@ export interface RenderOptions {
   lang: Lang;
 }
 
-export const PROMPT_LINES = 12;
-
 export interface CardView {
   task: TaskRecord;
   l1?: L1Guess;
@@ -28,9 +26,10 @@ export interface CardView {
   step: Step;
   answers: Partial<Answers>;
   cursor: number | null;
-  expanded: boolean;
+  expanded: boolean; // full-screen reader
+  scroll?: number; // first prompt line in the reader (0 by default)
   guesses: boolean;
-  maxExpandedLines?: number; // cap of the expanded prompt, so the card fits the terminal (default 60)
+  rows?: number; // terminal height: the card is laid out to fit it
 }
 
 export function formatDurationHuman(ms: number, lang: Lang): string {
@@ -42,8 +41,12 @@ export function formatDurationHuman(ms: number, lang: Lang): string {
 }
 
 // The scrubbed prompt as display lines: its own line breaks are kept, long lines wrapped, runs of blank lines collapsed.
+// Claude Code wraps pasted text in tags; on the card they are noise, a thin marker is enough.
+const PASTE_TAG = /<\/?pasted_content[^>]*>/g;
+
 export function promptLines(text: string, width: number): string[] {
-  const clean = text.replace(/\r\n?/g, '\n').replace(/\t/g, '  ').replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, (c) => (c === '\n' ? c : ' '));
+  const clean = text
+    .replace(PASTE_TAG, (tag) => (tag.startsWith('</') ? '\n┄┄┄\n' : '\n┄┄┄ ⧉ ┄┄┄\n')).replace(/\r\n?/g, '\n').replace(/\t/g, '  ').replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, (c) => (c === '\n' ? c : ' '));
   const out: string[] = [];
   for (const raw of clean.split('\n')) {
     if (raw.trim() === '') {
@@ -56,60 +59,89 @@ export function promptLines(text: string, width: number): string[] {
   return out.length > 0 ? out : [''];
 }
 
+const cardWidth = (w: number): number => clamp(Number.isFinite(w) ? Math.floor(w) : 80, 64, 100);
+const promptWidth = (w: number): number => cardWidth(w) - 8;
+
+// Lines the reader shows at once, and the furthest it may scroll, for a prompt and a terminal height.
+export function readerWindow(text: string, width: number, rows: number | undefined): { height: number; maxScroll: number } {
+  const lines = promptLines(text, promptWidth(width));
+  const height = Math.max(5, (rows ?? 40) - 10);
+  return { height, maxScroll: Math.max(0, lines.length - height) };
+}
+
 export function renderCard(v: CardView, opts: RenderOptions): string {
-  const W = clamp(Number.isFinite(opts.width) ? Math.floor(opts.width) : 80, 64, 100);
+  const W = cardWidth(opts.width);
   const t = makeTheme(opts.color);
   const D = labelStrings(opts.lang);
   const o = v.task.observed;
-  const out: string[] = [];
-  const blank = (): void => void out.push('');
-  const body = (x: string): void => void out.push('    ' + x);
   const bw = W - 6;
+  const body = (x: string): string => '    ' + x;
 
-  out.push('  ' + spread(t.accent('◆') + ' ' + t.bold(D.title), t.dim(D.progress(v.index + 1, v.total, v.saved)), W - 4));
+  // ───────── header ─────────
+  const head: string[] = [];
+  head.push('  ' + spread(t.accent('◆') + ' ' + t.bold(D.title), t.dim(D.progress(v.index + 1, v.total, v.saved)), W - 4));
   const when = localStamp(new Date(v.task.startTs).toISOString());
   const followUps = Math.max(0, v.task.text.length - 1);
-  body(t.dim(truncateStart(tildify(v.task.project), Math.max(12, bw - 40)) + ' · ' + when + ' · ' + D.followUps(followUps)));
-  blank();
+  head.push(body(t.dim(truncateStart(tildify(v.task.project), Math.max(12, bw - 40)) + ' · ' + when + ' · ' + D.followUps(followUps))));
+  head.push('');
 
-  // ───────── the prompt, boxed ─────────
-  {
+  // ───────── the options of the current question; the highlighted one is shown inverted ─────────
+  const opt = (key: string, label: string, i: number | null): string => {
+    const on = i !== null && v.cursor === i;
+    const text = '[' + key + '] ' + label;
+    if (!on) return ' ' + t.accentBold('[' + key + ']') + ' ' + label + ' ';
+    return opts.color === 'none' ? '▸' + text + '◂' : '\x1b[7m ' + text + ' \x1b[27m';
+  };
+  const mainOpts = (): string[] => {
+    if (v.step === 'tier') return TIERS.map((x, i) => opt(String(i + 1), x, i));
+    if (v.step === 'effort') return (['low', 'medium', 'high'] as const).map((x, i) => opt(String(i + 1), x, i));
+    return [opt('y', D.yes, 0), opt('n', D.no, 1)];
+  };
+  const question = { tier: D.qTier, effort: D.qEffort, plan: D.qPlan, delegate: D.qDelegate }[v.step];
+  const stepLabel = D.step(STEPS.indexOf(v.step) + 1, STEPS.length);
+
+  const box = (lines: string[], footer?: string): string[] => {
     const boxW = W - 4;
     const cw = boxW - 4;
     const border = t.accent;
-    const row = (content: string): void => void out.push('  ' + border('│') + ' ' + padR(content, cw) + ' ' + border('│'));
     const titleText = ' ' + D.boxTitle + ' ';
-    out.push('  ' + border('╭─') + t.accentBold(titleText) + border('─'.repeat(boxW - 3 - visWidth(titleText)) + '╮'));
-    const lines = promptLines(v.task.text[0] ?? '', cw);
-    const cap = v.expanded ? Math.max(PROMPT_LINES, v.maxExpandedLines ?? 60) : PROMPT_LINES;
-    const shown = lines.slice(0, cap);
-    for (const l of shown) row(l);
-    const hidden = lines.length - shown.length;
-    if (hidden > 0) row(t.dim(D.moreLines(hidden) + ' (' + D.expandHint + ')'));
+    const out = ['  ' + border('╭─') + t.accentBold(titleText) + border('─'.repeat(boxW - 3 - visWidth(titleText)) + '╮')];
+    for (const l of lines) out.push('  ' + border('│') + ' ' + padR(l, cw) + ' ' + border('│'));
+    if (footer) out.push('  ' + border('│') + ' ' + padR(t.dim(footer), cw) + ' ' + border('│'));
     out.push('  ' + border('╰' + '─'.repeat(boxW - 2) + '╯'));
-  }
-  blank();
+    return out;
+  };
+  const all = promptLines(v.task.text[0] ?? '', W - 8);
 
-  // ───────── what happened ─────────
+  // ───────── reader: the whole prompt on screen, scrolled with ↑/↓ ─────────
+  if (v.expanded) {
+    const { height, maxScroll } = readerWindow(v.task.text[0] ?? '', opts.width, v.rows);
+    const from = Math.min(v.scroll ?? 0, maxScroll);
+    const shown = all.slice(from, from + height);
+    const out = [...head, ...box(shown, D.readerPos(from + 1, from + shown.length, all.length))];
+    out.push('');
+    out.push('  ' + t.accentBold(stepLabel) + ' ' + t.bold(truncateStart(question, Math.max(10, bw - visWidth(stepLabel) - 2))));
+    out.push(body(mainOpts().join(' ')));
+    out.push(body(t.dim(D.keysReader)));
+    return out.join('\n');
+  }
+
+  // ───────── the rest of the card, built first so the prompt gets whatever height is left ─────────
+  const rest: string[] = [''];
   {
     const kv = (label: string, n: number, hot = false): string => t.dim(label + ' ') + (hot && n > 0 ? t.accent(String(n)) : t.num(String(n)));
     const sep = t.dim(' · ');
     const effort = o.effort ? shortEffort(o.effort) : undefined;
-    const head = t.num(shortModel(o.model) + (effort ? '·' + effort : '')) + (effort ? '' : ' ' + t.dim(D.noEffort));
-    const l1 = [head, kv(D.steps, o.mainCalls), kv(D.files, o.filesEdited), kv(D.lines, o.linesChanged)];
+    const top = t.num(shortModel(o.model) + (effort ? '·' + effort : '')) + (effort ? '' : ' ' + t.dim(D.noEffort));
+    const l1 = [top, kv(D.steps, o.mainCalls), kv(D.files, o.filesEdited), kv(D.lines, o.linesChanged)];
     if (o.subagentCalls > 0) l1.push(kv(D.subagents, o.subagentCalls));
     const l2 = [kv(D.errors, o.toolErrors, true), kv(D.testFailures, o.testFailures, true), kv(D.corrections, o.userCorrections, true)];
     if (o.planMode) l2.push(t.num(D.planMode));
     const l3 = [t.num(formatDurationHuman(o.durationMs, opts.lang)), t.num(D.costApi(money(o.cost)))];
-    body(t.accentBold(D.factsTitle));
-    body(l1.join(sep));
-    body(l2.join(sep));
-    body(l3.join(sep));
+    for (const line of flow([t.accentBold(D.factsTitle), ...l1], sep, bw)) rest.push(body(line));
+    for (const line of flow([...l2, ...l3], sep, bw)) rest.push(body(line));
   }
-  blank();
-
-  // ───────── guesses: hidden by default, so they do not anchor the answer ─────────
-  if (!v.guesses) body(t.dim(D.guessesHidden));
+  if (!v.guesses) rest.push(body(t.dim(D.guessesHidden)));
   else {
     const g = (label: string, tier: string, effort: string): string => label + ' ' + tier + '·' + effort;
     const parts = [
@@ -117,43 +149,54 @@ export function renderCard(v: CardView, opts: RenderOptions): string {
       g(D.guessRules, v.task.rulesVerdict.tier, v.task.rulesVerdict.effort),
       v.l1 ? g('L1', v.l1.tier, v.l1.effort) : 'L1 ' + D.guessNone,
     ];
-    body(t.dim(D.guessesLabel + ': ' + parts.join(' · ')));
+    rest.push(body(t.dim(D.guessesLabel + ': ' + parts.join(' · '))));
   }
-  blank();
-
-  // ───────── the question ─────────
+  rest.push('');
   {
-    const left = '  ' + t.accentBold(D.step(STEPS.indexOf(v.step) + 1, STEPS.length)) + ' ';
-    out.push(left + t.dim('─'.repeat(Math.max(2, W - 2 - visWidth(left)))));
-    const q = { tier: D.qTier, effort: D.qEffort, plan: D.qPlan, delegate: D.qDelegate }[v.step];
-    for (const l of wrap(q, bw)) body(t.bold(l));
-    const opt = (key: string, label: string, i: number | null): string => {
-      const on = i !== null && v.cursor === i;
-      return (on ? t.accent('▸') : ' ') + t.accentBold('[' + key + ']') + ' ' + (on ? t.bold(label) : label);
-    };
-    let main: string[];
-    if (v.step === 'tier') main = TIERS.map((x, i) => opt(String(i + 1), x, i));
-    else if (v.step === 'effort') main = (['low', 'medium', 'high'] as const).map((x, i) => opt(String(i + 1), x, i));
-    else main = [opt('y', D.yes, 0), opt('n', D.no, 1)];
-    const extra = [opt('s', D.optSkip, null), opt('?', D.optUnsure, null)];
-    const oneRow = main.join(' ') + '   ' + extra.join(' ');
-    if (visWidth(oneRow) <= bw) body(oneRow);
-    else {
-      body(main.join(' '));
-      body(extra.join(' '));
-    }
+    const left = '  ' + t.accentBold(stepLabel) + ' ';
+    rest.push(left + t.dim('─'.repeat(Math.max(2, W - 2 - visWidth(left)))));
     const done: string[] = [];
     if (v.answers.tier) done.push(D.tierWord + ' ' + v.answers.tier);
     if (v.answers.effort) done.push(D.effortWord + ' ' + v.answers.effort);
     if (v.answers.plan !== undefined) done.push(D.planWord + ' ' + (v.answers.plan ? D.yes : D.no));
-    if (v.answers.delegate !== undefined) done.push(D.delegateWord + ' ' + (v.answers.delegate ? D.yes : D.no));
-    if (done.length > 0) body(t.dim(D.answered + ': ') + t.num(done.join(' · ')));
-    blank();
-    const keys = v.expanded ? D.keysExpanded : v.guesses ? D.keysGuesses : D.keys;
-    for (const l of wrap(keys, bw)) body(t.dim(l));
-    body(t.dim(D.keysArrows));
+    if (done.length > 0) rest.push(body(t.dim(D.answered + ': ') + t.good(done.join(' · '))));
+    for (const l of wrap(question, bw)) rest.push(body(t.bold(l)));
+    const extra = [opt('s', D.optSkip, null), opt('?', D.optUnsure, null)];
+    const oneRow = mainOpts().join(' ') + '  ' + extra.join(' ');
+    if (visWidth(oneRow) <= bw) rest.push(body(oneRow));
+    else {
+      rest.push(body(mainOpts().join(' ')));
+      rest.push(body(extra.join(' ')));
+    }
+    rest.push('');
+    const keys = v.guesses ? D.keysGuesses : D.keys;
+    for (const l of wrap(keys, bw)) rest.push(body(t.dim(l)));
   }
-  return out.join('\n');
+
+  // ───────── the prompt box takes the remaining height (3..24 lines) ─────────
+  const budget = clamp((v.rows ?? 40) - head.length - rest.length - 3, 3, 24);
+  let shown = all;
+  let footer: string | undefined;
+  if (all.length > budget) {
+    shown = all.slice(0, budget - 1);
+    footer = D.moreLines(all.length - shown.length) + ' · ' + D.expandHint;
+  }
+  return [...head, ...box(shown, footer), ...rest].join('\n');
+}
+
+// Packs parts into as few lines as fit the width, never splitting a part.
+function flow(parts: string[], sep: string, width: number): string[] {
+  const lines: string[] = [];
+  let cur = '';
+  for (const p of parts) {
+    const next = cur === '' ? p : cur + sep + p;
+    if (cur !== '' && visWidth(next) > width) {
+      lines.push(cur);
+      cur = p;
+    } else cur = next;
+  }
+  if (cur !== '') lines.push(cur);
+  return lines;
 }
 
 function shortEffort(e: string): string {

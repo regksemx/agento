@@ -45,6 +45,8 @@ export interface LabelStrings {
   keysExpanded: string;
   keysGuesses: string;
   keysArrows: string;
+  keysReader: string;
+  readerPos(a: number, b: number, n: number): string;
   step(i: number, n: number): string;
   notTty: string;
   nothingToLabel: string;
@@ -96,7 +98,7 @@ const ru: LabelStrings = {
     const w = m10 === 1 && m100 !== 11 ? 'строка' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'строки' : 'строк';
     return `…ещё ${n} ${w}`;
   },
-  expandHint: 'e — развернуть',
+  expandHint: 'e — читать целиком',
   collapseHint: 'e — свернуть',
   factsTitle: 'Что было',
   steps: 'шаги',
@@ -129,10 +131,12 @@ const ru: LabelStrings = {
   effortWord: 'effort',
   planWord: 'plan',
   delegateWord: 'разведка',
-  keys: 'b назад · g догадки · e развернуть · s пропустить · q выйти',
-  keysExpanded: 'b назад · g догадки · e свернуть · s пропустить · q выйти',
-  keysGuesses: 'b назад · g скрыть догадки · e развернуть · s пропустить · q выйти',
+  keys: 'цифра или y/n — ответ · ←/→ Enter · e целиком · g догадки · b назад · q выход',
+  keysExpanded: 'цифра или y/n — ответ · ←/→ Enter · e целиком · g догадки · b назад · q выход',
+  keysGuesses: 'цифра или y/n — ответ · ←/→ Enter · e целиком · g скрыть догадки · b назад · q выход',
   keysArrows: '←/→ выбор, Enter подтвердить',
+  keysReader: '↑/↓ строка · пробел/PgDn страница · e или Esc — назад · цифра или y/n — ответ',
+  readerPos: (a, b, n) => `строки ${a}–${b} из ${n}`,
   step: (i, n) => `${i}/${n}`,
   notTty: 'для разметки нужен интерактивный терминал (stdin не TTY). Запустите команду в терминале; `--report` и `--export-csv` работают и без него.',
   nothingToLabel: 'Все задачи уже размечены или подходящих задач нет.',
@@ -178,7 +182,7 @@ const en: LabelStrings = {
   followUps: (n) => `follow-ups: ${n}`,
   boxTitle: 'Task',
   moreLines: (n) => `…${n} more line${n === 1 ? '' : 's'}`,
-  expandHint: 'e — expand',
+  expandHint: 'e — read in full',
   collapseHint: 'e — collapse',
   factsTitle: 'What happened',
   steps: 'steps',
@@ -211,10 +215,12 @@ const en: LabelStrings = {
   effortWord: 'effort',
   planWord: 'plan',
   delegateWord: 'explore',
-  keys: 'b back · g guesses · e expand · s skip · q quit',
-  keysExpanded: 'b back · g guesses · e collapse · s skip · q quit',
-  keysGuesses: 'b back · g hide guesses · e expand · s skip · q quit',
+  keys: 'digit or y/n answers · ←/→ Enter · e full text · g guesses · b back · q quit',
+  keysExpanded: 'digit or y/n answers · ←/→ Enter · e full text · g guesses · b back · q quit',
+  keysGuesses: 'digit or y/n answers · ←/→ Enter · e full text · g hide guesses · b back · q quit',
   keysArrows: '←/→ choose, Enter confirm',
+  keysReader: '↑/↓ line · space/PgDn page · e or Esc — back · digit or y/n — answer',
+  readerPos: (a, b, n) => `lines ${a}–${b} of ${n}`,
   step: (i, n) => `${i}/${n}`,
   notTty: 'labeling needs an interactive terminal (stdin is not a TTY). Run it in a terminal; `--report` and `--export-csv` work without one.',
   nothingToLabel: 'Every task is already labeled, or there is nothing suitable to label.',

@@ -8,7 +8,7 @@ import { defaultOutPath } from '../write.ts';
 import { readTasks } from '../judge/command.ts';
 import { labelStrings } from './i18n.ts';
 import { computeReport } from './metrics.ts';
-import { renderCard, renderLabelReport } from './render.ts';
+import { readerWindow, renderCard, renderLabelReport } from './render.ts';
 import { sampleTasks, STRATEGIES, type Strategy } from './sample.ts';
 import { runSession, type KeyInput } from './session.ts';
 import { appendHumanRecord, findJudgeFile, humanPath, makeRecord, readHumanLabels, readL1Guesses, toCsv } from './store.ts';
@@ -117,9 +117,14 @@ export async function datasetLabelCmd(flags: Flags, lang: Lang, deps: LabelDeps 
     frame: (s, rows) => {
       const task = cards[s.index]!;
       return renderCard(
-        { task, l1: l1.get(task.taskId), index: s.index, total: s.total, saved: s.saved, step: s.step, answers: s.answers, cursor: s.cursor, expanded: s.expanded, guesses: s.guesses, maxExpandedLines: rows ? Math.max(12, rows - 24) : undefined },
+        { task, l1: l1.get(task.taskId), index: s.index, total: s.total, saved: s.saved, step: s.step, answers: s.answers, cursor: s.cursor, expanded: s.expanded, scroll: s.scroll, guesses: s.guesses, rows },
         ropts,
       );
+    },
+    clamp: (s, rows) => {
+      if (!s.expanded) return s;
+      const { maxScroll } = readerWindow(cards[s.index]!.text[0] ?? '', ropts.width, rows);
+      return s.scroll > maxScroll ? { ...s, scroll: maxScroll } : s;
     },
     // every verdict is on disk before the next card is drawn: quitting or Ctrl+C loses nothing
     onSave: (effect, seconds) => appendHumanRecord(o.outPath, makeRecord(cards[effect.index]!.taskId, effect.answers, seconds, now())),

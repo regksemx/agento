@@ -10,7 +10,7 @@ export const STEPS: readonly Step[] = ['tier', 'effort', 'plan', 'delegate'];
 
 export type Key =
   | { k: 'char'; ch: string }
-  | { k: 'left' | 'right' | 'up' | 'down' | 'enter' | 'backspace' | 'esc' | 'ctrl-c' };
+  | { k: 'left' | 'right' | 'up' | 'down' | 'pgup' | 'pgdn' | 'enter' | 'backspace' | 'esc' | 'ctrl-c' };
 
 export interface SessionState {
   index: number; // current card
@@ -18,7 +18,8 @@ export interface SessionState {
   step: Step;
   answers: Partial<Answers>;
   cursor: number | null; // arrow highlight in the current question
-  expanded: boolean; // full prompt
+  expanded: boolean; // full-screen reader of the prompt
+  scroll: number; // first prompt line shown in the reader
   guesses: boolean; // L0/rules/L1 guesses revealed
   status: 'running' | 'done' | 'quit';
   saved: number; // verdicts written in this session (full or "don't remember")
@@ -28,7 +29,7 @@ export interface SessionState {
 export type Effect = { type: 'save'; index: number; answers: Answers | 'unsure' };
 
 export function initialState(total: number): SessionState {
-  return { index: 0, total, step: 'tier', answers: {}, cursor: null, expanded: false, guesses: false, status: total > 0 ? 'running' : 'done', saved: 0, skipped: 0 };
+  return { index: 0, total, step: 'tier', answers: {}, cursor: null, expanded: false, scroll: 0, guesses: false, status: total > 0 ? 'running' : 'done', saved: 0, skipped: 0 };
 }
 
 export function optionCount(step: Step): number {
@@ -50,7 +51,9 @@ export function parseKeys(chunk: string): Key[] {
     if (c === '\x1b') {
       const m = /^\x1b(?:\[|O)([0-9;]*)([A-Za-z~])/.exec(chunk.slice(i));
       if (m) {
-        const name = ({ A: 'up', B: 'down', C: 'right', D: 'left' } as const)[m[2] as 'A'];
+        const name = m[2] === '~'
+          ? ({ '5': 'pgup', '6': 'pgdn' } as const)[m[1] as '5']
+          : ({ A: 'up', B: 'down', C: 'right', D: 'left' } as const)[m[2] as 'A'];
         if (name) keys.push({ k: name });
         i += m[0].length;
       } else {
@@ -80,7 +83,7 @@ export function parseKeys(chunk: string): Key[] {
 
 function advance(s: SessionState): SessionState {
   const index = s.index + 1;
-  return { ...s, index, step: 'tier', answers: {}, cursor: null, expanded: false, guesses: false, status: index >= s.total ? 'done' : 'running' };
+  return { ...s, index, step: 'tier', answers: {}, cursor: null, expanded: false, scroll: 0, guesses: false, status: index >= s.total ? 'done' : 'running' };
 }
 
 function answer(s: SessionState, choice: number): { state: SessionState; effect?: Effect } {
@@ -92,10 +95,18 @@ function answer(s: SessionState, choice: number): { state: SessionState; effect?
   return { state: { ...advance(s), saved: s.saved + 1 }, effect: { type: 'save', index: s.index, answers } };
 }
 
+// Lines scrolled by PgUp/PgDn/Space in the reader.
+export const PAGE = 10;
+
 // Options of the yes/no questions are ordered [yes, no].
 export function reduce(s: SessionState, key: Key): { state: SessionState; effect?: Effect } {
   if (s.status !== 'running') return { state: s };
   if (key.k === 'ctrl-c') return { state: { ...s, status: 'quit' } };
+  if (s.expanded && (key.k === 'up' || key.k === 'down' || key.k === 'pgup' || key.k === 'pgdn')) {
+    const delta = { up: -1, down: 1, pgup: -PAGE, pgdn: PAGE }[key.k];
+    return { state: { ...s, scroll: Math.max(0, s.scroll + delta) } };
+  }
+  if (key.k === 'esc') return s.expanded ? { state: { ...s, expanded: false, scroll: 0 } } : { state: s };
   if (key.k === 'left' || key.k === 'right') {
     const n = optionCount(s.step);
     const cur = s.cursor === null ? (key.k === 'right' ? 0 : n - 1) : (s.cursor + (key.k === 'right' ? 1 : n - 1)) % n;
@@ -109,7 +120,8 @@ export function reduce(s: SessionState, key: Key): { state: SessionState; effect
   if (ch === 'q') return { state: { ...s, status: 'quit' } };
   if (ch === 'b') return back(s);
   if (ch === 'g') return { state: { ...s, guesses: !s.guesses } };
-  if (ch === 'e') return { state: { ...s, expanded: !s.expanded } };
+  if (ch === 'e') return { state: { ...s, expanded: !s.expanded, scroll: 0 } };
+  if (ch === ' ' && s.expanded) return { state: { ...s, scroll: s.scroll + PAGE } };
   if (ch === 's') return { state: { ...advance(s), skipped: s.skipped + 1 } };
   if (ch === '?') return { state: { ...advance(s), saved: s.saved + 1 }, effect: { type: 'save', index: s.index, answers: 'unsure' } };
   if (s.step === 'plan' || s.step === 'delegate') {
@@ -131,7 +143,7 @@ function back(s: SessionState): { state: SessionState } {
   }
   if (s.index === 0) return { state: s };
   // the previous card is asked again from the start; saving it again replaces the earlier verdict
-  return { state: { ...s, index: s.index - 1, step: 'tier', answers: {}, cursor: null, expanded: false, guesses: false } };
+  return { state: { ...s, index: s.index - 1, step: 'tier', answers: {}, cursor: null, expanded: false, scroll: 0, guesses: false } };
 }
 
 // Runs a whole key sequence through the machine (tests, and the driver's chunk handling).
@@ -160,14 +172,17 @@ export interface KeyInput {
 
 export interface DriverOptions {
   input: KeyInput;
-  output: { write(s: string): unknown; rows?: number };
+  output: { write(s: string): unknown; rows?: number; on?(ev: 'resize', fn: () => void): unknown; off?(ev: 'resize', fn: () => void): unknown };
   total: number;
   frame(s: SessionState, rows: number | undefined): string; // the card for the current state
+  clamp?(s: SessionState, rows: number | undefined): SessionState; // keeps the reader scroll within the prompt
   onSave(effect: Effect, seconds: number): void; // called before the next card is drawn
   now?: () => number;
 }
 
-const lineCount = (s: string): number => s.split('\n').length;
+// The card is drawn on the alternate screen and repainted whole, so wrapped or overlong cards never leave debris.
+const ENTER_ALT = '\x1b[?1049h\x1b[?25l';
+const LEAVE_ALT = '\x1b[?25h\x1b[?1049l';
 
 // Resolves when the session is done or quit. The raw mode is always restored.
 export function runSession(o: DriverOptions): Promise<SessionState> {
@@ -175,7 +190,6 @@ export function runSession(o: DriverOptions): Promise<SessionState> {
   let state = initialState(o.total);
   let shownIndex = -1;
   let shownAt = now();
-  let drawn = 0;
   const out = o.output;
 
   const draw = (): void => {
@@ -184,10 +198,12 @@ export function runSession(o: DriverOptions): Promise<SessionState> {
       shownIndex = state.index;
       shownAt = now();
     }
-    const f = o.frame(state, out.rows);
-    out.write((drawn > 0 ? `\x1b[${drawn}F\x1b[J` : '') + f + '\n');
-    drawn = lineCount(f);
+    if (o.clamp) state = o.clamp(state, out.rows);
+    let lines = o.frame(state, out.rows).split('\n');
+    if (out.rows && lines.length > out.rows) lines = lines.slice(0, out.rows);
+    out.write('\x1b[H\x1b[2J' + lines.join('\n'));
   };
+  const onResize = (): void => draw();
 
   return new Promise((resolve) => {
     const finish = (): void => {
@@ -195,8 +211,8 @@ export function runSession(o: DriverOptions): Promise<SessionState> {
       o.input.removeListener?.('data', onData);
       o.input.setRawMode?.(false);
       o.input.pause?.();
-      out.write('\x1b[?25h');
-      if (drawn > 0) out.write(`\x1b[${drawn}F\x1b[J`); // the card goes away; the summary replaces it
+      out.off?.('resize', onResize);
+      out.write(LEAVE_ALT); // the card goes away with the alternate screen; the summary is printed after
       resolve(state);
     };
     const onData = (chunk: string | Buffer): void => {
@@ -212,7 +228,8 @@ export function runSession(o: DriverOptions): Promise<SessionState> {
     o.input.setRawMode?.(true);
     o.input.resume?.();
     o.input.on('data', onData);
-    out.write('\x1b[?25l');
+    out.on?.('resize', onResize);
+    out.write(ENTER_ALT);
     if (state.status !== 'running') return finish();
     draw();
   });

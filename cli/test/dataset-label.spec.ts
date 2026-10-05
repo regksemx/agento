@@ -139,18 +139,35 @@ describe('card rendering', () => {
     }
   });
 
-  it('shows at most 12 prompt lines, counts the rest and expands on request', () => {
+  it('fits the prompt to the terminal height and opens the rest in the reader', () => {
     const t = task('a', { text: [LONG] });
-    const lines = promptLines(LONG, 70);
-    expect(lines.length).toBe(20);
-    const folded = renderCard(view(t), opts).split('\n');
-    expect(folded.filter((l) => l.startsWith('  │ Requirement')).length).toBe(12);
-    expect(folded.join('\n')).toContain('…ещё 8 строк (e — развернуть)');
-    const open = renderCard(view(t, { expanded: true }), opts);
-    expect(open).toContain('Requirement 20');
-    expect(open).not.toContain('…ещё');
-    expect(renderCard(view(t), { ...opts, lang: 'en' })).toContain('…8 more lines (e — expand)');
-    expect(renderCard(view(task('b', { text: ['x\n'.repeat(13)] })), opts)).toContain('…ещё 1 строка');
+    expect(promptLines(LONG, 72).length).toBe(20);
+    const tall = renderCard(view(t, { rows: 60 }), opts);
+    expect(tall).toContain('Requirement 20');
+    expect(tall).not.toContain('…ещё');
+    const short = renderCard(view(t, { rows: 30 }), opts).split('\n');
+    expect(short.length).toBeLessThanOrEqual(30);
+    expect(short.join('\n')).toMatch(/…ещё \d+ строк[аи]? · e — читать целиком/);
+    expect(renderCard(view(t, { rows: 30 }), { ...opts, lang: 'en' })).toMatch(/…\d+ more lines · e — read in full/);
+    const reader = renderCard(view(t, { expanded: true, rows: 20 }), opts);
+    expect(reader).toContain('Requirement 1');
+    expect(reader).toMatch(/строки 1–\d+ из 20/);
+    const scrolled = renderCard(view(t, { expanded: true, rows: 20, scroll: 100 }), opts);
+    expect(scrolled).toContain('Requirement 20');
+    expect(scrolled).toContain('из 20');
+  });
+
+  it('marks the highlighted option clearly: arrows in plain text, inverse video in color', () => {
+    const plain = renderCard(view(task('a'), { cursor: 1 }), opts);
+    expect(plain).toContain('▸[2] sonnet◂');
+    const color = renderCard(view(task('a'), { cursor: 1 }), { ...opts, color: 'truecolor' });
+    expect(color).toContain('\x1b[7m [2] sonnet \x1b[27m');
+  });
+
+  it('drops the wrapper tags of pasted text', () => {
+    const lines = promptLines('<pasted_content id="x1">\nhello\n</pasted_content id="x1">\nbye', 60);
+    expect(lines.join('\n')).not.toContain('pasted_content');
+    expect(lines).toContain('hello');
   });
 
   it('hides the guesses until revealed and never mixes them into the facts', () => {
