@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="754" height="482" viewBox="0 0 754 482">
+<rect width="754" height="482" rx="10" fill="#1e1d1b"/>
+<circle cx="22" cy="20" r="6" fill="#ff5f57"/><circle cx="42" cy="20" r="6" fill="#febc2e"/><circle cx="62" cy="20" r="6" fill="#28c840"/>
+<text x="377" y="25" text-anchor="middle" fill="#e8e6e3" fill-opacity="0.5" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">npx agento-cc audit</text>
+<g font-family="ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace" font-size="14">
+<text x="40.8" y="52" fill="#d97757" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">◆</text>
+<text x="57.6" y="52" fill="#f0eee6" textLength="100.8" lengthAdjust="spacingAndGlyphs" font-weight="700" xml:space="preserve">agento audit</text>
+<text x="578.4" y="52" fill="#8b8680" textLength="134.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">2026-10-05 17:02</text>
+<text x="57.6" y="70" fill="#8b8680" textLength="58.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">30 days</text>
+<text x="116.4" y="70" fill="#8b8680" textLength="25.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> · </text>
+<text x="141.6" y="70" fill="#8b8680" textLength="100.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">412 sessions</text>
+<text x="242.4" y="70" fill="#8b8680" textLength="25.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> · </text>
+<text x="267.6" y="70" fill="#8b8680" textLength="126.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">12,408 requests</text>
+<text x="57.6" y="88" fill="#8b8680" textLength="159.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">~/.claude2/projects</text>
+<text x="217.2" y="88" fill="#8b8680" textLength="25.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> · </text>
+<text x="242.4" y="88" fill="#8b8680" textLength="226.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">API prices as of 2026-10-05</text>
+<text x="57.6" y="124" fill="#8b8680" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">⎿ </text>
+<text x="74.4" y="124" fill="#8b8680" textLength="571.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">Amounts are API-equivalent: a subscription charges nothing, the real</text>
+<text x="74.4" y="142" fill="#8b8680" textLength="260.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">constraint is the weekly limit.</text>
+<text x="40.8" y="178" fill="#d97757" textLength="42.0" lengthAdjust="spacingAndGlyphs" font-weight="700" xml:space="preserve">Spend</text>
+<text x="91.2" y="178" fill="#8b8680" textLength="512.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">─────────────────────────────────────────────────────────────</text>
+<text x="612.0" y="178" fill="#f0eee6" textLength="58.8" lengthAdjust="spacingAndGlyphs" font-weight="700" xml:space="preserve">$317.20</text>
+<text x="679.2" y="178" fill="#8b8680" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">fact</text>
+<text x="40.8" y="196" fill="#8b8680" textLength="344.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">What your tokens cost at API list prices.</text>
+<text x="57.6" y="232" fill="#8b8680" textLength="100.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">main thread </text>
+<text x="158.4" y="232" fill="#f0eee6" textLength="58.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$272.80</text>
+<text x="217.2" y="232" fill="#8b8680" textLength="109.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> · subagents </text>
+<text x="326.4" y="232" fill="#f0eee6" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$44.40</text>
+<text x="376.8" y="232" fill="#8b8680" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> (14%)</text>
+<text x="57.6" y="268" fill="#f0eee6" textLength="67.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">opus-5.5</text>
+<rect x="150.0" y="256" width="445.2" height="14" rx="1.5" fill="#d97757"/>
+<text x="603.6" y="268" fill="#f0eee6" textLength="58.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$255.40</text>
+<text x="679.2" y="268" fill="#8b8680" textLength="25.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">81%</text>
+<text x="57.6" y="286" fill="#f0eee6" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">opus-5</text>
+<rect x="150.0" y="274" width="62.0" height="14" rx="1.5" fill="#d97757"/>
+<text x="612.0" y="286" fill="#f0eee6" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$35.30</text>
+<text x="679.2" y="286" fill="#8b8680" textLength="25.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">11%</text>
+<text x="57.6" y="304" fill="#f0eee6" textLength="84.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">sonnet-5.5</text>
+<rect x="150.0" y="292" width="29.4" height="14" rx="1.5" fill="#c9a27a"/>
+<text x="612.0" y="304" fill="#f0eee6" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$17.05</text>
+<text x="687.6" y="304" fill="#8b8680" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">5%</text>
+<text x="57.6" y="322" fill="#f0eee6" textLength="75.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">haiku-4.5</text>
+<rect x="150.0" y="310" width="16.8" height="14" rx="1.5" fill="#8099b0"/>
+<text x="620.4" y="322" fill="#f0eee6" textLength="42.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$9.45</text>
+<text x="687.6" y="322" fill="#8b8680" textLength="16.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">3%</text>
+<text x="57.6" y="358" fill="#8b8680" textLength="42.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">daily</text>
+<rect x="150.0" y="358.3" width="7.4" height="1.8" rx="1" fill="#d97757"/>
+<rect x="158.4" y="354.8" width="7.4" height="5.3" rx="1" fill="#d97757"/>
+<rect x="166.8" y="354.8" width="7.4" height="5.3" rx="1" fill="#d97757"/>
+<rect x="175.2" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="183.6" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="192.0" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="200.4" y="358.3" width="7.4" height="1.8" rx="1" fill="#d97757"/>
+<rect x="208.8" y="358.3" width="7.4" height="1.8" rx="1" fill="#d97757"/>
+<rect x="217.2" y="354.8" width="7.4" height="5.3" rx="1" fill="#d97757"/>
+<rect x="225.6" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="234.0" y="351.3" width="7.4" height="8.8" rx="1" fill="#d97757"/>
+<rect x="242.4" y="351.3" width="7.4" height="8.8" rx="1" fill="#d97757"/>
+<rect x="250.8" y="354.8" width="7.4" height="5.3" rx="1" fill="#d97757"/>
+<rect x="259.2" y="358.3" width="7.4" height="1.8" rx="1" fill="#d97757"/>
+<rect x="267.6" y="358.3" width="7.4" height="1.8" rx="1" fill="#8b8680"/>
+<rect x="276.0" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="284.4" y="351.3" width="7.4" height="8.8" rx="1" fill="#d97757"/>
+<rect x="292.8" y="351.3" width="7.4" height="8.8" rx="1" fill="#d97757"/>
+<rect x="301.2" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="309.6" y="354.8" width="7.4" height="5.3" rx="1" fill="#d97757"/>
+<rect x="318.0" y="358.3" width="7.4" height="1.8" rx="1" fill="#d97757"/>
+<rect x="326.4" y="358.3" width="7.4" height="1.8" rx="1" fill="#d97757"/>
+<rect x="334.8" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="343.2" y="349.5" width="7.4" height="10.5" rx="1" fill="#d97757"/>
+<rect x="351.6" y="346" width="8.4" height="14" rx="1.5" fill="#d97757"/>
+<rect x="360.0" y="349.5" width="7.4" height="10.5" rx="1" fill="#d97757"/>
+<rect x="368.4" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<rect x="376.8" y="356.5" width="7.4" height="3.5" rx="1" fill="#d97757"/>
+<rect x="385.2" y="354.8" width="7.4" height="5.3" rx="1" fill="#d97757"/>
+<rect x="393.6" y="353.0" width="7.4" height="7.0" rx="1" fill="#d97757"/>
+<text x="418.8" y="358" fill="#8b8680" textLength="109.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve">Sep 6 → Oct 5</text>
+<text x="150.0" y="376" fill="#8b8680" textLength="42.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">peak </text>
+<text x="192.0" y="376" fill="#f0eee6" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$27.29</text>
+<text x="242.4" y="376" fill="#8b8680" textLength="117.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve"> · Sep 30 · ⌀ </text>
+<text x="360.0" y="376" fill="#f0eee6" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$10.57</text>
+<text x="410.4" y="376" fill="#8b8680" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve">/day</text>
+<text x="57.6" y="412" fill="#8b8680" textLength="436.8" lengthAdjust="spacingAndGlyphs" xml:space="preserve">weekly · on a subscription, watch your heaviest week</text>
+<text x="57.6" y="430" fill="#8b8680" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">Aug 31</text>
+<rect x="116.4" y="418" width="10.5" height="14" rx="1.5" fill="#c9a27a"/>
+<text x="628.8" y="430" fill="#f0eee6" textLength="42.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$2.27</text>
+<text x="57.6" y="448" fill="#8b8680" textLength="42.0" lengthAdjust="spacingAndGlyphs" xml:space="preserve">Sep 7</text>
+<rect x="116.4" y="436" width="283.5" height="14" rx="1.5" fill="#c9a27a"/>
+<text x="620.4" y="448" fill="#f0eee6" textLength="50.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve">$60.26</text>
+</g>
+</svg>
