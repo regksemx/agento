@@ -8,10 +8,13 @@
     "agento": "dist/agento.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=20"
@@ -24,5 +27,15 @@
   "homepage": "https://regksemx.github.io/agento/",
   "bugs": {
     "url": "https://github.com/regksemx/agento/issues"
-  }
+  },
+  "keywords": [
+    "claude-code",
+    "claude",
+    "anthropic",
+    "tokens",
+    "cost",
+    "prompt-cache",
+    "llm-router",
+    "cli"
+  ]
 }
