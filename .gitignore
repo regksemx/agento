@@ -5,3 +5,7 @@ dist/
 .agento/
 coverage/
 plugin/.claude-plugin/types/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/

@@ -1,0 +1,1876 @@
+[
+ {
+  "prompt": "поправь опечатку в README",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 25,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 2,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 2",
+    "short prompt: 25 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "переименуй переменную cnt в count в utils/math.ts",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 49,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 49 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "обнови версию в package.json до 2.4.0",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 37,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 37 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "добавь лог в начало функции syncUsers",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 37,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 37 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "поправь текст кнопки на «Сохранить»",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 35,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 35 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "добавь комментарий к функции parseConfig",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 40,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 40 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "отформатируй файл src/api/client.ts",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 35,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 35 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "в readme.md добавь раздел про установку",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 39,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 39 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "fix the typo in CONTRIBUTING.md",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 31,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 31 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "rename getUser to fetchUser across the repo",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 43,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 43 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "bump the version in package.json to 1.3.0",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 41,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 41 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "add a log line when the worker starts",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 37,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 37 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "update the comment above retry() to match the new behavior",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 58,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 58 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "run prettier on src/index.ts",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 28,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 28 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "rename the `tmp` variable to `buffer`",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 37,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 37 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "спроектируй архитектуру очереди задач с ретраями",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 48,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 2,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 2"
+   ]
+  }
+ },
+ {
+  "prompt": "нужно мигрировать базу с MySQL на Postgres без простоя",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 54,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "найди и исправь race condition в обработчике платежей",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 53,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "разберись, почему сервис деградирует по производительности под нагрузкой",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 72,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "отрефактори модуль авторизации целиком, он стал неподдерживаемым",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 64,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "давай обсудим, как лучше организовать кэширование ответов",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 57,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 4
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "planning keywords: 4"
+   ]
+  }
+ },
+ {
+  "prompt": "как лучше хранить сессии: JWT или серверные?",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 44,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 1
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "planning keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "спроектируй схему базы для мультитенантного биллинга",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 52,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "нужно реализовать распределённую блокировку для воркеров",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 56,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "продумай план перехода на event sourcing",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 40,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 2
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "planning keywords: 2"
+   ]
+  }
+ },
+ {
+  "prompt": "разработай стратегию миграции данных между шардами",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 50,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 1
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1",
+    "planning keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "design a distributed rate limiter on top of Redis",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 49,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 2,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 2"
+   ]
+  }
+ },
+ {
+  "prompt": "design the architecture for a plugin system",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 43,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 2,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 2"
+   ]
+  }
+ },
+ {
+  "prompt": "there is a deadlock between the scheduler and the worker pool, find it",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 70,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "migrate the codebase from CommonJS to ESM",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 41,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "what are the options for handling auth across microservices?",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 60,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 1
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1",
+    "planning keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "let's brainstorm an approach for offline sync",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 45,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 2
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "planning keywords: 2"
+   ]
+  }
+ },
+ {
+  "prompt": "memory leak in the websocket server under load, investigate",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 59,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "optimize the performance of the query planner, it is too slow",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 61,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "refactor the billing module so invoices and payments are separate",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 65,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "почему падает тест auth.spec, разберись",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 39,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "добавь пагинацию в список заказов",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 33,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "implement a /health endpoint that returns the git sha",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 53,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "fix the failing build on CI",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 27,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "напиши юнит-тесты для функции parseDuration",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 43,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "add a --verbose flag to the CLI",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 31,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "исправь баг: при пустом списке падает рендер таблицы",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 52,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "why does npm test hang?",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 23,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "add a dark mode toggle to the settings page",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 43,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "сделай эндпоинт для экспорта пользователей в CSV",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 48,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "write a script that deletes stale git branches",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 46,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "добавь валидацию email в форму регистрации",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 42,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "сделай так, чтобы сервис выдерживал 10k запросов в секунду",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 58,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "cache invalidation is subtly wrong when two users edit the same doc",
+  "specTier": "opus",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 67,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "добавь в план релиза строку про баг 123",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 39,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 1
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "planning keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "rename the design doc to docs/overview.md",
+  "specTier": "sonnet",
+  "source": "spec-example",
+  "features": {
+   "promptChars": 41,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 1,
+   "keywords": {
+    "heavy": 1,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "fix the failing test:\n```\nconst architecture = migrate();\n```",
+  "source": "extra",
+  "features": {
+   "promptChars": 61,
+   "promptLang": "en",
+   "hasCodeBlock": true,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "АРХИТЕКТУРУ переделать",
+  "source": "extra",
+  "features": {
+   "promptChars": 22,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "рефакторинг модуля",
+  "source": "extra",
+  "features": {
+   "promptChars": 18,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "рефакторинг функции",
+  "source": "extra",
+  "features": {
+   "promptChars": 19,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "Отрефактори систему уведомлений",
+  "source": "extra",
+  "features": {
+   "promptChars": 31,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "исправь опечатки в тексте",
+  "source": "extra",
+  "features": {
+   "promptChars": 25,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 25 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "Переименуй файл",
+  "source": "extra",
+  "features": {
+   "promptChars": 15,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 15 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "trace the call",
+  "source": "extra",
+  "features": {
+   "promptChars": 14,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "a race happens",
+  "source": "extra",
+  "features": {
+   "promptChars": 14,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "planet of apes",
+  "source": "extra",
+  "features": {
+   "promptChars": 14,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "this suits me, подходит",
+  "source": "extra",
+  "features": {
+   "promptChars": 23,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "rename the module and migrate the data",
+  "source": "extra",
+  "features": {
+   "promptChars": 38,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "давай обсудим подход",
+  "source": "extra",
+  "features": {
+   "promptChars": 20,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 4
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "planning keywords: 4"
+   ]
+  }
+ },
+ {
+  "prompt": "поправь опечатку в README. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. Подробности ниже. ",
+  "source": "extra",
+  "features": {
+   "promptChars": 567,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 2,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "Ёлки-палки: добавь лог в функцию",
+  "source": "extra",
+  "features": {
+   "promptChars": 32,
+   "promptLang": "ru",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 32 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "refactor the whole codebase 🚀 now",
+  "source": "extra",
+  "features": {
+   "promptChars": 34,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 1,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "opus",
+   "effort": "high",
+   "confidence": 0.6,
+   "reasons": [
+    "heavy keywords: 1"
+   ]
+  }
+ },
+ {
+  "prompt": "fix the text in ```unterminated fence architecture",
+  "source": "extra",
+  "features": {
+   "promptChars": 50,
+   "promptLang": "en",
+   "hasCodeBlock": true,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 50 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "123 ???",
+  "source": "extra",
+  "features": {
+   "promptChars": 7,
+   "promptLang": "other",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "",
+  "source": "extra",
+  "features": {
+   "promptChars": 0,
+   "promptLang": "other",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 0,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "high",
+   "confidence": 0.4,
+   "reasons": [
+    "no strong signal"
+   ]
+  }
+ },
+ {
+  "prompt": "Add a   logging statement to the handler",
+  "source": "extra",
+  "features": {
+   "promptChars": 40,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 40 chars"
+   ]
+  }
+ },
+ {
+  "prompt": "update the version of lodash",
+  "source": "extra",
+  "features": {
+   "promptChars": 28,
+   "promptLang": "en",
+   "hasCodeBlock": false,
+   "mentionsFiles": 0,
+   "keywords": {
+    "heavy": 0,
+    "light": 1,
+    "plan": 0
+   },
+   "isSessionStart": true,
+   "contextTokens": 0
+  },
+  "verdict": {
+   "tier": "sonnet",
+   "effort": "medium",
+   "confidence": 0.7,
+   "reasons": [
+    "light keywords: 1",
+    "short prompt: 28 chars"
+   ]
+  }
+ }
+]
