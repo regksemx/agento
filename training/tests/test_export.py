@@ -242,3 +242,80 @@ def test_merge_judge_applies_agento_judge_flags(tmp_path):
     labels = resolve_labels(recs[0])
     assert labels["tier"]["source"] == "L1" and labels["tier"]["idx"] == 0
     assert labels["delegate_explore"]["idx"] == 1 and labels["plan_first"]["idx"] == 0
+
+
+# ---------------------------------------------------------------- human labels (agento dataset label -> judge/human.jsonl)
+
+def human_line(task_id, tier="haiku", effort="low", plan=False, delegate=True, **kw):
+    """A line exactly as `agento dataset label` writes it (cli/src/dataset/label/store.ts makeRecord)."""
+    row = {"v": 1, "taskId": task_id, "ok": True, "ts": 1790000000000, "labelSource": "human",
+           "labeledAt": "2026-10-05T10:00:00.000Z", "labelerSeconds": 12, "unsure": tier is None,
+           "l2Tier": tier, "l2Effort": effort, "l2PlanFirst": plan, "l2DelegateExplore": delegate}
+    row.update(kw)
+    return json.dumps(row)
+
+
+L1_LINE = json.dumps({
+    "v": 1, "taskId": "a", "ok": True, "l1Tier": "opus", "l1Effort": "medium",
+    "l1Probs": {"haiku-low": 0.05, "sonnet-medium": 0.1, "sonnet-high": 0.2, "opus-medium": 0.9},
+    "needsPlanFirst": True, "delegateExplore": False,
+})
+
+
+def test_human_labels_are_gold_for_all_four_heads(tmp_path):
+    d = tmp_path / "judge"
+    d.mkdir()
+    (d / "openai-x.jsonl").write_text(L1_LINE + "\n")
+    (d / "human.jsonl").write_text(human_line("a", "haiku", "low", plan=False, delegate=True) + "\n")
+    recs = [rec(taskId="a")]
+    assert merge_judge(recs, d) == 1
+    labels = resolve_labels(recs[0])
+    assert {h: labels[h]["source"] for h in labels} == {"tier": "L2", "effort": "L2", "plan_first": "L2", "delegate_explore": "L2"}
+    assert {h: labels[h]["weight"] for h in labels} == {h: SOURCE_WEIGHT["L2"] for h in labels} and SOURCE_WEIGHT["L2"] == 1.0
+    assert (labels["tier"]["idx"], labels["effort"]["idx"], labels["plan_first"]["idx"], labels["delegate_explore"]["idx"]) == (0, 0, 0, 1)
+    assert labels["tier"]["probs"] == [1.0, 0.0, 0.0]  # one-hot gold, not the judge's soft target
+    row = build_row(recs[0], "train")
+    assert row["meta"]["sources"] == {"tier": "L2", "effort": "L2", "plan_first": "L2", "delegate_explore": "L2"}
+    assert row["gold"]["plan_first"]["label"] == "false" and row["gold"]["delegate_explore"]["label"] == "true"
+    assert row["meta"]["label_source"] == "human"
+
+
+def test_human_labels_win_even_when_a_later_file_has_l2_fields(tmp_path):
+    d = tmp_path / "judge"
+    d.mkdir()
+    (d / "human.jsonl").write_text(human_line("a", "sonnet", "medium", plan=True, delegate=False) + "\n")
+    (d / "zzz-replay.jsonl").write_text(json.dumps({"taskId": "a", "l2Tier": "opus", "l2Effort": "high"}) + "\n")
+    recs = [rec(taskId="a")]
+    merge_judge(recs, d)
+    labels = resolve_labels(recs[0])
+    assert labels["tier"]["idx"] == 1 and labels["effort"]["idx"] == 1 and labels["plan_first"]["idx"] == 1
+
+
+def test_human_relabel_last_wins_and_unsure_falls_back_to_l1(tmp_path):
+    d = tmp_path / "judge"
+    d.mkdir()
+    (d / "openai-x.jsonl").write_text(L1_LINE + "\n")
+    (d / "human.jsonl").write_text(
+        human_line("a", "haiku", "low", plan=False, delegate=True) + "\n"
+        + human_line("a", "sonnet", "high", plan=True, delegate=False) + "\n"
+    )
+    recs = [rec(taskId="a")]
+    merge_judge(recs, d)
+    labels = resolve_labels(recs[0])
+    assert (labels["tier"]["idx"], labels["effort"]["idx"], labels["plan_first"]["idx"], labels["delegate_explore"]["idx"]) == (1, 2, 1, 0)
+
+    # "don't remember" after a full verdict: explicit nulls replace every gold field, so the L1 judge is used again
+    (d / "human.jsonl").write_text(
+        human_line("a", "haiku", "low") + "\n" + human_line("a", None, None, plan=None, delegate=None) + "\n")
+    recs = [rec(taskId="a")]
+    merge_judge(recs, d)
+    labels = resolve_labels(recs[0])
+    assert {h: labels[h]["source"] for h in labels} == {"tier": "L1", "effort": "L1", "plan_first": "L1", "delegate_explore": "L1"}
+    assert labels["tier"]["idx"] == 2
+
+
+def test_human_records_are_not_mistaken_for_judge_failures(tmp_path):
+    from agento_train.export import from_agento_judge
+
+    line = json.loads(human_line("a", "opus", "high", plan=True, delegate=True))
+    assert from_agento_judge(line) == line  # passes through untouched: no l1 view is invented from it

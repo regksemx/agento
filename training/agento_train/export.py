@@ -319,6 +319,7 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 # `agento dataset judge` writes per-configuration success probabilities (cheapest first) and two flags at the top level.
+HUMAN_FILE = "human.jsonl"
 JUDGE_CONFIGS = ("haiku-low", "sonnet-medium", "sonnet-high", "opus-medium")
 
 
@@ -361,7 +362,9 @@ def merge_judge(records: list[dict], judge_dir: Optional[Path]) -> int:
         return 0
     by_id = {r["taskId"]: r for r in records if "taskId" in r}
     touched = set()
-    for path in sorted(judge_dir.glob("*.jsonl")):
+    # `human.jsonl` (agento dataset label: the owner's hindsight labels, flat `l2Tier`/`l2Effort`/`l2PlanFirst`/
+    # `l2DelegateExplore`) is merged LAST, so nothing in another file can override a gold label field.
+    for path in sorted(judge_dir.glob("*.jsonl"), key=lambda p: (p.name == HUMAN_FILE, p.name)):
         for raw in read_jsonl(path):
             row = from_agento_judge(raw)
             if row is None:

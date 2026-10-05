@@ -173,7 +173,7 @@ function findJudgeFile(explicit: string | undefined, env: Record<string, string 
   if (explicit) return explicit;
   const dir = join(env.AGENTO_HOME || join(process.env.HOME ?? '', '.agento'), 'dataset', 'judge');
   try {
-    const files = readdirSync(dir).filter((f) => f.endsWith('.jsonl')).map((f) => ({ f: join(dir, f), m: statSync(join(dir, f)).mtimeMs }));
+    const files = readdirSync(dir).filter((f) => f.endsWith('.jsonl') && f !== 'human.jsonl').map((f) => ({ f: join(dir, f), m: statSync(join(dir, f)).mtimeMs }));
     return files.sort((a, b) => b.m - a.m)[0]?.f;
   } catch {
     return undefined;

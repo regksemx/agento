@@ -5,6 +5,7 @@ import { detectColor, renderJson, renderMarkdown, renderTerminal } from './repor
 import { buildDataset, renderDatasetSummary } from './dataset/index.ts';
 import { datasetJudgeCmd } from './dataset/judge/index.ts';
 import { datasetReplayCmd } from './dataset/replay/index.ts';
+import { datasetLabelCmd } from './dataset/label/index.ts';
 import { datasetImportCmd, datasetValidateJudgeCmd } from './dataset/public/index.ts';
 
 const VERSION = '0.1.0';
@@ -16,6 +17,7 @@ Usage
   agento dataset build [options]   build the training dataset (tasks.jsonl) from local transcripts
   agento dataset judge [options]   L1 labels: a judge model reads each finished task (resumable)
   agento dataset replay [options]  L2 labels: re-run past tasks on cheaper configurations in a git worktree (SPENDS your limit)
+  agento dataset label [options]   hindsight labels: you label a sample of YOUR OWN past tasks in the terminal (gold for calibration and evaluation)
   agento dataset import twinrouterbench [options]   public data: verified-tier steps from TwinRouterBench (Apache-2.0), mapped to haiku/sonnet/opus
   agento dataset validate-judge [options]   compare an L1 judge file with the verified tiers of the public data (accuracy, under-routing, calibration, threshold sweep)
   agento --version
@@ -49,6 +51,17 @@ Dataset judge options (--lang, --no-color as above); input: $AGENTO_HOME/dataset
   --force             judge again tasks that already have a verdict
   --yes               claude: do not ask for confirmation
   --dry-run           print task count, token and cost estimates; call nothing
+
+Dataset label options (--lang, --no-color, --tasks as above); output: $AGENTO_HOME/dataset/judge/human.jsonl (read by the training export as gold)
+  Needs an interactive terminal. One keypress per question; every answer is saved at once, q or Ctrl+C just stops.
+  --n <N>             how many tasks to show (default: 50); already labeled tasks are skipped
+  --strategy <s>      stratified (default: balanced over model, L0 tier and cost quartile) | disagreement (L0, rules and the L1 judge disagree) | random
+  --seed <N>          sampling seed (default: 1)
+  --judge <file>      L1 judge file for the guesses and the agreement report (default: newest in $AGENTO_HOME/dataset/judge)
+  --report            no questions: print the distribution of your labels and the agreement of L0, rules and the L1 judge with them
+  --export-csv [file] print (or write) your labels with the guesses as CSV, without prompt text
+  --out <file>        default: see above
+  Keys: 1 2 3 / y n answer, arrows + Enter, g reveal guesses, e expand the prompt, s skip, ? don't remember, b back, q quit (Cyrillic layout works too)
 
 Dataset import twinrouterbench options (--lang, --no-color as above); output: $AGENTO_HOME/dataset/public/twinrouterbench.jsonl + twinrouterbench.summary.json
   --source <path|url> a TwinRouterBench checkout, its question_bank.jsonl, or a git URL (cloned into $AGENTO_HOME/cache/twinrouterbench)
@@ -117,7 +130,7 @@ function parseArgs(argv: string[]): Args {
   return { cmd, sub, rest, flags };
 }
 
-const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out', 'backend', 'base-url', 'model', 'api-key-env', 'concurrency', 'threshold', 'max-tasks', 'timeout', 'retries', 'tasks', 'ladder', 'samples', 'budget-usd', 'judge-backend', 'judge-model', 'judge-base-url', 'judge-api-key-env', 'judge-file', 'run-timeout', 'test-timeout', 'max-turns', 'bash', 'max-commit-age-days', 'max-runs-per-day', 'out-dir', 'source', 'judge', 'labels', 'benchmark', 'max-under']);
+const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out', 'backend', 'base-url', 'model', 'api-key-env', 'concurrency', 'threshold', 'max-tasks', 'timeout', 'retries', 'tasks', 'ladder', 'samples', 'budget-usd', 'judge-backend', 'judge-model', 'judge-base-url', 'judge-api-key-env', 'judge-file', 'run-timeout', 'test-timeout', 'max-turns', 'bash', 'max-commit-age-days', 'max-runs-per-day', 'out-dir', 'source', 'judge', 'labels', 'benchmark', 'max-under', 'n', 'strategy', 'seed', 'export-csv']);
 
 export function parseSince(v: string | undefined, now = Date.now()): number | undefined {
   if (v === undefined) return now - 30 * 86_400_000;
@@ -208,6 +221,9 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   if (cmd === 'dataset' && sub === 'replay') {
     return datasetReplayCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
   }
+  if (cmd === 'dataset' && sub === 'label') {
+    return datasetLabelCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
+  }
   if (cmd === 'dataset' && sub === 'import') {
     return datasetImportCmd(rest[0], flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
   }
@@ -215,7 +231,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     return datasetValidateJudgeCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
   }
   if (cmd === 'dataset') {
-    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build, judge, replay, import, validate-judge)\n\n${HELP}`);
+    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build, judge, label, replay, import, validate-judge)\n\n${HELP}`);
     return 1;
   }
   process.stderr.write(`agento: unknown command "${cmd}"\n\n${HELP}`);

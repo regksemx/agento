@@ -382,3 +382,28 @@ Exit code 1 when nothing could be compared. `--out` writes the same numbers as J
 ## What comes next
 
 - Calibrate the L1 threshold and the L0 thresholds against L2 (`labels.jsonl`); `agento train` takes L2 as gold.
+
+## Human labels: `agento dataset label`
+
+The owner labels a sample of their OWN past tasks in hindsight; this is the gold set for calibrating and evaluating the personal model and the L1 judge. Code: `cli/src/dataset/label/`.
+
+```
+agento dataset label [--n 50] [--strategy stratified|disagreement|random] [--seed N] [--judge <file>] [--lang ru|en]
+agento dataset label --report            # distribution + agreement of L0 / rules / L1 / history with your labels
+agento dataset label --export-csv [file] # labels with the guesses, no prompt text
+```
+
+Needs a terminal (raw-mode stdin). Each card shows the scrubbed first prompt and the observed trajectory; the L0, rules and L1 guesses are hidden until `g` (anti-anchoring). Questions: tier (1/2/3), effort (1/2/3), plan first (y/n), delegate exploration (y/n); `s` skip, `?` don't remember, `b` back, `q` or Ctrl+C stop. Every answer is appended at once.
+
+Output: `$AGENTO_HOME/dataset/judge/human.jsonl`, one line per verdict, appended with a single write (mode `0600`); re-labeling appends again and the last line of a `taskId` wins.
+
+| field | meaning |
+|---|---|
+| `taskId`, `ok: true`, `ts`, `v` | identity, like every judge line |
+| `labelSource` | `"human"` |
+| `labeledAt`, `labelerSeconds` | ISO time; seconds from showing the card to the last answer (capped at 3600) |
+| `l2Tier`, `l2Effort` | the cheapest model and the effort that would have been enough on the first try |
+| `l2PlanFirst`, `l2DelegateExplore` | booleans: a strong model should have planned first; exploration could go to a cheap subagent |
+| `unsure` | `true` for "don't remember": all four `l2*` fields are `null`, which replaces an earlier verdict of the task |
+
+`training/agento_train/export.py` merges `judge/*.jsonl` by `taskId` and reads the flat `l2*` fields as source **L2** (gold, weight 1.0) for all four heads. `human.jsonl` is merged last, so no other file overrides it. The replay's "newest judge file" lookup ignores `human.jsonl`.

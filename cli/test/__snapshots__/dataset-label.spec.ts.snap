@@ -1,0 +1,48 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`card rendering > en card with guesses revealed and a highlighted option 1`] = `
+"  ◆ agento · labeling                                        3 / 50 · saved 12
+    ~/Projects/acme-shop · 2026-09-12 14:03 · follow-ups: 0
+
+  ╭─ Task ───────────────────────────────────────────────────────────────────╮
+  │ Add pagination to the orders list in the admin panel.                    │
+  ╰──────────────────────────────────────────────────────────────────────────╯
+
+    What happened
+    opus-5.5 effort ? · steps 17 · files 4 · lines 123 · subagents 3
+    errors 2 · test failures 1 · corrections 1 · plan mode
+    12 min · $3.45 (API-equivalent)
+
+    guesses: L0 sonnet·high · rules opus·high · L1 haiku·low
+
+  2/4 ────────────────────────────────────────────────────────────────────────
+    Effort?
+     [1] low ▸[2] medium  [3] high    [s] skip  [?] don't remember
+    your answers: model sonnet
+
+    b back · g hide guesses · e expand · s skip · q quit
+    ←/→ choose, Enter confirm"
+`;
+
+exports[`card rendering > ru card snapshot (no color, width 80) 1`] = `
+"  ◆ agento · разметка                                     3 / 50 · записано 12
+    ~/Projects/acme-shop · 2026-09-12 14:03 · реплик после: 0
+
+  ╭─ Задача ─────────────────────────────────────────────────────────────────╮
+  │ Add pagination to the orders list in the admin panel.                    │
+  ╰──────────────────────────────────────────────────────────────────────────╯
+
+    Что было
+    opus-5.5·high · шаги 17 · файлы 4 · строки 123 · субагенты 3
+    ошибки 2 · тесты упали 1 · поправки 1
+    12 мин · $3.45 (по ценам API)
+
+    догадки скрыты, чтобы не подсказывать (g — показать)
+
+  1/4 ────────────────────────────────────────────────────────────────────────
+    Какой модели хватило бы с первой попытки?
+     [1] haiku  [2] sonnet  [3] opus    [s] пропустить  [?] не помню
+
+    b назад · g догадки · e развернуть · s пропустить · q выйти
+    ←/→ выбор, Enter подтвердить"
+`;
