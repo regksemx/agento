@@ -30,6 +30,16 @@ curl --unix-socket ~/.agento/brain.sock http://localhost/healthz
 curl --unix-socket ~/.agento/brain.sock http://localhost/v1/route -d '{"text":"fix the typo in README","context":{"start":"session"}}'
 ```
 
+## Get the published model
+
+```sh
+agento-brain fetch                 # latest published model -> $AGENTO_HOME/brain/model (sha256 + contract checked)
+agento-brain fetch opus-v1         # a named one (see src/agento_brain/models.json)
+agento-brain fetch https://…/m.tar.gz --sha256 <hex>   # any archive of the four contract files
+```
+
+The previous model is kept as `model.prev`; a failed download or a model that breaks the contract changes nothing.
+
 ## Install as a service (writes files only)
 
 ```sh
