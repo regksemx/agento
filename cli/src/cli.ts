@@ -5,6 +5,7 @@ import { detectColor, renderJson, renderMarkdown, renderTerminal } from './repor
 import { buildDataset, renderDatasetSummary } from './dataset/index.ts';
 import { datasetJudgeCmd } from './dataset/judge/index.ts';
 import { datasetReplayCmd } from './dataset/replay/index.ts';
+import { datasetImportCmd, datasetValidateJudgeCmd } from './dataset/public/index.ts';
 
 const VERSION = '0.1.0';
 
@@ -15,6 +16,8 @@ Usage
   agento dataset build [options]   build the training dataset (tasks.jsonl) from local transcripts
   agento dataset judge [options]   L1 labels: a judge model reads each finished task (resumable)
   agento dataset replay [options]  L2 labels: re-run past tasks on cheaper configurations in a git worktree (SPENDS your limit)
+  agento dataset import twinrouterbench [options]   public data: verified-tier steps from TwinRouterBench (Apache-2.0), mapped to haiku/sonnet/opus
+  agento dataset validate-judge [options]   compare an L1 judge file with the verified tiers of the public data (accuracy, under-routing, calibration, threshold sweep)
   agento --version
 
 Audit options
@@ -47,6 +50,19 @@ Dataset judge options (--lang, --no-color as above); input: $AGENTO_HOME/dataset
   --yes               claude: do not ask for confirmation
   --dry-run           print task count, token and cost estimates; call nothing
 
+Dataset import twinrouterbench options (--lang, --no-color as above); output: $AGENTO_HOME/dataset/public/twinrouterbench.jsonl + twinrouterbench.summary.json
+  --source <path|url> a TwinRouterBench checkout, its question_bank.jsonl, or a git URL (cloned into $AGENTO_HOME/cache/twinrouterbench)
+  --fetch             clone/update https://github.com/CommonstackAI/TwinRouterBench into the cache (needed when there is no --source)
+  --out <file>        default: see above
+
+Dataset validate-judge options (--lang, --no-color as above)
+  --judge <file>      L1 verdicts written by \`dataset judge --tasks <public file>\` (required)
+  --labels <file>     default: $AGENTO_HOME/dataset/public/twinrouterbench.jsonl
+  --threshold <p>     label = cheapest configuration with p >= threshold (default: 0.7); the sweep always shows 0.5..0.9
+  --max-under <x>     under-routing the recommended threshold may have (default: 0.05)
+  --benchmark <list>  only these workloads, e.g. swebench or swebench,bfcl
+  --out <file>        also write the metrics as JSON
+
 Dataset replay options (--lang, --no-color, --dir, --project, --tasks as above); output: $AGENTO_HOME/dataset/replay/{runs,labels}.jsonl
   THIS SPENDS YOUR CLAUDE LIMIT (subscription) or MONEY (ANTHROPIC_API_KEY). Nothing runs without --max-tasks, --budget-usd and a confirmation.
   --max-tasks <N>     replay at most N tasks (required)
@@ -75,6 +91,7 @@ Dataset replay options (--lang, --no-color, --dir, --project, --tasks as above);
 interface Args {
   cmd?: string;
   sub?: string;
+  rest: string[]; // positionals after cmd and sub
   flags: Map<string, string | true>;
 }
 
@@ -82,6 +99,7 @@ function parseArgs(argv: string[]): Args {
   const flags = new Map<string, string | true>();
   let cmd: string | undefined;
   let sub: string | undefined;
+  const rest: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a.startsWith('--')) {
@@ -93,12 +111,13 @@ function parseArgs(argv: string[]): Args {
     } else if (a === '-h') flags.set('help', true);
     else if (a === '-v') flags.set('version', true);
     else if (cmd === undefined) cmd = a;
-    else sub ??= a;
+    else if (sub === undefined) sub = a;
+    else rest.push(a);
   }
-  return { cmd, sub, flags };
+  return { cmd, sub, rest, flags };
 }
 
-const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out', 'backend', 'base-url', 'model', 'api-key-env', 'concurrency', 'threshold', 'max-tasks', 'timeout', 'retries', 'tasks', 'ladder', 'samples', 'budget-usd', 'judge-backend', 'judge-model', 'judge-base-url', 'judge-api-key-env', 'judge-file', 'run-timeout', 'test-timeout', 'max-turns', 'bash', 'max-commit-age-days', 'max-runs-per-day', 'out-dir']);
+const VALUED = new Set(['dir', 'since', 'project', 'md', 'lang', 'out', 'backend', 'base-url', 'model', 'api-key-env', 'concurrency', 'threshold', 'max-tasks', 'timeout', 'retries', 'tasks', 'ladder', 'samples', 'budget-usd', 'judge-backend', 'judge-model', 'judge-base-url', 'judge-api-key-env', 'judge-file', 'run-timeout', 'test-timeout', 'max-turns', 'bash', 'max-commit-age-days', 'max-runs-per-day', 'out-dir', 'source', 'judge', 'labels', 'benchmark', 'max-under']);
 
 export function parseSince(v: string | undefined, now = Date.now()): number | undefined {
   if (v === undefined) return now - 30 * 86_400_000;
@@ -166,7 +185,7 @@ async function datasetBuildCmd(flags: Map<string, string | true>): Promise<void>
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
-  const { cmd, sub, flags } = parseArgs(argv);
+  const { cmd, sub, rest, flags } = parseArgs(argv);
   if (flags.has('version')) {
     process.stdout.write(VERSION + '\n');
     return 0;
@@ -189,8 +208,14 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   if (cmd === 'dataset' && sub === 'replay') {
     return datasetReplayCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
   }
+  if (cmd === 'dataset' && sub === 'import') {
+    return datasetImportCmd(rest[0], flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
+  }
+  if (cmd === 'dataset' && sub === 'validate-judge') {
+    return datasetValidateJudgeCmd(flags, detectLang(typeof flags.get('lang') === 'string' ? (flags.get('lang') as string) : undefined));
+  }
   if (cmd === 'dataset') {
-    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build, judge, replay)\n\n${HELP}`);
+    process.stderr.write(`agento: unknown dataset command "${sub ?? ''}" (expected: build, judge, replay, import, validate-judge)\n\n${HELP}`);
     return 1;
   }
   process.stderr.write(`agento: unknown command "${cmd}"\n\n${HELP}`);

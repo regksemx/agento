@@ -320,6 +320,65 @@ A non-empty diff is a weak check (any edit passes): for tasks without tests pref
 observed model x L2 (with "ran on Opus/Fable, L2 found sonnet or haiku enough"), and **L1 vs L2** from the newest file in `dataset/judge/` (`--judge-file` overrides): a tier matrix,
 exact and same-tier agreement, "judge cheaper than what sufficed" (under-routing, the quality risk) and "judge dearer than needed" (missed saving). A dim note says L2 is calibration, not truth (2 samples, only detectable checks).
 
+## Public data: `agento dataset import twinrouterbench`
+
+Why and how the tiers map: `docs/public-data.md`. Code: `cli/src/dataset/public/`.
+
+```
+agento dataset import twinrouterbench [--source <path|git-url>] [--fetch] [--out <file>] [--lang ru|en] [--no-color]
+```
+
+| Item | Behaviour |
+|---|---|
+| `--source` | a TwinRouterBench checkout, its `data/static` directory or `question_bank.jsonl`; a git URL is cloned (depth 1) into `$AGENTO_HOME/cache/twinrouterbench` |
+| `--fetch` | clone or update `https://github.com/CommonstackAI/TwinRouterBench` into that cache. Without `--source` and without `--fetch` the command refuses (nothing is downloaded implicitly) |
+| output | `$AGENTO_HOME/dataset/public/twinrouterbench.jsonl` (mode `0600`) and `twinrouterbench.summary.json` next to it (`--out` overrides the first) |
+
+```jsonc
+{
+  "v": 1,
+  "taskId": "0bc5449b5116b766",          // first 16 hex of sha256("twinrouterbench:" + source id)
+  "source": "twinrouterbench",
+  "project": "twinrouterbench/swebench",
+  "startTs": 0,
+  "text": ["[system] ...\n\n[user] ...\n\n[assistant] ...\n→ bash({...})\n\n[tool] ..."],   // one element: the router-visible prefix, cut in the middle to ~6000 chars
+  "context": { "contextTokensAtStart": 2278, "startKind": "agent-step", "languages": ["py"], "hasGitBranch": true, "prevTaskWasHeavy": false },
+  "labelSource": "L2-public",
+  "l2Tier": "opus",                        // mapped: low,mid -> haiku, mid_high -> sonnet, high -> opus
+  "l2Evidence": { "publicTier": "high", "publicTierId": 3, "benchmark": "swebench", "scenario": "code_swe", "instanceId": "django__django-11163",
+                  "stepIndex": 4, "totalSteps": 9, "benchmarkSubset": "verified_40", "pipelineStage": "degradation_search_done",
+                  "sourceId": "swebench_django__django-11163_step_4", "prefixChars": 7294, "truncated": true, "messages": 8 }
+}
+```
+
+`observed`, `difficulty`, `l0*` and `rulesVerdict` are absent (there is no Claude Code history behind a public step). `startKind` is `first-prompt` for step 1 and
+`agent-step` after. `languages`/`hasGitBranch` are best effort (`py`/true for SWE-bench only). `summary.json` has the record and tier counts, per-workload
+tier matrix, skipped rows by reason, prefix length statistics, the tier mapping and a `notice` with the Apache-2.0 attribution.
+
+`agento dataset judge --tasks <public file>` judges these records too: the user prompt has a "Step of an agent run" section, the prefix in `<prefix>` tags and
+the line "No trajectory available; judge from the prefix only." (own-history prompts are unchanged apart from the system prompt gaining a paragraph about
+such records, so `promptVersion` changed). The judge summary then counts public records separately and skips the L0/history matrices for them.
+
+## `agento dataset validate-judge`
+
+```
+agento dataset validate-judge --judge <judge.jsonl> [--labels <public.jsonl>] [--threshold 0.7] [--max-under 0.05] [--benchmark swebench,bfcl] [--out <json>] [--lang ru|en] [--no-color]
+```
+
+Joins judge verdicts and public labels by `taskId`; the L1 label is re-derived from the stored `l1Probs` with `--threshold` (default 0.7). Reports:
+
+| Metric | Definition |
+|---|---|
+| accuracy | judge tier = verified tier |
+| under-routing | judge cheaper than verified: the quality risk |
+| over-routing | judge dearer than verified: a missed saving |
+| confusion | verified x judge tier; by workload table |
+| calibration | reliability table in 10 bins of p("sonnet suffices") = max(`sonnet-medium`, `sonnet-high`) against "verified tier is not opus"; ECE and Brier; ECE of "haiku suffices" |
+| threshold sweep | thresholds 0.5, 0.6, 0.7, 0.8, 0.9: accuracy, under, over, saving = 1 - cost(routed) / cost(all opus) at blended list prices (equal weight per step); the no-loss ceiling (route exactly by verified tier) |
+| recommendation | the threshold with the largest saving among those with under-routing <= `--max-under` (ties: the higher one); none if no threshold qualifies |
+
+Exit code 1 when nothing could be compared. `--out` writes the same numbers as JSON (`ValidationSummary`).
+
 ## What comes next
 
 - Calibrate the L1 threshold and the L0 thresholds against L2 (`labels.jsonl`); `agento train` takes L2 as gold.

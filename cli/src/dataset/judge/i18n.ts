@@ -34,6 +34,7 @@ export interface JudgeStrings {
   overSpec(count: string, share: string, cost: string, saving: string): string;
   written: string;
   runtime(ms: string): string;
+  publicNote(n: string): string;
   unvalidatedNote: string;
   nextNote: string;
   // dry run
@@ -86,6 +87,7 @@ const ru: JudgeStrings = {
   overSpec: (c, s, cost, sv) => `шло на Opus/Fable, судья говорит sonnet или haiku хватало: ${c} (${s}), стоили ${cost}, экономия ≈ ${sv}`,
   written: 'вердикты',
   runtime: (ms) => `готово за ${ms}`,
+  publicNote: (n) => `${n} публичных записей (шаги агента с проверенными тирами, без траектории): сравните вердикты с эталоном командой \`agento dataset validate-judge\`.`,
   unvalidatedNote: 'L1 не проверена: это мнение судьи по законченной задаче. Доказательством станут L2-перепрогоны.',
   nextNote: 'Дальше: `agento dataset replay` (L2) проверит дешёвые конфигурации на деле и откалибрует порог.',
   dryTitle: 'Пробный запуск (--dry-run)',
@@ -136,6 +138,7 @@ const en: JudgeStrings = {
   overSpec: (c, s, cost, sv) => `ran on Opus/Fable, judge says sonnet or haiku suffices: ${c} (${s}), cost ${cost}, saving ≈ ${sv}`,
   written: 'verdicts',
   runtime: (ms) => `done in ${ms}`,
+  publicNote: (n) => `${n} public records (agent steps with verified tiers, no trajectory): compare the verdicts with the reference via \`agento dataset validate-judge\`.`,
   unvalidatedNote: 'L1 is unvalidated: it is the judge\'s opinion of a finished task. L2 replays will be the proof.',
   nextNote: 'Next: `agento dataset replay` (L2) tests the cheaper configurations for real and calibrates the threshold.',
   dryTitle: 'Dry run (--dry-run)',

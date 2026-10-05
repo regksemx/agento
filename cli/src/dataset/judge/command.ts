@@ -6,7 +6,7 @@ import { createInterface } from 'node:readline';
 import { detectColor } from '../../report/theme.ts';
 import type { Lang } from '../../report/i18n.ts';
 import { defaultOutPath } from '../write.ts';
-import type { TaskRecord } from '../types.ts';
+import { isPublicTask, type JudgeTask, type TaskRecord } from '../types.ts';
 import { claudeBackend, type SpawnFn } from './claude.ts';
 import { estimateRun, type Estimate } from './estimate.ts';
 import { judgeStrings } from './i18n.ts';
@@ -98,24 +98,34 @@ export function parseJudgeFlags(flags: Flags, env: Record<string, string | undef
   };
 }
 
-export function readTasks(path: string): TaskRecord[] {
+function readJsonl(path: string): JudgeTask[] {
   let text: string;
   try {
     text = readFileSync(path, 'utf8');
   } catch {
-    throw new Error(`cannot read ${path}: run \`agento dataset build\` first or pass --tasks`);
+    throw new Error(`cannot read ${path}: run \`agento dataset build\` (or \`dataset import\`) first or pass --tasks`);
   }
-  const tasks: TaskRecord[] = [];
+  const tasks: JudgeTask[] = [];
   for (const line of text.split('\n')) {
     if (line.trim() === '') continue;
     try {
-      const r = JSON.parse(line) as TaskRecord;
+      const r = JSON.parse(line) as JudgeTask;
       if (typeof r.taskId === 'string' && Array.isArray(r.text)) tasks.push(r);
     } catch {
       // skip a damaged line
     }
   }
   return tasks;
+}
+
+// Own history only (replay needs the observed trajectory).
+export function readTasks(path: string): TaskRecord[] {
+  return readJsonl(path).filter((t): t is TaskRecord => !isPublicTask(t));
+}
+
+// Own history and public records (`dataset import`): the judge accepts both.
+export function readJudgeTasks(path: string): JudgeTask[] {
+  return readJsonl(path);
 }
 
 export function makeBackend(o: JudgeOptions, deps: JudgeDeps = {}): JudgeBackend {
@@ -160,7 +170,7 @@ export async function datasetJudgeCmd(flags: Flags, lang: Lang, deps: JudgeDeps 
   const ropts = { color, width, lang };
   const started = Date.now();
 
-  const tasks = readTasks(o.tasksPath);
+  const tasks = readJudgeTasks(o.tasksPath);
   const done = judgedMap(readJudgeFile(o.outPath));
   const plan = planRun(tasks, done, { force: o.force, maxTasks: o.maxTasks });
   const est: Estimate = estimateRun({ backend: o.backend, model: o.model, pending: plan.pending, totalTasks: tasks.length, judgedAlready: plan.alreadyJudged });

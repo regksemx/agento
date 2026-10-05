@@ -1,7 +1,7 @@
 // --dry-run and the claude confirmation: how many tasks, roughly how many tokens, and what that costs. No network, no spawn.
 
 import { priceOf } from '../../../../plugin/core/pricing.ts';
-import type { TaskRecord } from '../types.ts';
+import type { JudgeTask } from '../types.ts';
 import { buildJudgePrompt, estimateTokens, EST_OUTPUT_TOKENS } from './prompt.ts';
 import type { JudgeBackendKind } from './types.ts';
 
@@ -21,7 +21,7 @@ export interface Estimate {
   priceKnown: boolean;
 }
 
-export function estimateRun(o: { backend: JudgeBackendKind; model: string; pending: readonly TaskRecord[]; totalTasks: number; judgedAlready: number }): Estimate {
+export function estimateRun(o: { backend: JudgeBackendKind; model: string; pending: readonly JudgeTask[]; totalTasks: number; judgedAlready: number }): Estimate {
   let userChars = 0;
   let systemChars = 0;
   for (const t of o.pending) {

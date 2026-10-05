@@ -1,7 +1,7 @@
 // The judging loop: plan which tasks still need a verdict, run them through a backend with bounded concurrency,
 // append every verdict as soon as it exists (so a crash or Ctrl-C loses at most the in-flight calls).
 
-import type { TaskRecord } from '../types.ts';
+import type { JudgeTask } from '../types.ts';
 import { deriveLabel, DEFAULT_THRESHOLD } from './label.ts';
 import { parseJudgeResponse } from './parse.ts';
 import { buildJudgePrompt, PROMPT_VERSION } from './prompt.ts';
@@ -14,14 +14,14 @@ export interface PlanOptions {
 }
 
 export interface Plan {
-  pending: TaskRecord[];
+  pending: JudgeTask[];
   skipped: number; // already judged and not selected again
   alreadyJudged: number;
 }
 
 // With --max-tasks the selection is a stable pseudo-random sample (taskId is a hash), not "the oldest N":
 // successive runs continue the same order and the sample is not biased towards early history.
-export function planRun(tasks: readonly TaskRecord[], done: ReadonlyMap<string, unknown>, o: PlanOptions): Plan {
+export function planRun(tasks: readonly JudgeTask[], done: ReadonlyMap<string, unknown>, o: PlanOptions): Plan {
   const alreadyJudged = tasks.filter((t) => done.has(t.taskId)).length;
   let pending = o.force ? [...tasks] : tasks.filter((t) => !done.has(t.taskId));
   if (o.maxTasks !== undefined) pending = pending.sort((a, b) => (a.taskId < b.taskId ? -1 : a.taskId > b.taskId ? 1 : 0)).slice(0, Math.max(0, o.maxTasks));
@@ -29,7 +29,7 @@ export function planRun(tasks: readonly TaskRecord[], done: ReadonlyMap<string, 
 }
 
 export interface RunOptions {
-  tasks: readonly TaskRecord[];
+  tasks: readonly JudgeTask[];
   outPath: string;
   backend: JudgeBackend;
   threshold?: number;

@@ -16,7 +16,7 @@ export interface JudgeRenderOptions {
   lang: Lang;
 }
 
-interface Kit {
+export interface Kit {
   W: number;
   bw: number;
   t: Theme;
@@ -28,7 +28,7 @@ interface Kit {
   n(x: number): string;
 }
 
-function kit(opts: JudgeRenderOptions): Kit {
+export function kit(opts: JudgeRenderOptions): Kit {
   const W = clamp(Number.isFinite(opts.width) ? Math.floor(opts.width) : 80, 64, 100);
   const t = makeTheme(opts.color);
   const bw = W - 6;
@@ -48,10 +48,10 @@ function kit(opts: JudgeRenderOptions): Kit {
   return { W, bw, t, out, blank, body, note, section, n };
 }
 
-type Matrix = Record<string, Record<string, number>>;
+export type Matrix = Record<string, Record<string, number>>;
 
 // Rows x tier columns; cells strictly "above" the diagonal for the over-spend reading are accented by `hot`.
-function matrix(k: Kit, rowHeader: string, colPrefix: string, totalLabel: string, rows: string[], cols: readonly string[], m: Matrix, hot: (row: string, col: string) => boolean): void {
+export function matrix(k: Kit, rowHeader: string, colPrefix: string, totalLabel: string, rows: string[], cols: readonly string[], m: Matrix, hot: (row: string, col: string) => boolean): void {
   const labelW = Math.max(visWidth(rowHeader), ...rows.map((r) => r.length)) + 1;
   const cellW = Math.max(7, visWidth(totalLabel) + 1);
   k.body(k.t.dim(padR(rowHeader, labelW)) + cols.map((c) => k.t.dim(padL(colPrefix + ' ' + c, cellW + 3))).join('') + k.t.dim(padL(totalLabel, cellW)));
@@ -126,8 +126,8 @@ export function renderJudgeSummary(s: JudgeSummary, opts: JudgeRenderOptions): s
   }
 
   // ───────── L0 vs L1 ─────────
-  section(D.l0Title, D.l0Hint);
-  {
+  if (s.ownJudged > 0) section(D.l0Title, D.l0Hint);
+  if (s.ownJudged > 0) {
     // above the diagonal: the judge asks for a stronger tier than L0
     const rank = (x: string): number => L0_TIERS.indexOf(x as (typeof L0_TIERS)[number]);
     matrix(k, D.l0Row, D.l1Col, D.colTotal, [...L0_TIERS], L0_TIERS, s.l0VsL1, (r, c) => rank(c) > rank(r));
@@ -136,8 +136,8 @@ export function renderJudgeSummary(s: JudgeSummary, opts: JudgeRenderOptions): s
   }
 
   // ───────── history vs L1 ─────────
-  section(D.histTitle, D.histHint);
-  {
+  if (s.ownJudged > 0) section(D.histTitle, D.histHint);
+  if (s.ownJudged > 0) {
     const rows = OBSERVED_TIERS.filter((o) => L0_TIERS.some((c) => s.observedVsL1[o][c] > 0));
     matrix(k, D.histRow, D.l1Col, D.colTotal, rows, L0_TIERS, s.observedVsL1, (r, c) => (r === 'opus' || r === 'fable') && c !== 'opus');
     blank();
@@ -150,6 +150,10 @@ export function renderJudgeSummary(s: JudgeSummary, opts: JudgeRenderOptions): s
   body(t.dim(D.written + ': ') + t.num(truncateStart(tildify(s.out), bw - visWidth(D.written) - 2)));
   body(t.dim(D.runtime(formatDuration(s.run.durationMs))));
   blank();
+  if (s.publicJudged > 0) {
+    note(D.publicNote(n(s.publicJudged)));
+    blank();
+  }
   note(D.unvalidatedNote);
   note(D.nextNote);
   return out.join('\n');

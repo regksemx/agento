@@ -3,7 +3,7 @@
 import { priceOf } from '../../../../plugin/core/pricing.ts';
 import type { TaskEffort, TaskTier } from '../../../../plugin/core/task.ts';
 import { OBSERVED_TIERS, L0_TIERS, type ObservedTier } from '../summary.ts';
-import type { TaskRecord } from '../types.ts';
+import { isPublicTask, type JudgeTask } from '../types.ts';
 import { deriveLabel } from './label.ts';
 import type { RunResult } from './run.ts';
 import { JUDGE_CONFIGS, type ConfigId, type JudgeBackendKind, type JudgeRecordOk } from './types.ts';
@@ -21,7 +21,9 @@ export interface JudgeSummary {
   l1Tier: Record<TaskTier, number>;
   ladder: Record<ConfigId, number>; // distribution over the four configurations
   l0VsL1: Record<TaskTier, Record<TaskTier, number>>; // [l0][l1]
-  agreement: number; // share of judged tasks where L0 and L1 pick the same tier
+  ownJudged: number; // judged tasks from own history (they have L0 and an observed run)
+  publicJudged: number; // judged public records (verified tiers, no observed run): see `dataset validate-judge`
+  agreement: number; // share of own judged tasks where L0 and L1 pick the same tier
   observedVsL1: Record<ObservedTier, Record<TaskTier, number>>; // [observed][l1]
   // observed opus/fable while the judge says sonnet or haiku suffices
   overSpec: { count: number; share: number; cost: number; saving: number };
@@ -39,7 +41,7 @@ function blended(modelOrAlias: string | undefined): number | null {
 }
 
 export interface JudgeSummaryInput {
-  tasks: readonly TaskRecord[];
+  tasks: readonly JudgeTask[];
   verdicts: ReadonlyMap<string, JudgeRecordOk>;
   backend: JudgeBackendKind;
   model: string;
@@ -57,6 +59,8 @@ export function summarizeJudge(i: JudgeSummaryInput): JudgeSummary {
   const l0VsL1 = { haiku: zeroTiers(), sonnet: zeroTiers(), opus: zeroTiers() };
   const observedVsL1 = Object.fromEntries(OBSERVED_TIERS.map((t) => [t, zeroTiers()])) as Record<ObservedTier, Record<TaskTier, number>>;
   let judged = 0;
+  let own = 0;
+  let publicJudged = 0;
   let agree = 0;
   let planFirst = 0;
   let explore = 0;
@@ -74,13 +78,18 @@ export function summarizeJudge(i: JudgeSummaryInput): JudgeSummary {
     const effort: TaskEffort = label.effort;
     l1Tier[label.tier] += 1;
     ladder[`${label.tier}-${effort}` as ConfigId] += 1;
+    if (v.needsPlanFirst) planFirst += 1;
+    if (v.delegateExplore) explore += 1;
+    diff += v.l1Difficulty;
+    if (isPublicTask(t)) {
+      publicJudged += 1;
+      continue;
+    }
+    own += 1;
     l0VsL1[t.l0Tier][label.tier] += 1;
     if (t.l0Tier === label.tier) agree += 1;
     const ot = (OBSERVED_TIERS as readonly string[]).includes(t.observed.modelTier) ? (t.observed.modelTier as ObservedTier) : 'unknown';
     observedVsL1[ot][label.tier] += 1;
-    if (v.needsPlanFirst) planFirst += 1;
-    if (v.delegateExplore) explore += 1;
-    diff += v.l1Difficulty;
     if ((ot === 'opus' || ot === 'fable') && label.tier !== 'opus') {
       overCount += 1;
       overCost += t.observed.cost;
@@ -104,9 +113,11 @@ export function summarizeJudge(i: JudgeSummaryInput): JudgeSummary {
     l1Tier,
     ladder,
     l0VsL1,
-    agreement: share(agree),
+    ownJudged: own,
+    publicJudged,
+    agreement: own > 0 ? agree / own : 0,
     observedVsL1,
-    overSpec: { count: overCount, share: share(overCount), cost: round2(overCost), saving: round2(overSaving) },
+    overSpec: { count: overCount, share: own > 0 ? overCount / own : 0, cost: round2(overCost), saving: round2(overSaving) },
     needsPlanFirst: planFirst,
     delegateExplore: explore,
     meanDifficulty: judged > 0 ? diff / judged : 0,

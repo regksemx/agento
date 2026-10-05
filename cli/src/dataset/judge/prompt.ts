@@ -3,7 +3,7 @@
 // so a verdict can always be traced to the exact prompt that produced it.
 
 import { createHash } from 'node:crypto';
-import { SCHEMA_VERSION, type TaskRecord } from '../types.ts';
+import { isPublicTask, SCHEMA_VERSION, type JudgeTask, type PublicTaskRecord, type TaskRecord } from '../types.ts';
 import { scrubText } from '../scrub.ts';
 import { JUDGE_CONFIGS, type JudgePrompt, type JudgeVerdict } from './types.ts';
 
@@ -48,13 +48,38 @@ const START_KIND: Record<string, string> = {
   compact: 'right after a context compaction',
   clear: 'right after /clear',
   idle: 'after a long idle pause (the prompt cache is cold)',
+  'agent-step': 'a later step of an agent run (the prefix holds the earlier steps)',
 };
 
 const yn = (b: boolean): string => (b ? 'yes' : 'no');
 
+// Public records (TwinRouterBench) are one routed step of an agent run: the judge sees the router-visible prefix and no observed run.
+function buildStepPrompt(r: PublicTaskRecord): string {
+  const c = r.context;
+  const e = r.l2Evidence;
+  const fence = (x: string): string => scrubText(x).replace(/<\/?prefix\b/gi, '<\u200bprefix');
+  const lines: string[] = [];
+  lines.push('## Step of an agent run');
+  lines.push(`Workload: ${e.benchmark} (${e.scenario}), step ${e.stepIndex} of ${e.totalSteps}.`);
+  lines.push('The question is about the NEXT model call: the router-visible prefix below is everything the model sees now (system prompt, user messages, earlier assistant turns and tool results; long parts are cut in the middle):');
+  lines.push('<prefix>', fence(r.text.join('\n\n')), '</prefix>');
+  lines.push('');
+  lines.push('## Context');
+  lines.push(`- languages touched: ${c.languages.length > 0 ? c.languages.join(', ') : 'none detected'}`);
+  lines.push(`- prefix size: ${fmtTokens(c.contextTokensAtStart)} tokens`);
+  lines.push(`- position: ${START_KIND[c.startKind] ?? c.startKind}`);
+  lines.push('');
+  lines.push('## Observed run');
+  lines.push('No trajectory available; judge from the prefix only.');
+  lines.push('');
+  lines.push('Answer with the JSON object only.');
+  return lines.join('\n');
+}
+
 // Everything the judge sees about a task. Text is scrubbed again here: the judge may be a remote endpoint, so the prompt builder
 // never trusts the file to be clean. Prompts are fenced in <prompt> tags and are data, never instructions to the judge.
-export function buildUserPrompt(r: TaskRecord): string {
+export function buildUserPrompt(r: JudgeTask): string {
+  if (isPublicTask(r)) return buildStepPrompt(r);
   const o = r.observed;
   const c = r.context;
   const fence = (s: string): string => scrubText(s).replace(/<\/?prompt\b/gi, '<​prompt');
@@ -204,6 +229,8 @@ const SYSTEM_HEAD = `You are a careful, calibrated reviewer of FINISHED coding-a
 ## Setting
 A developer uses Claude Code. For most tasks they ran an expensive model (usually Opus, often with high effort) out of habit, whatever the task was. You see the task prompts, the starting context and a summary of what that expensive run did. You do NOT see the code, the diff or the final result.
 
+Some records are different: they are ONE STEP of an agent run taken from a public benchmark (the section "Step of an agent run"), with the line "No trajectory available; judge from the prefix only." Then you see only the router-visible prefix of the next model call, and p means: this configuration, given exactly that prefix, produces a next step that keeps the run on track to a correct final result. Steps such as reading a file, a simple tool call or a faithful summary are easy; steps that decide the approach, write the fix or reconcile conflicting evidence are hard.
+
 The four configurations, cheapest first:
 1. haiku-low: the smallest model, minimal reasoning
 2. sonnet-medium: mid-size model, balanced reasoning
@@ -249,7 +276,7 @@ export const PROMPT_VERSION = createHash('sha256')
   .digest('hex')
   .slice(0, 12);
 
-export function buildJudgePrompt(r: TaskRecord): JudgePrompt {
+export function buildJudgePrompt(r: JudgeTask): JudgePrompt {
   return { system: SYSTEM_PROMPT, user: buildUserPrompt(r) };
 }
 
